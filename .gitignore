@@ -1,0 +1,16 @@
+# Hermes OS Foundation — .gitignore
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Hermes agent working files
+.hermes/
