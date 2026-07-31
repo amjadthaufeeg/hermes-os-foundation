@@ -30,7 +30,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install validation dependencies
-        run: pip install pyyaml jsonschema
+        run: pip install pyyaml "jsonschema>=4.20,<5"
 
       - name: Set CI environment
         run: |
