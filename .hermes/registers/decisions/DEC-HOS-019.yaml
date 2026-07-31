@@ -1,0 +1,33 @@
+decision_id: DEC-HOS-019
+title: "Product-development philosophy governs future expansion"
+status: approved
+date: "2026-07-31"
+owner: amjad
+applies_to: all
+category: governance
+
+decision: >
+  Future roles, agents, departments, and automation must be evaluated against
+  the approved Product Development Philosophy before they are added to Hermes
+  Product OS. No new capability may contradict the 13 principles defined in
+  that document. If a proposed capability conflicts with a principle, the
+  principle wins.
+
+reason: >
+  The Product Development Philosophy defines the immutable values of Hermes
+  Product OS. Requiring future expansions to be validated against these
+  principles prevents drift — ensuring every new capability preserves the
+  system's commitment to evidence-based completion, deterministic commercial
+  logic, single accountability, incremental evolution, and human-readable
+  operation.
+
+alternatives_considered:
+  - option: "Philosophy as non-binding guidance"
+    rejected_because: "Without binding effect, principles become aspirational rather than enforceable; future expansions could erode the governance model"
+  - option: "No formal philosophy document"
+    rejected_because: "Without explicit principles, decisions about system expansion would be ad hoc and inconsistent"
+
+supersedes: []
+superseded_by: []
+related_tasks: [TASK-HOS-001]
+last_reviewed: "2026-07-31"

@@ -1,0 +1,18 @@
+decision_id: DEC-HOS-007
+title: Department-based operating model
+status: approved
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: 'Hermes Product OS operates through six divisions: Engineering, Design Studio, Quality, Research, Knowledge, and
+  Operations — each with defined responsibilities, boundaries, and reporting relationships to Hermes. Amjad retains final
+  product, commercial, and design authority.'
+reason: Department-based organization clarifies responsibilities, prevents role confusion, and enables parallel specialization
+  without authority conflicts.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-07-31'

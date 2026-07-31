@@ -1,0 +1,17 @@
+decision_id: DEC-HOS-011
+title: Writing sub-agents use isolated worktrees
+status: approved
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Any agent writing code operates in a dedicated git worktree with an isolated branch. Sub-agents never write directly
+  to the integration branch. Candidate commits are submitted to the integration owner (normally Kimi K3) for review and merge.
+reason: Worktree isolation prevents sub-agent work from interfering with the main branch or with other sub-agents. It enforces
+  the single-writer rule at the filesystem level.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-07-31'

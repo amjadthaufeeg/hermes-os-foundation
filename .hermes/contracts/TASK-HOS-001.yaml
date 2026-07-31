@@ -1,0 +1,65 @@
+task_id: TASK-HOS-001
+project: Hermes Product OS
+release: HOS-1
+title: "Governance and Repository-Safety Foundation"
+task_type: infrastructure
+risk_level: R2
+
+objective: >
+  Implement minimum governance schemas, policies, enforcement scripts,
+  and CI that make all subsequent releases safe.
+
+baseline_commit: 59bde8873ecbe67012c038d936dda54cf875d442
+
+allowed_files:
+  - ".hermes/schemas/*.json"
+  - ".hermes/policies/*.yaml"
+  - ".hermes/templates/*.yaml"
+  - ".hermes/registers/decisions/DEC-HOS-*.yaml"
+  - ".hermes/registers/decisions/DEC-AVOA-PRICING-*.yaml"
+  - ".hermes/registers/regressions/*.yaml"
+  - ".hermes/scripts/*.sh"
+  - ".hermes/events/README.md"
+  - ".hermes/contracts/*.yaml"
+  - ".hermes/audit/*.yaml"
+  - ".github/workflows/hermes-ci.yml"
+  - "docs/hermes-os-v3.1/*.md"
+  - "docs/hermes-os-v3/*.md"
+  - "03_Engineering_OS/HERMES_ENGINEERING_OS_V3.md"
+
+allowed_folders:
+  - ".hermes/"
+  - ".github/"
+  - "docs/"
+
+protected_areas:
+  - "backend/"
+  - "frontend/"
+  - "production/"
+  - "secrets/"
+
+authorized_protected_changes: []
+
+must_not_change:
+  - "Any production application code"
+  - "Active cron jobs"
+  - "Credentials or secrets"
+
+acceptance_criteria:
+  - "All scripts pass test cases"
+  - "Scope check passes"
+  - "Protected-zone check passes"
+
+required_checks:
+  - "Schema validation"
+  - "Scope check"
+  - "Protected-zone check"
+
+stop_conditions:
+  - "Any production file modified"
+  - "Scope expands beyond declared files"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: false
+amjad_approval_required: true

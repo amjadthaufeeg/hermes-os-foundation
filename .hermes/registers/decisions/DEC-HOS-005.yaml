@@ -1,0 +1,17 @@
+decision_id: DEC-HOS-005
+title: GitHub is the authoritative source of truth
+status: approved
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: GitHub owns branches, commits, pull requests, review history, CI results, tags, releases, and rollback capability.
+  No agent or preview environment may maintain unique uncommitted product code that is treated as authoritative.
+reason: A single source of truth prevents divergence between agents and environments. GitHub provides immutable history, access
+  control, and integration with CI/CD.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-07-31'

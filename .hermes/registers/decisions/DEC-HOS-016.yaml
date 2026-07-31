@@ -1,0 +1,18 @@
+decision_id: DEC-HOS-016
+title: Routine direct agent pushes to the default branch are prohibited
+status: approved
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Agent-driven development must use feature branches with independent review, automated validation, and approved merge.
+  Routine direct pushes to the default branch (main/master) are prohibited. Every exception must be documented with authorization,
+  reason, and post-exception review.
+reason: Direct pushes bypass review, testing, and approval gates. Prohibiting them ensures every change flows through the
+  governance pipeline and is traceable.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-07-31'

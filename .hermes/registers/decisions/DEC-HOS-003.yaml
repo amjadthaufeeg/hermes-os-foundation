@@ -1,0 +1,17 @@
+decision_id: DEC-HOS-003
+title: Claude Code is review-only initially
+status: approved
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Claude Code evaluates implementation independently against the task contract, acceptance criteria, and quality standards.
+  The first review pass is read-only. Claude reports structured findings to Hermes, not directly into the codebase or to builders.
+reason: Separation of review from implementation prevents bias and ensures findings are independently evaluated. Read-only
+  first pass prevents accidental code changes during review.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-07-31'
