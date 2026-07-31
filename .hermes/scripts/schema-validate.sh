@@ -80,15 +80,16 @@ with open('$decision') as df:
     try:
         data = yaml.safe_load(df)
     except yaml.YAMLError as e:
-        print(f'FAIL: YAML parse error: {e}')
+        print(f'  FAIL: $name — YAML parse error: {e}')
         sys.exit(1)
 try:
     jsonschema.validate(instance=data, schema=schema)
-    print(f'PASS: {name} ({data.get(\"decision_id\",\"?\")}: {data.get(\"status\",\"?\")})')
+    print(f'  PASS: $name ({data.get(\"decision_id\",\"?\")}: {data.get(\"status\",\"?\")})')
 except jsonschema.ValidationError as e:
-    print(f'FAIL: {name} — {e.message} (at {\".\".join(str(p) for p in e.absolute_path)})')
+    path = '.'.join(str(p) for p in e.absolute_path) if e.absolute_path else '(root)'
+    print(f'  FAIL: $name — {e.message} at {path}')
     sys.exit(1)
-" 2>/dev/null; then :; else DEC_FAILS=$((DEC_FAILS + 1)); HAS_ERRORS=1; fi
+" 2>&1; then :; else DEC_FAILS=$((DEC_FAILS + 1)); HAS_ERRORS=1; fi
     done
     echo "  Decision records: ${DEC_COUNT} checked, ${DEC_FAILS} failed (validated against decision-record.schema.json)"
 fi
