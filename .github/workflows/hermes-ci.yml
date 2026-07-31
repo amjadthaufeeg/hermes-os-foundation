@@ -32,6 +32,11 @@ jobs:
       - name: Install validation dependencies
         run: pip install pyyaml jsonschema
 
+      - name: Set CI environment
+        run: |
+          echo "TASK_ID=${TASK_ID:-CI-$(echo $GITHUB_REF_NAME | tr '/' '-')}" >> $GITHUB_ENV
+          echo "TASK_BASE_REF=${GITHUB_BASE_REF:-origin/main}" >> $GITHUB_ENV
+
       - name: Schema Validation
         id: schema_validate
         run: bash .hermes/scripts/schema-validate.sh
