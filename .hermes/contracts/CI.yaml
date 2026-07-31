@@ -13,6 +13,7 @@ allowed_files:
   - ".github/**"
   - "docs/**"
   - "03_Engineering_OS/**"
+  - ".gitignore"
   - "*.md"
 
 allowed_folders:
