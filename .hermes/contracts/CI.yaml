@@ -1,4 +1,4 @@
-task_id: CI
+task_id: TASK-CI-001
 project: Hermes Product OS
 release: CI
 title: "Continuous Integration Default Contract"
