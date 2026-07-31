@@ -1,32 +1,32 @@
 decision_id: DEC-HOS-018
-title: "Research is an evidence function"
-status: approved
-date: "2026-07-31"
+title: Research is an evidence function
+status: locked
+date: '2026-07-31'
 owner: amjad
 applies_to: all
 category: governance
-
-decision: >
-  The Research Division operates as a read-only evidence and recommendation
-  function. It may inspect public and approved internal sources, compare
-  approaches, produce research briefs, record sources and evidence, identify
-  implications, and make recommendations to Hermes. Research findings do not
-  become approved requirements until evaluated by Hermes and, where required,
+decision: 'The Research Division operates as a read-only evidence and recommendation function. It may inspect public and approved
+  internal sources, compare approaches, produce research briefs, record sources and evidence, identify implications, and make
+  recommendations to Hermes. Research findings do not become approved requirements until evaluated by Hermes and, where required,
   approved by Amjad. Research is evidence, not authority.
 
-reason: >
-  Research improves decision quality by providing structured evidence and
-  analysis. However, research findings must flow through the same governance
-  as any other input — they inform decisions, they do not make them. This
-  ensures research augments rather than replaces product judgment.
+  '
+reason: 'Research improves decision quality by providing structured evidence and analysis. However, research findings must
+  flow through the same governance as any other input — they inform decisions, they do not make them. This ensures research
+  augments rather than replaces product judgment.
 
+  '
 alternatives_considered:
-  - option: "Research Division with direct recommendation authority"
-    rejected_because: "Would allow research to bypass Hermes evaluation and effectively change requirements without approval"
-  - option: "No formal Research Division"
-    rejected_because: "Structured research improves product decisions; formalizing it as a read-only function ensures it serves rather than overrides governance"
-
+- option: Research Division with direct recommendation authority
+  rejected_because: Would allow research to bypass Hermes evaluation and effectively change requirements without approval
+- option: No formal Research Division
+  rejected_because: Structured research improves product decisions; formalizing it as a read-only function ensures it serves
+    rather than overrides governance
 supersedes: []
 superseded_by: []
-related_tasks: [TASK-HOS-001]
-last_reviewed: "2026-07-31"
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

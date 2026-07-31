@@ -1,29 +1,29 @@
 decision_id: DEC-HOS-017
-title: "The system is named Hermes Product OS"
-status: approved
-date: "2026-07-31"
+title: The system is named Hermes Product OS
+status: locked
+date: '2026-07-31'
 owner: amjad
 applies_to: all
 category: governance
+decision: 'Hermes Product OS is the primary name of the operating system. Engineering, Design, Research, Quality, Knowledge
+  and Operations are divisions within the product operating model. The Command Center is the operational interface. Engineering
+  Mission Control is a module inside Command Center.
 
-decision: >
-  Hermes Product OS is the primary name of the operating system.
-  Engineering, Design, Research, Quality, Knowledge and Operations
-  are divisions within the product operating model. The Command Center
-  is the operational interface. Engineering Mission Control is a module
-  inside Command Center.
+  '
+reason: 'The system has evolved from a pure engineering operating model into a multi-disciplinary product development system
+  with Design, Research, Quality, Knowledge, and Operations divisions. "Product OS" accurately reflects this broader scope.
+  "Engineering" remains one division within it.
 
-reason: >
-  The system has evolved from a pure engineering operating model into a
-  multi-disciplinary product development system with Design, Research,
-  Quality, Knowledge, and Operations divisions. "Product OS" accurately
-  reflects this broader scope. "Engineering" remains one division within it.
-
+  '
 alternatives_considered:
-  - option: "Keep Hermes Engineering OS"
-    rejected_because: "Too narrow — implies only engineering functions, when the system now governs design, research, commercial safety, and operations"
-
+- option: Keep Hermes Engineering OS
+  rejected_because: Too narrow — implies only engineering functions, when the system now governs design, research, commercial
+    safety, and operations
 supersedes: []
 superseded_by: []
-related_tasks: [TASK-HOS-001]
-last_reviewed: "2026-07-31"
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions
