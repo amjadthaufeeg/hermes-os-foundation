@@ -1,0 +1,110 @@
+# Hermes OS v3.1 Risk Level Policy
+# Maps task types to risk levels with requirements and parallelism rules
+
+risk_levels:
+  R1:
+    label: Low
+    examples:
+      - "Copy changes"
+      - "Spacing adjustments"
+      - "Color modifications"
+      - "Documentation updates"
+      - "Non-functional styling"
+      - "Isolated presentation-layer improvements"
+    requirements:
+      - "Task contract"
+      - "Build passes"
+      - "Scope check"
+      - "Relevant tests"
+      - "Claude review"
+      - "Amjad visual approval where appropriate"
+    parallelism:
+      allowed: true
+      condition: "File ownership does not overlap"
+  
+  R2:
+    label: Moderate
+    examples:
+      - "Forms and form validation"
+      - "Filter UI"
+      - "Frontend state management"
+      - "Admin pages"
+      - "Non-critical APIs"
+      - "Normal workflow UI"
+    requirements:
+      - "Task contract"
+      - "Automated tests"
+      - "Independent review"
+      - "Preview"
+      - "Scope verification"
+      - "Correction cycle if needed"
+      - "Rollback package"
+    parallelism:
+      allowed: true
+      condition: "Approved subtasks + isolated worktrees + integration plan"
+  
+  R3:
+    label: High
+    examples:
+      - "Authentication changes"
+      - "Permission modifications"
+      - "Database schema changes"
+      - "Migrations"
+      - "Integration changes"
+      - "Reservation lifecycle"
+      - "API contract changes"
+      - "Important state transitions"
+    requirements:
+      - "Explicit Hermes approval"
+      - "Stronger test package"
+      - "Rollback package"
+      - "Migration or compatibility validation"
+      - "Independent review"
+      - "Amjad approval where behaviour materially changes"
+    parallelism:
+      allowed: limited
+      condition: "Primarily analysis, tests, documentation, and review unless explicitly approved"
+  
+  R4:
+    label: Critical
+    examples:
+      - "Pricing calculations"
+      - "Occupancy logic"
+      - "Offer combinations"
+      - "Tax calculations"
+      - "Commission and markup"
+      - "Cancellation calculations"
+      - "Amendment logic"
+      - "Reconciliation"
+      - "Commercial audit logic"
+      - "Financial behaviour"
+    requirements:
+      - "Task contract"
+      - "Amjad approval before implementation when commercial behaviour changes"
+      - "Deterministic fixtures"
+      - "Protected-zone authorization"
+      - "Builder implementation"
+      - "Automated regression suite"
+      - "Claude review"
+      - "Hermes findings triage"
+      - "Final validation"
+      - "Amjad commercial approval"
+      - "Controlled deployment and rollback readiness"
+    parallelism:
+      allowed: false
+      condition: "No parallel production-code editing initially"
+
+# Commercial logic is ALWAYS serialized regardless of parallelism policy
+serialized_domains:
+  - pricing
+  - offers
+  - occupancy
+  - tax
+  - commission
+  - markup
+  - cancellation
+  - reconciliation
+  - financial_audit
+
+# Tasks touching multiple risk levels inherit the highest
+inheritance_rule: "If a task touches logic at multiple risk levels, classify at the highest applicable level."

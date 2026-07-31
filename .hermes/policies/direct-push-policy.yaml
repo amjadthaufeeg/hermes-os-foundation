@@ -1,0 +1,55 @@
+# Hermes OS v3.1 — Direct Push Policy
+# Effective: Immediately as interim operating rule
+# Target: Replaced by GitHub branch protection in HOS-1
+
+policy:
+  name: "No direct agent pushes to master"
+  status: interim  # Active until branch protection is technically enforced
+  applies_to: "All agent-driven development on avoa-connect"
+  
+rule: >
+  Routine direct pushes to the master branch are prohibited.
+  All development work must use: feature branch → review → validation → approved merge.
+
+exceptions:
+  - "Emergency fixes authorized explicitly by Amjad"
+  - "Orchestration configuration changes when Hermes is the system being implemented"
+  
+exception_recording:
+  required: true
+  fields:
+    - "Exception ID"
+    - "Date/time"
+    - "Authorizing person (must be Amjad)"
+    - "Reason"
+    - "Files changed"
+    - "Commit SHA"
+    - "Post-exception review scheduled"
+
+workflow:
+  standard:
+    - "Create feature branch from master"
+    - "Implement changes with assigned builder"
+    - "Run automated gates"
+    - "Independent review"
+    - "Hermes approval"
+    - "Merge to master"
+  
+  emergency:
+    - "Amjad authorizes exception"
+    - "Hermes records exception"
+    - "Change implemented"
+    - "Post-emergency review within 24 hours"
+
+target_replacement:
+  when: "HOS-1 implementation"
+  replaced_by: "GitHub branch protection rules"
+  requires:
+    - "CI checks operational"
+    - "Check names verified"
+    - "Emergency access procedure documented"
+    - "Pilot branch tested"
+
+violation_handling:
+  on_unauthorized_direct_push: "Record violation; notify Amjad; do not delete the commit (preserve audit trail)"
+  repeated_violations: "Escalate to Amjad; consider agent access restriction"

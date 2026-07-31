@@ -1,0 +1,28 @@
+decision_id: DEC-HOS-001
+title: "Hermes remains the sole orchestrator"
+status: locked
+date: "2026-07-31"
+owner: amjad
+applies_to: all
+category: governance
+
+decision: >
+  Kimi, Codex and Claude may build or review within assigned roles,
+  but they may not independently control scope, task-state transitions,
+  agent routing, approval, merge or deployment.
+
+reason: >
+  Prevent conflicting agent authority and uncontrolled workflow expansion.
+  A single orchestrator ensures coherent task routing, scope control,
+  and evidence-based approval.
+
+alternatives_considered:
+  - option: "Multi-orchestrator model with shared authority"
+    rejected_because: "Creates conflict points, unclear accountability, and potential for agents to override each other"
+  - option: "Fully autonomous agents without a central orchestrator"
+    rejected_because: "No mechanism for scope control, evidence verification, or consistent decision-making"
+
+supersedes: []
+superseded_by: []
+related_tasks: []
+last_reviewed: "2026-07-31"

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-os.local/schemas/task-contract.schema.json",
+  "title": "Hermes OS v3.1 Task Contract",
+  "type": "object",
+  "required": ["task_id", "project", "title", "task_type", "risk_level", "objective", "allowed_files", "protected_areas", "must_not_change", "acceptance_criteria", "stop_conditions"],
+  "properties": {
+    "task_id": {"type": "string", "pattern": "^TASK-[A-Z0-9-]+$"},
+    "parent_task_id": {"type": "string"},
+    "project": {"type": "string"},
+    "release": {"type": "string"},
+    "title": {"type": "string", "minLength": 5},
+    "task_type": {"enum": ["documentation", "visual_only", "interaction_only", "bug_fix", "feature", "business_logic", "data_model", "infrastructure", "architecture", "refactor"]},
+    "risk_level": {"enum": ["R1", "R2", "R3", "R4"]},
+    "objective": {"type": "string", "minLength": 10},
+    "business_outcome": {"type": "string"},
+    "user_outcome": {"type": "string"},
+    "context_required": {"type": "array", "items": {"type": "string"}},
+    "decisions_required": {"type": "array", "items": {"type": "string", "pattern": "^DEC-[A-Z]+-\\d{3}$"}},
+    "regressions_required": {"type": "array", "items": {"type": "string", "pattern": "^REG-\\d{3}$"}},
+    "allowed_files": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "allowed_folders": {"type": "array", "items": {"type": "string"}},
+    "protected_areas": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "must_not_change": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "change_budget": {
+      "type": "object",
+      "properties": {
+        "max_files": {"type": "integer", "minimum": 1},
+        "max_folders": {"type": "integer", "minimum": 1},
+        "max_lines_changed": {"type": "integer", "minimum": 1},
+        "dependency_changes_allowed": {"type": "boolean"},
+        "migration_changes_allowed": {"type": "boolean"}
+      }
+    },
+    "acceptance_criteria": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "required_checks": {"type": "array", "items": {"type": "string"}},
+    "required_evidence": {"type": "array", "items": {"enum": ["build", "type_check", "lint", "unit_tests", "integration_tests", "business_fixtures", "screenshots", "accessibility", "scope_check", "protected_zone_check", "rollback_package", "amjad_approval"]}},
+    "stop_conditions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "parallel_eligible": {"type": "boolean", "default": false},
+    "integration_owner": {"enum": ["kimi-k3", "hermes"]},
+    "builder": {"enum": ["kimi-k3", "codex", "hermes"]},
+    "reviewer": {"enum": ["claude-code", "none"]},
+    "design_review_required": {"type": "boolean", "default": false},
+    "amjad_approval_required": {"type": "boolean", "default": true}
+  }
+}
