@@ -1,0 +1,29 @@
+decision_id: DEC-AVOA-PRICING-001
+title: "Final commercial calculations remain deterministic"
+status: locked
+date: "2026-07-31"
+owner: amjad
+applies_to: avoa
+category: commercial
+
+decision: >
+  AI may extract, interpret, normalize and explain contract data.
+  Final prices, offers, occupancy outcomes, taxes, commissions,
+  markups, cancellation values and reconciliation values must be
+  produced by deterministic code using approved structured inputs.
+
+reason: >
+  Commercial results must be reproducible, auditable and testable.
+  AI inference introduces non-determinism that cannot be reconciled
+  in financial contexts.
+
+alternatives_considered:
+  - option: "AI-assisted pricing with human review"
+    rejected_because: "Human review does not make AI output reproducible or auditable; a second non-deterministic review compounds the problem"
+  - option: "AI-generated pricing with deterministic validation gate"
+    rejected_because: "Validation gate cannot fix incorrect AI output — it can only reject it; better to prevent the error at source"
+
+supersedes: []
+superseded_by: []
+related_tasks: []
+last_reviewed: "2026-07-31"

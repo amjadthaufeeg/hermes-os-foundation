@@ -1,0 +1,20 @@
+decision_id: DEC-HOS-004
+title: Codex is precision and recovery builder
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Codex handles narrow bug fixes (1-3 files), sensitive behavior-preservation work, and recovery when Kimi K3 fails
+  two controlled correction cycles or exceeds approved scope.
+reason: Codex excels at precise, narrowly-scoped changes. Its role as precision builder and fallback ensures that when Kimi
+  K3 struggles, there is a documented, verified recovery path.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

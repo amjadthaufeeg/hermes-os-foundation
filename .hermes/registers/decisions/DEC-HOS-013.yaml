@@ -1,0 +1,20 @@
+decision_id: DEC-HOS-013
+title: Engineering Mission Control is inside Command Center
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Engineering Mission Control is a module within the broader Command Center dashboard. It is not a standalone system.
+  The Command Center includes Executive Overview, Portfolio, Product, Design Studio, Quality, Knowledge, and Operations modules.
+reason: Positioning Mission Control as a module rather than a standalone system reflects that engineering is one of several
+  disciplines governed by Hermes Product OS.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

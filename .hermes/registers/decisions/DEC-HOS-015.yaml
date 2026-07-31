@@ -1,0 +1,20 @@
+decision_id: DEC-HOS-015
+title: Minimum CI is part of the first foundation release
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Build, type check, lint, existing tests, schema validation, changed-file reporting, scope checking, and protected-zone
+  checking are CI gates in the HOS-1 foundation release. CI is not deferred to a later release.
+reason: Automated enforcement is prerequisite to evidence-based completion. Without CI gates, governance is procedural only
+  — vulnerable to human error and agent non-compliance.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

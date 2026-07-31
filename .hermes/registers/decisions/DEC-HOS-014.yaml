@@ -1,0 +1,21 @@
+decision_id: DEC-HOS-014
+title: Material UI work requires a UI contract
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Every visual task must have an approved UI contract in addition to the technical task contract. The UI contract
+  defines design owner, user goal, information hierarchy, required states, breakpoints, approved tokens, visual acceptance
+  criteria, and required visual evidence.
+reason: Visual work without explicit contracts leads to inconsistent design and scope drift. The UI contract ensures design
+  intent is documented and verifiable before implementation begins.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

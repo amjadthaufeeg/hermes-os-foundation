@@ -1,0 +1,85 @@
+# Hermes Product OS v3.1 CI — Governance Repository
+
+name: "Hermes Product OS v3.1 CI"
+
+on:
+  push:
+    branches: [feature/**]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  governance-checks:
+    name: "Governance Checks"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for git diff against base ref
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install validation dependencies
+        run: pip install pyyaml jsonschema
+
+      - name: Set CI environment
+        run: |
+          echo "TASK_ID=CI" >> $GITHUB_ENV
+          echo "TASK_BASE_REF=${GITHUB_BASE_REF:-origin/main}" >> $GITHUB_ENV
+
+      - name: Schema Validation
+        id: schema_validate
+        run: bash .hermes/scripts/schema-validate.sh
+        continue-on-error: false
+
+      - name: Changed-File Report
+        id: changed_files
+        run: bash .hermes/scripts/changed-files.sh
+        continue-on-error: false
+
+      - name: Scope Check
+        id: scope_check
+        run: bash .hermes/scripts/scope-check.sh
+        continue-on-error: false
+
+      - name: Protected-Zone Check
+        id: protected_zone
+        run: bash .hermes/scripts/protected-zone-check.sh
+        continue-on-error: false
+
+  # Documentation lint — optional, non-blocking initially
+  doc-check:
+    name: "Documentation Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check spec file count
+        run: |
+          COUNT=$(ls docs/hermes-os-v3.1/*.md 2>/dev/null | wc -l)
+          echo "Specification documents: $COUNT"
+          if [ "$COUNT" -lt 20 ]; then
+            echo "WARNING: Fewer than 20 specification documents found"
+          fi
+
+      - name: Check decision record count
+        run: |
+          COUNT=$(ls .hermes/registers/decisions/DEC-*.yaml 2>/dev/null | wc -l)
+          echo "Decision records: $COUNT"
+          if [ "$COUNT" -lt 10 ]; then
+            echo "WARNING: Fewer than 10 decision records found"
+          fi

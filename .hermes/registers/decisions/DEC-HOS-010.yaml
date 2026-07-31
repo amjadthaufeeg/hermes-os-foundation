@@ -1,0 +1,20 @@
+decision_id: DEC-HOS-010
+title: Single-writer file ownership is mandatory
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: One writer per file at any given time. No two agents may simultaneously edit the same file. File ownership must
+  be explicitly assigned and tracked. Ownership transfers require explicit handoff and baseline commit recording.
+reason: Concurrent file writes cause merge conflicts, lost changes, and accountability gaps. Single-writer enforcement is
+  the simplest and most reliable concurrency control.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

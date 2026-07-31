@@ -1,0 +1,21 @@
+decision_id: DEC-HOS-002
+title: Kimi K3 is the primary builder
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: Kimi K3 handles new features, vertical slices, multi-file work as the default primary builder within approved task
+  contracts. Codex is the precision builder and fallback. Hermes routes work based on task type, risk, and measured performance.
+reason: Kimi K3 has demonstrated strong performance on multi-file implementation, vertical slices, and repository-wide tasks.
+  Establishing it as the default primary builder provides a predictable default routing rule while preserving Codex for precision
+  and recovery scenarios.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions

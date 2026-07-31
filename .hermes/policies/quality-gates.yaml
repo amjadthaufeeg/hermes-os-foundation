@@ -1,0 +1,164 @@
+# Hermes OS v3.1 — Quality Gates Policy
+# Defines which gates are required by risk level
+
+gates:
+  build:
+    label: "Build passes"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "Application compiles without errors"
+
+  type_check:
+    label: "Type check passes"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "Static type analysis (mypy backend, tsc frontend)"
+
+  lint:
+    label: "Lint passes"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "Code style enforcement (ruff backend, eslint frontend)"
+
+  scope_check:
+    label: "Changed files match contract"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "Git diff against allowed_files in task contract"
+
+  protected_zone_check:
+    label: "Protected zones untouched"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "Git diff against protected-zones.yaml"
+
+  change_budget:
+    label: "Change budget respected"
+    R1: optional
+    R2: required
+    R3: required
+    R4: required
+    description: "Files/folders/lines within approved budget"
+
+  dependency_check:
+    label: "No unauthorized dependencies"
+    R1: optional
+    R2: required
+    R3: required
+    R4: required
+    description: "New packages require explicit approval"
+
+  unit_tests:
+    label: "Unit tests pass"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "All unit tests"
+
+  integration_tests:
+    label: "Integration tests pass"
+    R1: optional
+    R2: required
+    R3: required
+    R4: required
+    description: "Cross-component integration tests"
+
+  api_contract_tests:
+    label: "API contract tests pass"
+    R1: optional
+    R2: optional
+    R3: required
+    R4: required
+    description: "API contract validation"
+
+  schema_validation:
+    label: "Schema validation passes"
+    R1: optional
+    R2: optional
+    R3: required
+    R4: required
+    description: "Database schema validation"
+
+  migration_tests:
+    label: "Migration tests pass"
+    R1: optional
+    R2: optional
+    R3: required
+    R4: required
+    description: "Forward and rollback migration testing"
+
+  business_fixtures:
+    label: "Business fixtures pass"
+    R1: optional
+    R2: optional
+    R3: optional
+    R4: required
+    description: "Pricing, occupancy, offer, tax, commission, cancellation fixtures"
+
+  screenshots:
+    label: "Screenshot evidence"
+    R1: required  # For visual tasks
+    R2: required
+    R3: required
+    R4: required
+    description: "Desktop + tablet + mobile + state screenshots"
+
+  accessibility:
+    label: "Accessibility baseline"
+    R1: optional
+    R2: required
+    R3: required
+    R4: required
+    description: "WCAG 2.1 AA minimum checks"
+
+  documentation:
+    label: "Documentation updated"
+    R1: optional
+    R2: required
+    R3: required
+    R4: required
+    description: "Relevant docs reflect changes"
+
+  rollback_package:
+    label: "Rollback information available"
+    R1: optional
+    R2: required
+    R3: required
+    R4: required
+    description: "Baseline commit, candidate commit, rollback steps"
+
+  independent_review:
+    label: "Independent review completed"
+    R1: required
+    R2: required
+    R3: required
+    R4: required
+    description: "Claude Code or approved alternative"
+
+  amjad_approval:
+    label: "Amjad approval"
+    R1: required  # Visual approval
+    R2: required
+    R3: required  # Material behaviour changes
+    R4: required  # Commercial approval
+
+# Evidence authority
+evidence_hierarchy:
+  - "Objective test/fixture evidence"
+  - "CI gate results"
+  - "Independent reviewer findings"
+  - "Builder self-report"
+
+# If a higher-authority evidence source contradicts a lower one, the higher wins.
+# Agent opinion is never sufficient to override test evidence.

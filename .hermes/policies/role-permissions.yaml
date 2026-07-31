@@ -1,0 +1,165 @@
+# Hermes OS v3.1 — Role Permissions Matrix
+# Columns: agents. Rows: permissions. Values: allowed, prohibited, conditional, limited
+
+agents:
+  - amjad
+  - hermes
+  - kimi-k3
+  - codex
+  - claude-code
+  - codebase-scout
+  - test-agent
+  - documentation-agent
+  - ui-implementation-agent
+  - visual-qa-agent
+  - api-specialist
+  - database-specialist
+  - ux-architect
+  - visual-designer
+  - interaction-designer
+  - parallel-controller
+  - github-automation
+  - ci-cd
+  - preview-automation
+  - deployment-automation
+
+permissions:
+  create_task_contract:
+    hermes: allowed
+    amjad: allowed
+    others: prohibited
+  
+  approve_task_contract:
+    hermes: allowed
+    amjad: allowed
+    others: prohibited
+  
+  define_scope:
+    hermes: allowed
+    amjad: allowed
+    others: prohibited
+  
+  classify_risk:
+    hermes: allowed
+    others: prohibited
+  
+  unlock_protected_zones:
+    hermes: allowed
+    amjad: allowed
+    others: prohibited
+  
+  accept_review_findings:
+    hermes: allowed
+    others: prohibited
+  
+  reject_review_findings:
+    hermes: allowed
+    others: prohibited
+  
+  route_work:
+    hermes: allowed
+    others: prohibited
+  
+  declare_ready_for_amjad:
+    hermes: allowed
+    others: prohibited
+  
+  merge_code:
+    hermes: allowed
+    amjad: allowed
+    github-automation: conditional  # Only after all gates + Hermes approval
+    others: prohibited
+  
+  deploy_production:
+    hermes: allowed  # After all gates + Amjad approval
+    amjad: allowed
+    deployment-automation: conditional  # After merge + explicit approval
+    others: prohibited
+  
+  write_production_code:
+    kimi-k3: allowed  # Within approved contract
+    codex: allowed  # Within approved contract
+    ui-implementation-agent: allowed  # UI only, within contract
+    api-specialist: allowed  # API only, within contract
+    database-specialist: allowed  # DB only, within contract
+    test-agent: limited  # Test files only
+    documentation-agent: limited  # docs/ only
+    hermes: limited  # Docs, plans, configs, orchestration only
+    others: prohibited
+  
+  read_codebase:
+    hermes: allowed
+    kimi-k3: allowed
+    codex: allowed
+    claude-code: allowed
+    codebase-scout: allowed
+    test-agent: allowed
+    others: conditional
+  
+  write_tests:
+    test-agent: allowed
+    kimi-k3: allowed
+    codex: allowed
+    hermes: prohibited
+    others: prohibited
+  
+  edit_documentation:
+    documentation-agent: allowed
+    hermes: allowed
+    kimi-k3: allowed
+    others: prohibited
+  
+  edit_design_artifacts:
+    ux-architect: allowed
+    visual-designer: allowed
+    interaction-designer: allowed
+    hermes: allowed  # Design system docs/plans
+    others: prohibited
+  
+  capture_screenshots:
+    visual-qa-agent: allowed
+    hermes: allowed
+    others: prohibited
+  
+  modify_ci:
+    hermes: allowed
+    ci-cd: allowed
+    amjad: allowed
+    others: prohibited
+  
+  modify_branch_protection:
+    hermes: allowed
+    amjad: allowed
+    others: prohibited
+  
+  modify_deployment_config:
+    hermes: allowed
+    amjad: allowed
+    deployment-automation: allowed
+    others: prohibited
+
+# Hermes code boundary — explicit
+hermes_code_boundary:
+  allowed:
+    - "Documentation"
+    - "Plans"
+    - "Task contracts"
+    - "UI contracts"
+    - "Policies"
+    - "Schemas"
+    - "Templates"
+    - "Decision records"
+    - "Regression records"
+    - "Audit records"
+    - "Orchestration configuration"
+    - "CI workflow files"
+    - "Non-production operational metadata"
+  prohibited:
+    - "Production application features"
+    - "Business logic"
+    - "Pricing code"
+    - "API implementation"
+    - "Database models"
+    - "UI components"
+    - "Tests (delegated to Test Agent or builder)"
+  exception: "Small orchestration-layer configuration changes when Hermes itself is the system being implemented, provided explicitly authorized and reviewed."

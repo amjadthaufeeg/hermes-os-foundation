@@ -1,0 +1,149 @@
+# Hermes OS v3.1 — Protected Zones Policy
+# Maps AVOA repository paths to protection levels
+# Unauthorized access → SCOPE_EXCEEDED → return to Hermes
+
+project: avoa-connect
+repository_root: /Users/amjadthaufeeg/projects/avoa-connect
+
+zones:
+  - domain: pricing_engine
+    paths:
+      - "backend/app/pricing/**"
+      - "backend/app/engine/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: offer_engine
+    paths:
+      - "backend/app/offers/**"
+      - "backend/app/packages/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: occupancy_engine
+    paths:
+      - "backend/app/occupancy/**"
+      - "backend/app/availability/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: tax_logic
+    paths:
+      - "backend/app/tax/**"
+      - "backend/app/green_tax/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: markup_and_commission
+    paths:
+      - "backend/app/markup/**"
+      - "backend/app/commission/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: cancellation_logic
+    paths:
+      - "backend/app/cancellation/**"
+      - "backend/app/amendments/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: reconciliation
+    paths:
+      - "backend/app/reconciliation/**"
+    risk: R4
+    unlock_required: "Explicit Amjad authorization"
+
+  - domain: authentication
+    paths:
+      - "backend/app/auth/**"
+      - "backend/app/middleware/auth*"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: permissions
+    paths:
+      - "backend/app/permissions/**"
+      - "backend/app/middleware/permissions*"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: database_schema
+    paths:
+      - "backend/app/models/**"
+      - "backend/app/db/**"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: migrations
+    paths:
+      - "backend/migrations/**"
+      - "backend/alembic/**"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: reservation_state_machine
+    paths:
+      - "backend/app/reservations/**"
+      - "backend/app/state_machine/**"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: api_contracts
+    paths:
+      - "backend/app/api/**"
+      - "backend/app/routes/**"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: audit_records
+    paths:
+      - "backend/app/audit/**"
+      - "backend/app/logging/**"
+    risk: R3
+    unlock_required: "Hermes authorization"
+
+  - domain: design_system_foundations
+    paths:
+      - "frontend/tailwind.config.ts"
+      - "frontend/src/styles/**"
+      - "docs/design/approved/**"
+    risk: R2
+    unlock_required: "Design Studio lead authorization"
+
+enforcement:
+  current: manual  # During transition — prompt-based + procedural
+  target: automated  # Diff-check script in CI + pre-commit hook
+
+scope_exceeded_handling:
+  on_detection: "Stop work immediately"
+  next_action: "Mark task SCOPE_EXCEEDED"
+  final_action: "Return to Hermes for disposition"
+  builder_must_not: "Continue or widen scope"
+
+emergency_override:
+  authorized_by: "Amjad only"
+  documentation: "Record authorization, reason, time, scope"
+  post_emergency: "Full review required"
+
+change_budget_defaults:
+  R1:
+    max_files: 5
+    max_folders: 3
+    max_lines_changed: 200
+  R2:
+    max_files: 15
+    max_folders: 5
+    max_lines_changed: 500
+  R3:
+    max_files: 10
+    max_folders: 3
+    max_lines_changed: 300
+    dependency_changes_allowed: false
+    migration_changes_allowed: false
+  R4:
+    max_files: 5
+    max_folders: 2
+    max_lines_changed: 200
+    dependency_changes_allowed: false
+    migration_changes_allowed: false

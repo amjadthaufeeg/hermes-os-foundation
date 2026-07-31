@@ -1,0 +1,40 @@
+task_id: CI
+project: Hermes Product OS
+release: CI
+title: "Continuous Integration Default Contract"
+task_type: infrastructure
+risk_level: R1
+objective: "Default CI contract — validates governance repository structure."
+
+baseline_commit: "origin/main"
+
+allowed_files:
+  - ".hermes/**"
+  - ".github/**"
+  - "docs/**"
+  - "03_Engineering_OS/**"
+  - "*.md"
+
+allowed_folders:
+  - ".hermes/"
+  - ".github/"
+  - "docs/"
+  - "03_Engineering_OS/"
+
+protected_areas: []
+authorized_protected_changes: []
+must_not_change: []
+
+acceptance_criteria:
+  - "All schemas validate"
+  - "All policies parse"
+  - "No protected zone violations"
+
+stop_conditions:
+  - "Scope exceeds declared paths"
+  - "Protected zone violation"
+
+builder: ci-cd
+reviewer: none
+design_review_required: false
+amjad_approval_required: false

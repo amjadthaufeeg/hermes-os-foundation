@@ -1,0 +1,21 @@
+decision_id: DEC-HOS-009
+title: Parallel Controller subordinate to Hermes
+status: locked
+date: '2026-07-31'
+owner: amjad
+applies_to: all
+category: governance
+decision: The Parallel Execution Controller may coordinate sub-agents, allocate worktrees, and track agent runs. It may not
+  change objectives, approve contracts, unlock protected zones, accept or reject review findings, merge code, deploy, or declare
+  readiness.
+reason: Parallel coordination is a technical function, not an authority function. Keeping the controller subordinate to Hermes
+  prevents parallel execution from becoming autonomous or bypassing governance.
+alternatives_considered: []
+supersedes: []
+superseded_by: []
+related_tasks:
+- TASK-HOS-001
+last_reviewed: '2026-08-01'
+locked_by: amjad
+locked_date: '2026-08-01'
+lock_authorization: HOS-1 recovery authorization — Amjad approved DEC-HOS-002 through DEC-HOS-019 as locked decisions
