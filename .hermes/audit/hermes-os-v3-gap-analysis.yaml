@@ -1,0 +1,606 @@
+# Hermes OS v3 Gap Analysis — Machine-Readable
+# Generated: 2026-07-31
+# Target: HERMES_ENGINEERING_OS_V3.md
+
+audit_version: 1
+target: hermes-engineering-os-v3
+audit_date: "2026-07-31"
+auditor: Hermes
+scope: "read-only discovery — no code changes made"
+
+capabilities:
+  - capability_id: CAP-001
+    name: Hermes Sole Orchestrator
+    target_state: "Hermes routes, approves, never writes code"
+    current_state: "Hermes routes AND writes code (AGENTS.md, plans, configs, direct repairs)"
+    status: Partial
+    evidence: "AGENTS.md §0.3 prohibits Hermes code authorship; AGENTS.md authored by Hermes; plan files in docs/tasks/ authored by Hermes"
+    risk: HIGH
+    recommendation: "Enforce programmatically via SOUL.md + task dispatch guard; define explicit boundary (docs/config OK, product code NOT OK)"
+    dependencies: []
+
+  - capability_id: CAP-002
+    name: Structured Task Contracts (YAML)
+    target_state: "YAML contracts with task_id, risk_level, allowed_files, change_budget"
+    current_state: "Markdown plan documents with informal scope definitions"
+    status: Document-only
+    evidence: "9 plan files in docs/tasks/ (e.g., TASK-UI-RESET-SLICE7_PLAN.md); no YAML contracts found"
+    risk: MEDIUM
+    recommendation: "Define JSON/YAML schema; create first contract for next task; migrate existing plans gradually"
+    dependencies: [CAP-003, CAP-006]
+
+  - capability_id: CAP-003
+    name: Risk Classification (R1-R4)
+    target_state: "4-tier: R1=Low, R2=Moderate, R3=High, R4=Critical"
+    current_state: "R0-R5 model in v1.0 RISK_CLASSIFICATION.md; informally used in plans"
+    status: Partial
+    evidence: "RISK_CLASSIFICATION.md defines R0-R5; AGENTS.md §8 uses R0-R5; v3 target is R1-R4"
+    risk: LOW
+    recommendation: "Map R0-R5 → R1-R4; update template; no runtime impact"
+    dependencies: [CAP-002]
+
+  - capability_id: CAP-004
+    name: Task Lifecycle State Machine
+    target_state: "18-state lifecycle + 7 failure/exception states"
+    current_state: "13-state model documented; actual flow is 5-7 informal states"
+    status: Document-only
+    evidence: "TASK_LIFECYCLE.md defines 13 states; AGENTS.md §10 defines 13 states; no state machine implementation"
+    risk: MEDIUM
+    recommendation: "Implement state machine as Python enum + state transition validation; integrate with task contract schema"
+    dependencies: [CAP-002]
+
+  - capability_id: CAP-005
+    name: Protected Zones
+    target_state: "CI/script-enforced protected folders/files with scope violation detection"
+    current_state: "Prompt-based only; AGENTS.md §0.3 lists protected areas"
+    status: Document-only
+    evidence: "No script or CI enforcement; AGENTS.md §9 lists 'Forbidden files'; no automated diff check"
+    risk: HIGH
+    recommendation: "Create protected-zones.yaml manifest; implement pre-commit/post-push diff-check script; add to CI"
+    dependencies: [CAP-018]
+
+  - capability_id: CAP-006
+    name: Change Budgets
+    target_state: "max_files, max_lines, max_folders enforced per task"
+    current_state: "Not implemented"
+    status: Missing
+    evidence: "No budget tracking in any plan file or configuration"
+    risk: MEDIUM
+    recommendation: "Add budget fields to task contract schema; implement budget-check script; integrate with scope gate"
+    dependencies: [CAP-002]
+
+  - capability_id: CAP-007
+    name: Automated Gates
+    target_state: "Build, lint, typecheck, tests, fixtures, scope, zone check all automated"
+    current_state: "78 tests collected (1 error); no CI; no automated gates"
+    status: Partial
+    evidence: "17 test files in backend/tests/; 78 tests collected with 1 collection error; no .github/workflows/; no CI config"
+    risk: HIGH
+    recommendation: "Fix test collection error; add GitHub Actions workflow with pytest + ruff; add fixture gate"
+    dependencies: [CAP-005, CAP-006, CAP-018]
+
+  - capability_id: CAP-008
+    name: AVOA-Specific Fixtures
+    target_state: "Pricing, occupancy, offer, tax, commission, cancellation fixtures all passing"
+    current_state: "Pricing fixtures exist (2 files); others unknown"
+    status: Partial
+    evidence: "test_pricing_v4_fixtures.py and test_package_fixtures.py verified; coverage of occupancy/tax/commission/cancellation unverified"
+    risk: MEDIUM
+    recommendation: "Audit fixture coverage against AVOA gate checklist; fill gaps"
+    dependencies: []
+
+  - capability_id: CAP-009
+    name: Structured Review Protocol
+    target_state: "YAML findings with severity, category, file, evidence; Hermes adjudication record"
+    current_state: "Claude review via OpenCode workaround; no structured findings; no adjudication records"
+    status: Partial
+    evidence: "CLAUDE_REVIEW_SETUP.md documents process; REVIEW_REPORT_TEMPLATE.md exists; no actual structured findings found"
+    risk: HIGH
+    recommendation: "Define findings YAML schema; implement in review dispatch; create adjudication record format"
+    dependencies: [CAP-019]
+
+  - capability_id: CAP-010
+    name: Decision Register (DEC-XXX-NNN)
+    target_state: "Structured decision records with status, owner, applies_to, supersedes"
+    current_state: "Founder Decision Register exists (14 decisions, table format); v1.0 DECISION_LEDGER_TEMPLATE exists"
+    status: Partial
+    evidence: "FOUNDER_DECISION_REGISTER.md (14 decisions); DECISION_LEDGER_TEMPLATE.md (v1.0 format)"
+    risk: LOW
+    recommendation: "Migrate 14 founder decisions to DEC-XXX-NNN format; add 2 locked decisions from v3"
+    dependencies: []
+
+  - capability_id: CAP-011
+    name: Regression Register
+    target_state: "Populated regression records with symptoms, root_cause, fix, test protection"
+    current_state: "Template only; no actual records"
+    status: Missing
+    evidence: "REGRESSION_REGISTER.md is 16-line template with no entries"
+    risk: HIGH
+    recommendation: "Identify last 3 fixed defects; create REG-001 through REG-003; integrate into task contract context"
+    dependencies: []
+
+  - capability_id: CAP-012
+    name: Builder Scorecards
+    target_state: "Tracked per-builder: pass rate, scope violations, cost, corrections"
+    current_state: "Template only; no data collected"
+    status: Missing
+    evidence: "BUILDER_SCORECARD_TEMPLATE.md exists; no populated scorecards"
+    risk: MEDIUM
+    recommendation: "Create scorecard file for Kimi K3; populate from last 3 tasks; route next task using evidence"
+    dependencies: []
+
+  - capability_id: CAP-013
+    name: Rollback Packages
+    target_state: "Per-task: baseline commit, migration status, rollback steps"
+    current_state: "Protocol documented; not produced per-task"
+    status: Document-only
+    evidence: "ROLLBACK_PROTOCOL.md exists; no rollback packages in task directories"
+    risk: MEDIUM
+    recommendation: "Add rollback section to task contract; auto-generate from git state at task start"
+    dependencies: [CAP-002]
+
+  - capability_id: CAP-014
+    name: Mission Control Dashboard
+    target_state: "Evidence-backed dashboard with task states, reviews, deployments"
+    current_state: "Skill exists; no implementation"
+    status: Missing
+    evidence: "mission-control-dashboard skill installed; no API or UI built"
+    risk: LOW
+    recommendation: "Defer until v3 backend records (CAP-002 to CAP-013) are implemented"
+    dependencies: [CAP-002, CAP-004, CAP-009, CAP-010, CAP-011, CAP-012]
+
+  - capability_id: CAP-015
+    name: Two-Memory Model
+    target_state: "Product memory (durable) vs Task memory (temporary) with cleanup lifecycle"
+    current_state: "Hermes memory exists but undifferentiated; no task memory cleanup"
+    status: Partial
+    evidence: "Memory tool has project context and decisions; no separation of product vs task; no archive mechanism"
+    risk: LOW
+    recommendation: "Tag memory entries as product or task; implement task memory archival on task closure"
+    dependencies: [CAP-004]
+
+  - capability_id: CAP-016
+    name: Evidence-Based Completion
+    target_state: "Automated evidence checklist; READY_FOR_AMJAD only when all gates pass"
+    current_state: "AGENTS.md §0.7 defines checklist; manually checked; not automated"
+    status: Document-only
+    evidence: "AGENTS.md §0.7 has 8-section compliance checklist; no automated verification"
+    risk: MEDIUM
+    recommendation: "Implement evidence collection script; integrate with CI gates; auto-generate completion report"
+    dependencies: [CAP-007, CAP-009]
+
+  - capability_id: CAP-017
+    name: Feature Flags
+    target_state: "Feature flags for high-risk deployment"
+    current_state: "Policy exists; no implementation"
+    status: Missing
+    evidence: "FEATURE_FLAG_POLICY.md exists; no flag infrastructure in codebase"
+    risk: LOW
+    recommendation: "Implement when first high-risk feature is deployed"
+    dependencies: []
+
+  - capability_id: CAP-018
+    name: GitHub CI/CD
+    target_state: "Protected branches, CI workflows, automated merge gates"
+    current_state: "No CI/CD; no protected branches; direct master commits"
+    status: Missing
+    evidence: "No .github/workflows/ in avoa-connect; git config shows no branch protection; master branch allows direct push"
+    risk: CRITICAL
+    recommendation: "Add branch protection rules; create minimal CI workflow (pytest + ruff); require PR for all changes"
+    dependencies: []
+
+  - capability_id: CAP-019
+    name: Claude Code Reviewer Auth
+    target_state: "Claude Code authenticated and operational for independent review"
+    current_state: "Claude Code CLI installed v2.1.207 but NOT authenticated"
+    status: Partial
+    evidence: "claude --version = 2.1.207; claude auth status = 'Not logged in'"
+    risk: HIGH
+    recommendation: "Decide: (a) authenticate Claude Code with Anthropic key, or (b) formalize OpenCode+Claude alternative path"
+    dependencies: []
+
+  - capability_id: CAP-020
+    name: Codex Fallback Builder
+    target_state: "Codex authenticated, tested, ready as precision/fallback builder"
+    current_state: "Codex CLI installed v0.144.3; auth status unknown; never used"
+    status: Unknown
+    evidence: "codex --version = 0.144.3; no auth status command; no usage history"
+    risk: MEDIUM
+    recommendation: "Verify Codex auth; run test task; establish readiness"
+    dependencies: []
+
+  - capability_id: CAP-021
+    name: Kimi K3 Primary Builder
+    target_state: "Kimi K3 handles new features, vertical slices, multi-file work"
+    current_state: "Configured via OpenCode/OpenRouter; used as primary builder"
+    status: Implemented
+    evidence: "moonshotai/kimi-k3 in opencode.json; KIMI_K3_SETUP.md documents usage"
+    risk: null
+    recommendation: "Maintain; add to builder scorecards"
+    dependencies: []
+
+highest_risks:
+  - risk_id: RISK-001
+    description: "No protected branches — any agent can push/merge to master"
+    severity: CRITICAL
+    affected_capability: CAP-018
+    mitigation: "Add branch protection rules on GitHub immediately"
+
+  - risk_id: RISK-002
+    description: "No CI/CD pipelines — all quality gates are manual"
+    severity: HIGH
+    affected_capability: CAP-007
+    mitigation: "Add minimal GitHub Actions workflow (pytest + ruff)"
+
+  - risk_id: RISK-003
+    description: "Claude Code not authenticated — native review path broken"
+    severity: HIGH
+    affected_capability: CAP-019
+    mitigation: "Authenticate Claude Code or formalize OpenCode alternative"
+
+  - risk_id: RISK-004
+    description: "Hermes writes implementation code directly — violates orchestrator-only rule"
+    severity: HIGH
+    affected_capability: CAP-001
+    mitigation: "Define explicit boundary; enforce in SOUL.md; delegate all product code"
+
+  - risk_id: RISK-005
+    description: "All scope enforcement is prompt-based — no technical barriers"
+    severity: HIGH
+    affected_capability: CAP-005
+    mitigation: "Implement protected-zone diff-check script; add to pre-commit"
+
+  - risk_id: RISK-006
+    description: "No regression records — repeated defects not prevented"
+    severity: HIGH
+    affected_capability: CAP-011
+    mitigation: "Create REG-001 through REG-003 from known fixes"
+
+  - risk_id: RISK-007
+    description: "Test suite has collection error — reliability unknown"
+    severity: MEDIUM
+    affected_capability: CAP-007
+    mitigation: "Fix missing kvm_me_packages.json fixture; re-run full suite"
+
+reusable_components:
+  - component: "Hermes Agent platform"
+    location: "~/.hermes/ (config, skills, memory, delegation, cron)"
+    reuse: "Full platform for orchestration, delegation, and automation"
+
+  - component: "AGENTS.md v4.0"
+    location: "~/projects/avoa-connect/AGENTS.md"
+    reuse: "Source material for v3 schemas and policies"
+
+  - component: "OpenCode + OpenRouter config"
+    location: "~/.config/opencode/opencode.json"
+    reuse: "Builder/reviewer transport layer"
+
+  - component: "Founder Decision Register"
+    location: "docs/product/FOUNDER_DECISION_REGISTER.md"
+    reuse: "Migrate to DEC-XXX-NNN format"
+
+  - component: "Backend test suite"
+    location: "backend/tests/ (17 files, 78 tests)"
+    reuse: "Integrate into v3 automated gates"
+
+  - component: "Pricing fixtures"
+    location: "test_pricing_v4_fixtures.py, test_package_fixtures.py"
+    reuse: "AVOA-specific gate fixtures"
+
+  - component: "Hermes OS v1.0 Foundation Pack"
+    location: "~/projects/hermes-os-foundation/"
+    reuse: "Modular governance docs; augment, don't replace"
+
+  - component: "Active cron jobs (4)"
+    location: "hermes cron list"
+    reuse: "Preserve: Spend Audit, Security Audit, Release Watcher, Cost Breakdown"
+
+missing_information:
+  - item: "Claude Code auth decision"
+    description: "Whether to get Anthropic API key or formalize OpenCode alternative"
+    needed_from: Amjad
+
+  - item: "Hermes code authorship boundary"
+    description: "Whether Hermes may write governance docs/plans/config or must delegate everything"
+    needed_from: Amjad
+
+  - item: "CI implementation timing"
+    description: "Whether to set up CI now or wait until after full audit approval"
+    needed_from: Amjad
+
+  - item: "Branch protection timing"
+    description: "Whether to protect master now (immediately changes workflow) or defer"
+    needed_from: Amjad
+
+  - item: "Replit integration status"
+    description: "Whether Replit is connected and functional for AVOA previews"
+    needed_from: Amjad
+
+  - item: "Codex auth status"
+    description: "Cannot verify without `codex auth status` command"
+    needed_from: "Technical investigation"
+
+  - item: "Test suite pass rate"
+    description: "Collection error prevents full run"
+    needed_from: "Technical investigation (fix fixture path)"
+
+recommended_first_package:
+  name: "P0 — Governance Foundation"
+  estimated_sessions: "1-2"
+  tasks:
+    - "Define task contract YAML/JSON schema"
+    - "Map and implement R1-R4 risk classification"
+    - "Implement 18-state lifecycle as Python enum"
+    - "Create decision register with DEC-HOS-001 and DEC-AVOA-PRICING-001"
+    - "Create REG-001 through REG-003 from recent defects"
+    - "Define protected-zones.yaml manifest for avoa-connect"
+  prerequisites: []
+  delivers: "Foundation schemas and records for all subsequent implementation"
+
+next_package:
+  name: "P1 — Safety Gates"
+  estimated_sessions: "2-3"
+  tasks:
+    - "Add GitHub branch protection on master"
+    - "Create CI workflow (pytest + ruff)"
+    - "Fix test collection error"
+    - "Implement protected-zone diff check"
+    - "Implement change budget check"
+  prerequisites: ["P0 — Governance Foundation"]
+  delivers: "Automated enforcement of scope, tests, and merge safety"
+
+final_package:
+  name: "P2 — Review Path"
+  estimated_sessions: "1"
+  tasks:
+    - "Resolve Claude Code auth or formalize OpenCode path"
+    - "Implement structured findings YAML schema"
+    - "Implement Hermes adjudication record"
+    - "Create builder scorecard for Kimi K3"
+  prerequisites: ["P0 — Governance Foundation"]
+  delivers: "Functional independent review workflow with structured evidence"
+
+# ============================================================
+# Hermes OS v3.1 Addendum — appended 2026-07-31
+# ============================================================
+
+v31_decisions:
+  - decision_id: DEC-A
+    name: "Claude Code Authentication"
+    resolved: "Native Claude Code preferred; OpenCode+Claude fallback accepted"
+    implementation_required:
+      - "Document auth method"
+      - "Document permissions"
+      - "Document review invocation"
+      - "Document evidence retention"
+      - "Document fallback limitations"
+      - "Document transition path"
+  - decision_id: DEC-B
+    name: "Hermes Code Boundary"
+    resolved: "Hermes may write docs, plans, contracts, policies, schemas, templates, decisions, regressions, configs, audits. Product code delegated to Kimi K3/Codex."
+    implementation_required: []
+  - decision_id: DEC-C
+    name: "CI Timing"
+    resolved: "Minimum CI is part of first foundation release. Not deferred."
+    implementation_required: []
+  - decision_id: DEC-D
+    name: "Branch Protection"
+    resolved: "Implement after CI checks validated. Interim no-direct-push rule."
+    implementation_required:
+      - "Create CI checks first"
+      - "Verify check names"
+      - "Enable protection"
+      - "Confirm rollback procedure"
+  - decision_id: DEC-E
+    name: "Replit"
+    resolved: "Optional preview. Not prerequisite for v3.1 foundation. Status unverified."
+    implementation_required:
+      - "Verify connection status"
+      - "Verify repository and branch"
+      - "Verify runtime config"
+      - "Verify secrets handling"
+
+v31_new_capabilities:
+  - capability_id: CAP-V31-001
+    name: Design Studio
+    target_state: "Formal design function owning UX, visual, interaction, accessibility"
+    current_state: "No formal design function; Amjad does visual review; 3 HTML prototypes exist"
+    status: Missing
+    evidence: "3 design HTMLs in docs/design/approved/; tailwind.config.ts with color tokens; no design system docs"
+    risk: MEDIUM
+    recommendation: "Audit and document design system; establish UX review workflow"
+    dependencies: []
+    v31_phase: P2
+
+  - capability_id: CAP-V31-002
+    name: UI Contracts
+    target_state: "YAML UI contract per visual task"
+    current_state: "Not implemented"
+    status: Missing
+    evidence: "No UI contract files found; AGENTS.md references design freeze but no structured contract"
+    risk: MEDIUM
+    recommendation: "Define UI contract schema alongside task contract schema"
+    dependencies: [CAP-002]
+    v31_phase: P0
+
+  - capability_id: CAP-V31-003
+    name: Design System Documentation
+    target_state: "Color, typography, spacing, grid, components, accessibility documented"
+    current_state: "Tailwind config color tokens only; no formal documentation"
+    status: Missing
+    evidence: "tailwind.config.ts has navy/teal/gold/coral/cream palettes; no typography/spacing/component docs"
+    risk: MEDIUM
+    recommendation: "Create design-system.md; document tokens, components, patterns"
+    dependencies: []
+    v31_phase: P2
+
+  - capability_id: CAP-V31-004
+    name: Parallel Execution Controller
+    target_state: "Sub-agent dispatch with kanban, safeguards, collision detection"
+    current_state: "Kanban available; no profiles active; no worktree isolation tested"
+    status: Missing
+    evidence: "8 profiles exist; kanban not initialized; worktree flag supports -w but untested with agents"
+    risk: LOW
+    recommendation: "Defer to P3; not needed for foundation"
+    dependencies: [CAP-018]
+    v31_phase: P3
+
+  - capability_id: CAP-V31-005
+    name: Codebase Scout Agent
+    target_state: "Read-only codebase analysis sub-agent"
+    current_state: "`scout` profile exists but not configured"
+    status: Partial
+    evidence: "hermes profile list shows scout profile; no configuration beyond creation"
+    risk: LOW
+    recommendation: "Configure scout profile with read-only tools; test on next task"
+    dependencies: []
+    v31_phase: P3
+
+  - capability_id: CAP-V31-006
+    name: Documentation Agent
+    target_state: "Documentation-only writing sub-agent"
+    current_state: "`scribe` profile exists but not configured"
+    status: Partial
+    evidence: "hermes profile list shows scribe profile; no configuration beyond creation"
+    risk: LOW
+    recommendation: "Configure scribe profile; restrict to docs/ paths; test on next doc task"
+    dependencies: []
+    v31_phase: P3
+
+  - capability_id: CAP-V31-007
+    name: Visual QA Agent
+    target_state: "Automated screenshot capture and comparison"
+    current_state: "vision_analyze tool exists; no automation for task evidence"
+    status: Partial
+    evidence: "vision_analyze and macos-computer-use skills available; never used for task evidence"
+    risk: MEDIUM
+    recommendation: "Add screenshot capture to task evidence requirements; automate in P2"
+    dependencies: []
+    v31_phase: P2
+
+  - capability_id: CAP-V31-008
+    name: Accessibility Validation
+    target_state: "WCAG checks, screen-reader testing per UI task"
+    current_state: "None — no a11y tools or checks found"
+    status: Missing
+    evidence: "No accessibility testing tools, no axe-core, no WCAG references in project"
+    risk: LOW
+    recommendation: "Add axe-core to CI; establish baseline in P2"
+    dependencies: [CAP-018]
+    v31_phase: P2
+
+  - capability_id: CAP-V31-009
+    name: Worktree Isolation
+    target_state: "Isolated git worktrees per parallel sub-agent"
+    current_state: "Supported by Hermes Agent; never tested with multiple agents"
+    status: Partial
+    evidence: "hermes --worktree flag documented; git worktree list shows only master"
+    risk: MEDIUM
+    recommendation: "Test worktree isolation with 2 agents before parallel execution"
+    dependencies: []
+    v31_phase: P3
+
+  - capability_id: CAP-V31-010
+    name: Collision Detection
+    target_state: "Automated detection of overlapping file changes"
+    current_state: "None — procedural single-writer rule only"
+    status: Missing
+    evidence: "AGENTS.md §0.2 defines single-writer rule; no technical enforcement"
+    risk: MEDIUM
+    recommendation: "Implement file-ownership lock file per worktree; check on commit"
+    dependencies: [CAP-V31-009]
+    v31_phase: P3
+
+  - capability_id: CAP-V31-011
+    name: Hermes Command Center
+    target_state: "Evidence-backed operational dashboard with 10 modules"
+    current_state: "No backend data; no UI; no APIs"
+    status: Missing
+    evidence: "No Command Center implementation; mission-control-dashboard skill installed but not built"
+    risk: LOW
+    recommendation: "Defer to P4; build after backend records exist (P0-P3 complete)"
+    dependencies: [CAP-002, CAP-004, CAP-009, CAP-010, CAP-011, CAP-012]
+    v31_phase: P4
+
+  - capability_id: CAP-V31-012
+    name: Replit Connection Verified
+    target_state: "Confirmed or replaced preview environment"
+    current_state: "Unverified; .replit config in avoa-quote-engine; prototype extracted as ZIP"
+    status: Unknown
+    evidence: "REPLIT_PROTOTYPE_WORKFLOW_LOCK.md (454 lines) is authoritative; no live Replit confirmed"
+    risk: LOW
+    recommendation: "Verify connection; if unsuitable, recommend GitHub staging/PR preview alternative"
+    dependencies: []
+    v31_phase: P1
+
+v31_updated_implementation_packages:
+  - phase: P0
+    name: "Foundation + Safety (v3.1 expanded)"
+    estimated_sessions: "2-3"
+    tasks:
+      - "Task-contract YAML schema"
+      - "UI-contract schema"
+      - "Risk classification R1-R4"
+      - "Task-state definitions"
+      - "Role and permission model"
+      - "Review-report schema"
+      - "Evidence-package schema"
+      - "Protected-zone policy"
+      - "Decision register (DEC-HOS-001, DEC-AVOA-PRICING-001)"
+      - "Regression-register structure + first 3 records"
+      - "Minimum CI workflow (build + lint + test)"
+      - "Changed-file reporting script"
+      - "Minimal scope checker"
+      - "Branch-protection preparation"
+      - "Interim no-direct-push rule"
+    prerequisites: []
+    delivers: "Governance schemas + minimum enforcement + repository safety"
+
+  - phase: P1
+    name: "Review Path"
+    estimated_sessions: "1"
+    tasks:
+      - "Resolve Claude Code auth or formalize OpenCode path"
+      - "Structured findings schema implementation"
+      - "Hermes adjudication record"
+      - "Builder scorecard for Kimi K3"
+    prerequisites: ["P0"]
+    delivers: "Functional independent review with structured evidence"
+
+  - phase: P2
+    name: "Design Foundation"
+    estimated_sessions: "1-2"
+    tasks:
+      - "Design-system audit and documentation"
+      - "Accessibility baseline (axe-core)"
+      - "Visual QA automation (screenshot capture)"
+    prerequisites: ["P0"]
+    delivers: "Documented design system + automated visual evidence"
+
+  - phase: P3
+    name: "Parallel Execution (deferred)"
+    estimated_sessions: "2-3"
+    tasks:
+      - "Configure sub-agent profiles (scout, scribe)"
+      - "Initialize Kanban board"
+      - "Worktree isolation testing"
+      - "Collision detection"
+    prerequisites: ["P0", "P1", "P2"]
+    delivers: "Controlled parallel agent execution"
+
+  - phase: P4
+    name: "Command Center (deferred)"
+    estimated_sessions: "3-5"
+    tasks:
+      - "Backend data APIs"
+      - "Dashboard UI (10 modules)"
+    prerequisites: ["P0", "P1", "P2", "P3"]
+    delivers: "Evidence-backed operational dashboard"
+
+v31_deferred_capabilities:
+  - "Full Command Center UI"
+  - "Broad sub-agent autonomy"
+  - "Automatic parallel code integration"
+  - "Unrestricted worktree automation"
+  - "Automatic deployment"
+  - "R4 parallel production writes"

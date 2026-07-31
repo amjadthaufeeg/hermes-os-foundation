@@ -4,7 +4,7 @@ name: "Hermes Product OS v3.1 CI"
 
 on:
   push:
-    branches: [feature/**]
+    branches: [feature/**, recovery/**, main]
   pull_request:
     branches: [main]
 

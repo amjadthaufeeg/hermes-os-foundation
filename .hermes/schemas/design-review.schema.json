@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://hermes-os.local/schemas/design-review.schema.json","title":"Design Review","type":"object","required":["review_id","task_id","reviewer","findings"],"properties":{"review_id":{"type":"string"},"task_id":{"type":"string"},"reviewer":{"enum":["visual-qa-agent"]}}}
