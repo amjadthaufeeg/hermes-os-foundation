@@ -1,0 +1,6 @@
+regression_id: REG-001
+title: "Valid fixture regression"
+status: active
+symptoms: "Test symptom description with sufficient length for validation."
+root_cause: "Test root cause with sufficient length for validation."
+fix: "Test fix with sufficient length for validation purposes."

@@ -1,0 +1,8 @@
+task_id: TASK-FIXTURE-002
+project: Test
+title: "Valid UI contract fixture"
+design_owner: ux-architect
+required_states: [default, loading]
+required_breakpoints: [mobile, desktop]
+visual_acceptance_criteria: ["Layout matches design"]
+required_visual_evidence: [{type: screenshot, breakpoint: mobile, state: default}]
