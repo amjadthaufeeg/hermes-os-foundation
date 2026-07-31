@@ -22,9 +22,11 @@ allowed_folders:
   - "docs/"
   - "03_Engineering_OS/"
 
-protected_areas: []
+protected_areas:
+  - ".hermes/schemas/"
 authorized_protected_changes: []
-must_not_change: []
+must_not_change:
+  - "Production application code"
 
 acceptance_criteria:
   - "All schemas validate"
@@ -35,7 +37,7 @@ stop_conditions:
   - "Scope exceeds declared paths"
   - "Protected zone violation"
 
-builder: ci-cd
+builder: hermes
 reviewer: none
 design_review_required: false
 amjad_approval_required: false
