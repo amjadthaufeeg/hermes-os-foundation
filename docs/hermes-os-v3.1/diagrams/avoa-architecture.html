@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVOA Connect — Product Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #C99A3B; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container { background: rgba(15, 23, 42, 0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; }
+    svg { width: 100%; min-width: 1000px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; } .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; } .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; } .card-dot.gold { background: #C99A3B; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>AVOA Connect — Product Architecture</h1>
+      </div>
+      <p class="subtitle">B2B Villa Rental Platform — Next.js 14 — FastAPI — Supabase — Pre-Production</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1100 700">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+          </marker>
+          <marker id="arrow-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+
+        <!-- USERS -->
+        <rect x="30" y="310" width="90" height="50" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="75" y="330" fill="white" font-size="11" font-weight="600" text-anchor="middle">Clients</text>
+        <text x="75" y="346" fill="#94a3b8" font-size="9" text-anchor="middle">Browser/Mobile</text>
+
+        <rect x="30" y="390" width="90" height="50" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="75" y="410" fill="white" font-size="11" font-weight="600" text-anchor="middle">Managers</text>
+        <text x="75" y="426" fill="#94a3b8" font-size="9" text-anchor="middle">Villa Operators</text>
+
+        <!-- NEXT.JS FRONTEND -->
+        <rect x="180" y="80" width="220" height="150" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="290" y="105" fill="white" font-size="12" font-weight="600" text-anchor="middle">Next.js 14 — Frontend</text>
+        <line x1="190" y1="115" x2="390" y2="115" stroke="#1e293b" stroke-width="0.5"/>
+        <text x="290" y="135" fill="#94a3b8" font-size="9" text-anchor="middle">/cockpit  /quote  /request</text>
+        <text x="290" y="150" fill="#94a3b8" font-size="9" text-anchor="middle">/inbox  /login  /</text>
+        <rect x="195" y="162" width="90" height="22" rx="3" fill="rgba(10,126,143,0.3)" stroke="#0A7E8F" stroke-width="1"/>
+        <text x="240" y="177" fill="#22d3ee" font-size="8" text-anchor="middle">Tailwind CSS</text>
+        <rect x="290" y="162" width="95" height="22" rx="3" fill="rgba(10,126,143,0.3)" stroke="#0A7E8F" stroke-width="1"/>
+        <text x="337" y="177" fill="#22d3ee" font-size="8" text-anchor="middle">Navbar.tsx</text>
+        <text x="290" y="208" fill="#0A7E8F" font-size="7" text-anchor="middle">avoa-frontend . React 18</text>
+
+        <!-- AUTH -->
+        <rect x="180" y="260" width="220" height="45" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="290" y="278" fill="white" font-size="11" font-weight="600" text-anchor="middle">Authentication</text>
+        <text x="290" y="295" fill="#94a3b8" font-size="9" text-anchor="middle">auth.py  /login  OAuth 2.0</text>
+
+        <!-- FASTAPI BACKEND -->
+        <rect x="480" y="80" width="300" height="230" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="630" y="105" fill="white" font-size="12" font-weight="600" text-anchor="middle">FastAPI — Backend Engine</text>
+        <line x1="490" y1="115" x2="770" y2="115" stroke="#1e293b" stroke-width="0.5"/>
+        <text x="630" y="135" fill="#94a3b8" font-size="9" text-anchor="middle">api/v1  main.py  core/  models/</text>
+
+        <rect x="495" y="148" width="125" height="48" rx="4" fill="rgba(10,126,143,0.2)" stroke="#0A7E8F" stroke-width="0.8"/>
+        <text x="557" y="164" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">Pricing Engine</text>
+        <text x="557" y="178" fill="#94a3b8" font-size="7" text-anchor="middle">pricing_v3.py</text>
+        <text x="557" y="190" fill="#C99A3B" font-size="7" text-anchor="middle">quarantine active</text>
+
+        <rect x="630" y="148" width="135" height="48" rx="4" fill="rgba(10,126,143,0.2)" stroke="#0A7E8F" stroke-width="0.8"/>
+        <text x="697" y="164" fill="#34d399" font-size="9" font-weight="600" text-anchor="middle">Quote Engine</text>
+        <text x="697" y="178" fill="#94a3b8" font-size="7" text-anchor="middle">quote_calculation.py</text>
+        <text x="697" y="190" fill="#94a3b8" font-size="7" text-anchor="middle">package_quote.py</text>
+
+        <rect x="495" y="204" width="125" height="35" rx="4" fill="rgba(10,126,143,0.2)" stroke="#0A7E8F" stroke-width="0.8"/>
+        <text x="557" y="219" fill="#94a3b8" font-size="9" text-anchor="middle">flexible_dates.py</text>
+        <text x="557" y="232" fill="#94a3b8" font-size="7" text-anchor="middle">email_service.py</text>
+
+        <rect x="630" y="204" width="135" height="35" rx="4" fill="rgba(10,126,143,0.2)" stroke="#0A7E8F" stroke-width="0.8"/>
+        <text x="697" y="219" fill="#94a3b8" font-size="9" text-anchor="middle">config.py  auth.py</text>
+        <text x="697" y="232" fill="#94a3b8" font-size="7" text-anchor="middle">database.py</text>
+
+        <text x="630" y="258" fill="#1e293b" font-size="9" text-anchor="middle">----------------------------</text>
+        <text x="630" y="278" fill="#94a3b8" font-size="8" text-anchor="middle">Models: villa  property  organization  season</text>
+        <text x="630" y="295" fill="#34d399" font-size="8" text-anchor="middle">Python . FastAPI . TypeScript</text>
+
+        <!-- SUPABASE -->
+        <rect x="865" y="130" width="200" height="80" rx="8" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="965" y="155" fill="white" font-size="12" font-weight="600" text-anchor="middle">Supabase</text>
+        <text x="965" y="175" fill="#94a3b8" font-size="9" text-anchor="middle">PostgreSQL  Auth  Storage</text>
+        <text x="965" y="195" fill="#a78bfa" font-size="8" text-anchor="middle">Managed TLS 1.3</text>
+
+        <!-- HERMES OS ORCHESTRATION -->
+        <rect x="180" y="430" width="885" height="120" rx="12" fill="rgba(201,154,59,0.08)" stroke="#C99A3B" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="195" y="450" fill="#C99A3B" font-size="10" font-weight="600">Hermes Product OS v3.1 — Orchestration Layer</text>
+
+        <rect x="200" y="465" width="160" height="55" rx="6" fill="rgba(30,41,59,0.6)" stroke="#C99A3B" stroke-width="1"/>
+        <text x="280" y="485" fill="white" font-size="11" font-weight="600" text-anchor="middle">Hermes</text>
+        <text x="280" y="502" fill="#C99A3B" font-size="8" text-anchor="middle">Sole Orchestrator</text>
+        <text x="280" y="513" fill="#94a3b8" font-size="7" text-anchor="middle">Scope  Risk  Gating</text>
+
+        <rect x="380" y="465" width="160" height="55" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="460" y="485" fill="white" font-size="11" font-weight="600" text-anchor="middle">Kimi K3</text>
+        <text x="460" y="502" fill="#94a3b8" font-size="8" text-anchor="middle">Primary Builder</text>
+        <text x="460" y="513" fill="#22d3ee" font-size="7" text-anchor="middle">Features  Slices</text>
+
+        <rect x="560" y="465" width="160" height="55" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="640" y="485" fill="white" font-size="11" font-weight="600" text-anchor="middle">Codex</text>
+        <text x="640" y="502" fill="#94a3b8" font-size="8" text-anchor="middle">Precision Builder</text>
+        <text x="640" y="513" fill="#34d399" font-size="7" text-anchor="middle">Bugs  Fixtures</text>
+
+        <rect x="740" y="465" width="160" height="55" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="820" y="485" fill="white" font-size="11" font-weight="600" text-anchor="middle">Claude Code</text>
+        <text x="820" y="502" fill="#94a3b8" font-size="8" text-anchor="middle">Independent Reviewer</text>
+        <text x="820" y="513" fill="#fb7185" font-size="7" text-anchor="middle">Read-Only Review</text>
+
+        <rect x="920" y="465" width="130" height="55" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="985" y="485" fill="white" font-size="11" font-weight="600" text-anchor="middle">Replit</text>
+        <text x="985" y="502" fill="#94a3b8" font-size="8" text-anchor="middle">Live Preview</text>
+        <text x="985" y="513" fill="#fbbf24" font-size="7" text-anchor="middle">Not Source</text>
+
+        <!-- ARROWS -->
+        <line x1="120" y1="335" x2="178" y2="235" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+        <line x1="120" y1="415" x2="178" y2="290" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+        <line x1="290" y1="230" x2="290" y2="258" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,5" marker-end="url(#arrow-rose)"/>
+
+        <line x1="400" y1="170" x2="478" y2="140" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+        <text x="435" y="148" fill="#94a3b8" font-size="8">REST</text>
+        <line x1="400" y1="220" x2="478" y2="200" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+        <line x1="780" y1="170" x2="863" y2="170" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="820" y="164" fill="#94a3b8" font-size="8">TLS</text>
+
+        <!-- STATUS BAR -->
+        <rect x="180" y="340" width="885" height="55" rx="8" fill="rgba(15,23,42,0.8)" stroke="#1e293b" stroke-width="1"/>
+        <text x="200" y="362" fill="white" font-size="11" font-weight="600">Status</text>
+        <rect x="270" y="352" width="12" height="12" rx="3" fill="#34d399"/>
+        <text x="288" y="362" fill="#94a3b8" font-size="9">Governance (HOS-1)</text>
+        <rect x="460" y="352" width="12" height="12" rx="3" fill="#34d399"/>
+        <text x="478" y="362" fill="#94a3b8" font-size="9">Branch Protection</text>
+        <rect x="630" y="352" width="12" height="12" rx="3" fill="#34d399"/>
+        <text x="648" y="362" fill="#94a3b8" font-size="9">Design Studio (HOS-2)</text>
+        <rect x="815" y="352" width="12" height="12" rx="3" fill="#C99A3B"/>
+        <text x="833" y="362" fill="#C99A3B" font-size="9">AWAITING DESIGN</text>
+
+        <!-- LEGEND -->
+        <text x="915" y="30" fill="white" font-size="10" font-weight="600">Legend</text>
+        <rect x="915" y="42" width="14" height="9" rx="2" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="935" y="50" fill="#94a3b8" font-size="8">Frontend (Next.js)</text>
+        <rect x="915" y="57" width="14" height="9" rx="2" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="935" y="65" fill="#94a3b8" font-size="8">Backend (FastAPI)</text>
+        <rect x="915" y="72" width="14" height="9" rx="2" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="935" y="80" fill="#94a3b8" font-size="8">Database (Supabase)</text>
+        <rect x="915" y="87" width="14" height="9" rx="2" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1"/>
+        <text x="935" y="95" fill="#94a3b8" font-size="8">Security / Auth</text>
+        <line x1="915" y1="108" x2="929" y2="108" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="935" y="111" fill="#94a3b8" font-size="8">Auth Flow</text>
+        <rect x="915" y="117" width="14" height="9" rx="2" fill="transparent" stroke="#C99A3B" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="935" y="125" fill="#C99A3B" font-size="8">Orchestration</text>
+
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>Frontend</h3></div>
+        <ul>
+          <li>Next.js 14.2 (App Router, React 18)</li>
+          <li>Tailwind CSS . Geist font</li>
+          <li>7 routes . 4 shared components</li>
+          <li>Dark theme (navy . teal . gold . coral . cream)</li>
+          <li>Quote wizard UI reset in progress (7 slices)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot emerald"></div><h3>Backend and Data</h3></div>
+        <ul>
+          <li>FastAPI (Python) backend engine</li>
+          <li>Pricing: v1/v2/v3 (quarantine active)</li>
+          <li>Quote calculation . parity . PDF</li>
+          <li>Supabase PostgreSQL via database.py</li>
+          <li>Models: villa . property . org . season</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot gold"></div><h3>Operating Model</h3></div>
+        <ul>
+          <li>Hermes: Sole orchestrator (no code)</li>
+          <li>Kimi K3: Primary builder</li>
+          <li>Codex: Precision builder (fallback)</li>
+          <li>Claude: Read-only reviewer</li>
+          <li>GitHub: Source of truth</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">
+      Inspected 1 Aug 2026 . avoa-connect@0a9b1cb . hermes-os-foundation HOS-2
+    </p>
+  </div>
+</body>
+</html>
