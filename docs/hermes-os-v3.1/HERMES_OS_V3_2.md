@@ -84,7 +84,7 @@ Tools perform verification, review, or rendering. Their output is evidence — a
 | **GitHub** | Source of truth | ACTIVE | PROVEN |
 | **Replit** | Live Preview | INACTIVE | UNPROVEN |
 | **OpenCode** | Claude fallback interface | INACTIVE | UNPROVEN |
-| **DeepSeek V4 Pro** | Optional research | ACTIVE | PROBATION |
+| **DeepSeek V4 Pro** | Optional research | ACTIVE | RESTRICTED |
 
 ### Role / Model / Tool / Platform Separation
 
