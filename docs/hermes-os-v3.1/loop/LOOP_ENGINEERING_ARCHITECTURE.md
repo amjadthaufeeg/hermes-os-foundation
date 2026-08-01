@@ -152,7 +152,7 @@ The Loop Controller is a subordinate Hermes capability. It does not replace Herm
 
 ---
 
-## 4. Loop Lifecycle
+## 5. Loop Lifecycle
 
 ```
 LOOP_PROPOSED ──→ LOOP_APPROVED
@@ -196,7 +196,7 @@ Failure states: BUDGET_EXCEEDED, SCOPE_EXCEEDED, PROVIDER_TIMEOUT, EVIDENCE_REJE
 
 ---
 
-## 5. Proof-or-Stop Rule
+## 6. Proof-or-Stop Rule
 
 Agent output is a claim, not proof. A loop advances only when current evidence tied to the exact source commit satisfies the relevant gate.
 
@@ -206,7 +206,7 @@ When required evidence is absent, stale, or tied to a different commit → **STO
 
 ---
 
-## 6. Generator-Evaluator Separation
+## 7. Generator-Evaluator Separation
 
 The agent implementing work is never the sole evaluator.
 
@@ -216,7 +216,7 @@ The evaluator is review-only initially. Hermes accepts, rejects, or defers every
 
 ---
 
-## 7. Isolation
+## 8. Isolation
 
 Every loop run operates in an isolated context:
 
