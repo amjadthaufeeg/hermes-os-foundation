@@ -4,79 +4,89 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Hermes Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0a0e14;--surface:#11161d;--border:#1a2030;--text:#cfd4db;--muted:#5c6470;
-  --gold:#c9a03b;--gold-dim:rgba(201,160,59,.12);--cyan:#26c6da;--cyan-dim:rgba(38,198,218,.1);
-  --green:#34c97a;--green-dim:rgba(52,201,122,.12);--red:#e0556a;--red-dim:rgba(224,85,106,.1);
-  --amber:#d4a843;--amber-dim:rgba(212,168,67,.1);--nav-w:220px;--radius:6px;
+  --hermes-bg-primary:#0a0e14;--hermes-bg-surface:#11161d;--hermes-bg-elevated:#181d26;
+  --hermes-border:#1a2030;--hermes-border-dim:rgba(26,32,48,.5);
+  --hermes-text-primary:#cfd4db;--hermes-text-secondary:#8899b4;--hermes-text-muted:#5c6470;
+  --hermes-gold:#c9a03b;--hermes-gold-dim:rgba(201,160,59,.12);
+  --hermes-cyan:#26c6da;--hermes-cyan-dim:rgba(38,198,218,.1);
+  --hermes-green:#34c97a;--hermes-green-dim:rgba(52,201,122,.12);
+  --hermes-red:#e0556a;--hermes-red-dim:rgba(224,85,106,.1);
+  --hermes-amber:#d4a843;--hermes-amber-dim:rgba(212,168,67,.12);
+  --hermes-focus:#26c6da;--hermes-disabled:#3a3f4a;--hermes-stale:#5c6470;
+  --hermes-font:'Inter',system-ui,-apple-system,sans-serif;
+  --hermes-font-mono:'JetBrains Mono','SF Mono',monospace;
+  --nav-w:220px;--radius:6px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+body{font-family:var(--hermes-font);background:var(--hermes-bg-primary);color:var(--hermes-text-primary);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .app{display:flex;min-height:100vh}
-.sidebar{width:var(--nav-w);background:var(--surface);border-right:1px solid var(--border);padding:1.25rem 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10;transition:transform .2s}
-.sidebar-header{padding:0 1.25rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
-.sidebar-header h2{font-size:.85rem;font-weight:600;color:var(--gold);letter-spacing:.03em}
-.sidebar-header .stag{font-size:.6rem;color:var(--muted);margin-top:.25rem;text-transform:uppercase;letter-spacing:.08em}
-.nav-item{display:flex;align-items:center;gap:.6rem;padding:.55rem 1.25rem;font-size:.75rem;color:var(--muted);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.02)}
-.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--gold-dim)}
-.nav-item .icon{font-size:.85rem;width:18px;text-align:center}
+.sidebar{width:var(--nav-w);background:var(--hermes-bg-surface);border-right:1px solid var(--hermes-border);padding:1.25rem 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10;transition:transform .15s}
+.sidebar-header{padding:0 1.25rem 1rem;border-bottom:1px solid var(--hermes-border);margin-bottom:.75rem}
+.sidebar-header h2{font-size:.85rem;font-weight:600;color:var(--hermes-gold);letter-spacing:.03em;font-family:var(--hermes-font)}
+.sidebar-header .stag{font-size:.6rem;color:var(--hermes-text-muted);margin-top:.25rem;text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:.6rem;padding:.55rem 1.25rem;font-size:.75rem;color:var(--hermes-text-muted);cursor:pointer;border-left:2px solid transparent;transition:all .15s;font-family:var(--hermes-font)}
+.nav-item:hover{color:var(--hermes-text-primary);background:rgba(255,255,255,.02)}
+.nav-item.active{color:var(--hermes-gold);border-left-color:var(--hermes-gold);background:var(--hermes-gold-dim)}
+.nav-item:focus-visible{outline:2px solid var(--hermes-focus);outline-offset:-2px}
+.icon{font-size:.85rem;width:18px;text-align:center}
 .main{flex:1;margin-left:var(--nav-w);padding:1.5rem 2rem;max-width:calc(100vw - var(--nav-w))}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
 .header .greeting{font-size:1.1rem;font-weight:600}
-.header .greeting span{color:var(--gold)}
-.header-actions{display:flex;gap:.75rem;align-items:center}
-.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:var(--radius);font-size:.65rem;font-weight:600}
-.badge.gold{background:var(--gold-dim);color:var(--gold)}
-.badge.cyan{background:var(--cyan-dim);color:var(--cyan)}
-.badge.green{background:var(--green-dim);color:var(--green)}
-.badge.red{background:var(--red-dim);color:var(--red)}
-.badge.muted{background:rgba(92,100,112,.12);color:var(--muted)}
+.header .greeting span{color:var(--hermes-gold)}
+.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:var(--radius);font-size:.65rem;font-weight:600;font-family:var(--hermes-font)}
+.badge.gold{background:var(--hermes-gold-dim);color:var(--hermes-gold)}
+.badge.cyan{background:var(--hermes-cyan-dim);color:var(--hermes-cyan)}
+.badge.green{background:var(--hermes-green-dim);color:var(--hermes-green)}
+.badge.red{background:var(--hermes-red-dim);color:var(--hermes-red)}
+.badge.amber{background:var(--hermes-amber-dim);color:var(--hermes-amber)}
+.badge.muted{background:rgba(92,100,112,.12);color:var(--hermes-text-muted)}
 .dot{width:6px;height:6px;border-radius:50%}
-.dot.gold{background:var(--gold)}.dot.cyan{background:var(--cyan)}.dot.green{background:var(--green)}.dot.red{background:var(--red)}.dot.muted{background:var(--muted)}
+.dot.gold{background:var(--hermes-gold)}.dot.cyan{background:var(--hermes-cyan)}.dot.green{background:var(--hermes-green)}.dot.red{background:var(--hermes-red)}.dot.amber{background:var(--hermes-amber)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
-.card h3{font-size:.72rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
-.card h3.cyan{color:var(--cyan)}.card h3.red{color:var(--red)}
-.row{display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid rgba(26,32,48,.5);font-size:.78rem}
+.card{background:var(--hermes-bg-surface);border:1px solid var(--hermes-border);border-radius:var(--radius);padding:1.25rem}
+.card h3{font-size:.72rem;font-weight:600;color:var(--hermes-gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;font-family:var(--hermes-font)}
+.card h3.cyan{color:var(--hermes-cyan)}.card h3.red{color:var(--hermes-red)}.card h3.amber{color:var(--hermes-amber)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--hermes-border-dim);font-size:.78rem}
 .row:last-child{border-bottom:none}
-.row .label{color:var(--muted);min-width:130px;font-size:.72rem}
+.row .label{color:var(--hermes-text-secondary);min-width:130px;font-size:.72rem}
 .row .value{font-weight:500;text-align:right}
 .row .value.wide{text-align:left;flex:1;margin-left:.75rem}
-.freshness{font-size:.6rem;color:var(--muted);margin-left:.35rem}
-.empty-state{padding:1.5rem;text-align:center;color:var(--muted);font-size:.75rem;font-style:italic}
-.section-title{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:.5rem 0 .25rem;border-bottom:1px solid rgba(26,32,48,.5);margin-bottom:.25rem}
+.freshness{font-size:.6rem;color:var(--hermes-text-muted);margin-left:.35rem;font-family:var(--hermes-font-mono)}
+.section-title{font-size:.65rem;color:var(--hermes-text-muted);text-transform:uppercase;letter-spacing:.06em;padding:.5rem 0 .25rem;border-bottom:1px solid var(--hermes-border-dim);margin-bottom:.25rem}
 .timeline-item{padding:.4rem 0;border-bottom:1px solid rgba(26,32,48,.3);font-size:.75rem}
 .timeline-item:last-child{border-bottom:none}
-.timeline-item .date{color:var(--muted);font-size:.65rem}
-.full-width{grid-column:1/-1}
-.footer{display:flex;justify-content:space-between;align-items:center;padding:1rem 0;border-top:1px solid var(--border);margin-top:1.5rem;font-size:.65rem;color:var(--muted)}
-.mobile-toggle{display:none;background:none;border:none;color:var(--text);font-size:1.2rem;cursor:pointer;padding:.25rem}
+.timeline-item .date{color:var(--hermes-text-muted);font-size:.65rem;font-family:var(--hermes-font-mono)}
+.footer{display:flex;justify-content:space-between;align-items:center;padding:1rem 0;border-top:1px solid var(--hermes-border);margin-top:1.5rem;font-size:.65rem;color:var(--hermes-text-muted)}
+.mobile-toggle{display:none;background:none;border:none;color:var(--hermes-text-primary);font-size:1.2rem;cursor:pointer;padding:.25rem;border-radius:var(--radius)}
+.mobile-toggle:focus-visible{outline:2px solid var(--hermes-focus)}
 .overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9}
+.collapse-btn{background:none;border:none;color:var(--hermes-cyan);cursor:pointer;font-size:.7rem;padding:.25rem .5rem;border-radius:var(--radius);font-family:var(--hermes-font)}
+.collapse-btn:hover{background:var(--hermes-cyan-dim)}
+.collapse-btn:focus-visible{outline:2px solid var(--hermes-focus)}
+.collapsed-rows{display:none}
+.collapsed-rows.open{display:block}
 @media(max-width:1023px){
   .sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
   .main{margin-left:0}.mobile-toggle{display:block}.overlay.open{display:block}
   .grid{grid-template-columns:1fr}.grid-3{grid-template-columns:1fr}
 }
 @media(max-width:767px){
-  .main{padding:1rem}.header{flex-direction:column;align-items:flex-start;gap:.5rem}.header-actions{flex-wrap:wrap}
+  .main{padding:1rem}.header{flex-direction:column;align-items:flex-start;gap:.5rem}
 }
 </style>
 </head>
 <body>
 <div class="app">
-
 <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation" style="position:fixed;top:1rem;left:1rem;z-index:20">☰</button>
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
 <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
-  <div class="sidebar-header">
-    <h2>Hermes MC</h2>
-    <div class="stag">Mission Control v1</div>
-  </div>
-  <nav aria-label="Main navigation">
+  <div class="sidebar-header"><h2>Hermes MC</h2><div class="stag">Mission Control v1</div></div>
   <div class="nav-item active" data-route="/" role="button" tabindex="0" aria-current="page"><span class="icon" aria-hidden="true">◈</span>Mission Overview</div>
   <div class="nav-item" data-route="/decisions" role="button" tabindex="0"><span class="icon" aria-hidden="true">◆</span>Decisions</div>
   <div class="nav-item" data-route="/execution" role="button" tabindex="0"><span class="icon" aria-hidden="true">⬡</span>Execution</div>
@@ -85,41 +95,33 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
   <div class="nav-item" data-route="/releases" role="button" tabindex="0"><span class="icon" aria-hidden="true">◎</span>Releases</div>
   <div class="nav-item" data-route="/evidence" role="button" tabindex="0"><span class="icon" aria-hidden="true">⬒</span>Evidence</div>
   <div class="nav-item" data-route="/settings" role="button" tabindex="0"><span class="icon" aria-hidden="true">⚙</span>Settings</div>
-  </nav>
 </nav>
 
 <main class="main" id="main-content">
   <header class="header">
-    <div>
-      <div class="greeting">Good evening, <span>Amjad</span></div>
-    </div>
-    <div class="header-actions">
-      <span class="badge gold"><span class="dot gold"></span>Stage 1 · Assisted</span>
-      <span class="badge cyan"><span class="dot cyan"></span>Evidence Log</span>
-    </div>
+    <div><div class="greeting">Good evening, <span>Amjad</span></div></div>
+    <div><span class="badge gold"><span class="dot gold"></span>Stage 1 · Assisted</span> <span class="badge cyan"><span class="dot cyan"></span>Evidence Log</span></div>
   </header>
 
   <div class="grid-3" style="margin-bottom:1rem">
-    <div class="card"><h3>Decisions Waiting</h3><div style="font-size:1.6rem;font-weight:700;color:var(--gold)">6</div><div class="freshness">Source: v3.2 status doc · 1 Aug</div></div>
-    <div class="card"><h3 class="red">Blockers</h3><div style="font-size:1.6rem;font-weight:700;color:var(--red)">5</div><div class="freshness">Product rename · Design docs pending · HOS-3 paused</div></div>
-    <div class="card"><h3 class="cyan">Active Deliveries</h3><div style="font-size:1.6rem;font-weight:700;color:var(--cyan)">1</div><div class="freshness">HOS-2.5 Mission Control MVP · BUILDING</div></div>
+    <div class="card"><h3>Decisions Waiting</h3><div style="font-size:1.6rem;font-weight:700;color:var(--hermes-gold);font-family:var(--hermes-font)">6</div><div class="freshness">Source: decisions · 1 Aug</div></div>
+    <div class="card"><h3 class="red">Blockers</h3><div style="font-size:1.6rem;font-weight:700;color:var(--hermes-red);font-family:var(--hermes-font)">5</div><div class="freshness">Product rename · Design docs · HOS-3 paused</div></div>
+    <div class="card"><h3 class="cyan">Active Deliveries</h3><div style="font-size:1.6rem;font-weight:700;color:var(--hermes-cyan);font-family:var(--hermes-font)">1</div><div class="freshness">HOS-3 · BUILDING</div></div>
   </div>
 
   <div class="grid">
     <div class="card"><h3>Needs Your Decision</h3>
-      <div class="section-title">Pending (6)</div>
-      <div class="row"><span class="label">Product Name</span><span class="value wide">Select and clear new AVOA product name</span><span class="badge gold">DECIDE</span></div>
-      <div class="row"><span class="label">Experience Language</span><span class="value wide">Design Language v1.0 approval</span><span class="badge gold">DECIDE</span></div>
-      <div class="row"><span class="label">Platinum UI</span><span class="value wide">Platinum UI Standard approval</span><span class="badge gold">DECIDE</span></div>
-      <div class="row"><span class="label">CC Visual Language</span><span class="value wide">Command Center visual language</span><span class="badge gold">DECIDE</span></div>
-      <div class="row"><span class="label">Nav Pilot</span><span class="value wide">Navigation Component pilot authorization</span><span class="badge gold">DECIDE</span></div>
-      <div class="row"><span class="label">HOS-3</span><span class="value wide">HOS-3 implementation authorization</span><span class="badge gold">DECIDE</span></div>
+      <div class="row"><span class="label">Product Name</span><span class="value wide">Select and clear new product name</span><span class="badge gold">DECIDE</span></div>
+      <div class="row"><span class="label">Experience Language</span><span class="value wide">Approve v1.0</span><span class="badge gold">DECIDE</span></div>
+      <div class="row"><span class="label">Platinum UI</span><span class="value wide">Approve standard</span><span class="badge gold">DECIDE</span></div>
+      <div class="row"><span class="label">CC Visual Language</span><span class="value wide">Approve visual language</span><span class="badge gold">DECIDE</span></div>
+      <div class="row"><span class="label">Nav Pilot</span><span class="value wide">Authorize Navigation pilot</span><span class="badge gold">DECIDE</span></div>
+      <div class="row"><span class="label">HOS-3</span><span class="value wide">Approve HOS-3 implementation</span><span class="badge gold">DECIDE</span></div>
     </div>
 
     <div class="card"><h3 class="cyan">Live Execution</h3>
-      <div class="section-title">Active (1)</div>
-      <div class="row"><span class="label">HOS-2.5</span><span class="value"><span class="badge cyan">BUILDING</span></span></div>
-      <div style="font-size:.7rem;color:var(--muted);margin-top:.5rem">Branch: feature/HOS-2.5-command-center-mvp<br>Builder: Hermes · CI: In Progress<br>Gate: Implementation</div>
+      <div class="row"><span class="label">HOS-3</span><span class="value"><span class="badge cyan">BUILDING</span></span></div>
+      <div style="font-size:.7rem;color:var(--hermes-text-muted);margin-top:.5rem;font-family:var(--hermes-font-mono)">Branch: feature/HOS-3-implementation<br>Builder: Hermes · Gate: Implementation</div>
       <div class="section-title" style="margin-top:.75rem">Runtime</div>
       <div class="row"><span class="label">Loops active</span><span class="value"><span class="badge muted">0</span></span></div>
       <div class="row"><span class="label">Capability Managers</span><span class="value"><span class="badge muted">0</span></span></div>
@@ -132,58 +134,58 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
       <div class="row"><span class="label">Hermes Maturity</span><span class="value"><span class="badge gold">STAGE 1</span></span></div>
       <div class="row"><span class="label">Runtime loops</span><span class="value"><span class="badge muted">0 ACTIVE</span></span></div>
       <div class="row"><span class="label">Capability Managers</span><span class="value"><span class="badge muted">0 ACTIVE</span></span></div>
-      <div class="row"><span class="label">Production automation</span><span class="value"><span class="badge muted">DISABLED</span></span></div>
       <div class="row"><span class="label">Decision mutations</span><span class="value"><span class="badge muted">NOT_IMPLEMENTED</span></span></div>
       <div class="row"><span class="label">Real-time refresh</span><span class="value"><span class="badge muted">NOT_IMPLEMENTED</span></span></div>
-      <div class="row"><span class="label">Backend API</span><span class="value"><span class="badge muted">NOT_IMPLEMENTED</span></span></div>
     </div>
 
     <div class="card"><h3>Capability Status</h3>
-      <div class="section-title">Complete Specification (3)</div>
-      <div class="row"><span class="label">Commercial Safety</span><span class="value"><span class="badge muted">INACTIVE</span> <span class="badge muted">UNKNOWN</span></span></div>
-      <div class="row"><span class="label">Design Quality</span><span class="value"><span class="badge muted">INACTIVE</span> <span class="badge muted">UNKNOWN</span></span></div>
-      <div class="row"><span class="label">Doc Health</span><span class="value"><span class="badge muted">INACTIVE</span> <span class="badge muted">UNKNOWN</span></span></div>
-      <div class="section-title">Placeholder (5)</div>
-      <div class="row"><span class="label">Release · Eng · Research · Knowledge · Ops</span><span class="value"><span class="badge muted">PLACEHOLDER</span></span></div>
+      <div class="section-title">Complete (3)</div>
+      <div class="row"><span class="label">Commercial Safety</span><span class="value"><span class="badge muted">INACTIVE</span></span></div>
+      <div class="row"><span class="label">Design Quality</span><span class="value"><span class="badge muted">INACTIVE</span></span></div>
+      <div class="row"><span class="label">Doc Health</span><span class="value"><span class="badge muted">INACTIVE</span></span></div>
+      <div class="collapsed-rows" id="placeholder-caps">
+        <div class="section-title">Placeholder (5)</div>
+        <div class="row"><span class="label">Release Readiness</span><span class="value"><span class="badge muted">PLACEHOLDER</span></span></div>
+        <div class="row"><span class="label">Engineering Health</span><span class="value"><span class="badge muted">PLACEHOLDER</span></span></div>
+        <div class="row"><span class="label">Research Intelligence</span><span class="value"><span class="badge muted">PLACEHOLDER</span></span></div>
+        <div class="row"><span class="label">Knowledge Integrity</span><span class="value"><span class="badge muted">PLACEHOLDER</span></span></div>
+        <div class="row"><span class="label">Operations</span><span class="value"><span class="badge muted">PLACEHOLDER</span></span></div>
+      </div>
+      <button class="collapse-btn" onclick="toggleCaps()" aria-expanded="false" aria-controls="placeholder-caps" style="margin-top:.5rem;width:100%">Show all 5 placeholder capabilities ▸</button>
     </div>
   </div>
 
   <div class="grid" style="margin-top:1rem">
     <div class="card"><h3>Mission Timeline</h3>
-      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-1 <span class="date">· 1 Aug</span></div>
-      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-1.1 <span class="date">· 1 Aug</span></div>
-      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-2 <span class="date">· 1 Aug</span></div>
-      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>Loop Engineering <span class="date">· 1 Aug</span></div>
-      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>Hermes OS v3.2 <span class="date">· 1 Aug</span></div>
+      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-1 <span class="date">· 1 Aug 26</span></div>
+      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-1.1 <span class="date">· 1 Aug 26</span></div>
+      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-2 <span class="date">· 1 Aug 26</span></div>
+      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>Loop Eng <span class="date">· 1 Aug 26</span></div>
+      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS v3.2 <span class="date">· 1 Aug 26</span></div>
+      <div class="timeline-item"><span class="badge green" style="margin-right:.5rem">CLOSED</span>HOS-2.5 MC <span class="date">· 1 Aug 26</span></div>
       <div class="timeline-item"><span class="badge amber" style="margin-right:.5rem">HOLD</span>HOS-3 <span class="date">· Awaiting design</span></div>
     </div>
 
     <div class="card">
       <h3>Recent Release</h3>
-      <div style="margin-bottom:.75rem">
-        <div class="badge green" style="margin-bottom:.25rem">CLOSED</div>
-        <div style="font-weight:600">Hermes Product OS v3.2</div>
-        <div class="freshness">Merge: 8c19e6b · 1 Aug 2026</div>
-        <div class="freshness">CI: ✅ Pass · Rollback: git revert</div>
-      </div>
+      <div style="margin-bottom:.75rem"><div class="badge green" style="margin-bottom:.25rem">CLOSED</div><div style="font-weight:600">HOS-2.5 Mission Control MVP</div><div class="freshness">Merge: 698e8a8 · 1 Aug 2026</div></div>
       <h3 style="margin-top:1rem">Recent Decisions</h3>
       <div class="timeline-item">DEC-HOS-001 <span class="badge gold" style="margin-left:.5rem">LOCKED</span> <span class="date">Sole orchestrator</span></div>
       <div class="timeline-item">DEC-HOS-002 <span class="badge gold" style="margin-left:.5rem">LOCKED</span> <span class="date">Kimi K3 builder</span></div>
       <div class="timeline-item">DEC-AVOA-PRICING-001 <span class="badge gold" style="margin-left:.5rem">LOCKED</span> <span class="date">Deterministic commercial</span></div>
-      <div class="timeline-item">DES-001 <span class="badge muted" style="margin-left:.5rem">PROPOSED</span> <span class="date">Navy nav</span></div>
     </div>
   </div>
 
   <footer class="footer">
-    <div><span class="badge green" style="margin-right:.5rem"><span class="dot green"></span>Evidence-Based</span> <span class="badge muted">Zero Fabrication</span></div>
-    <div>Stage 1 · Assisted Orchestration · Hermes Product OS v3.2 · NOT_IMPLEMENTED: live refresh · backend API · mutations</div>
+    <div><span class="badge green"><span class="dot green"></span>Evidence-Based</span> <span class="badge muted">Zero Fabrication</span></div>
+    <div>Stage 1 · HOS-3 · NOT_IMPLEMENTED: live refresh · backend · mutations</div>
   </footer>
 </main>
 </div>
-
 <script>
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open')}
-document.querySelectorAll('.nav-item').forEach(item=>{item.addEventListener('click',function(){document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));this.classList.add('active');if(window.innerWidth<1024)toggleSidebar()})})
+function toggleCaps(){var r=document.getElementById('placeholder-caps');var b=event.target;var open=r.classList.toggle('open');b.innerHTML=open?'Hide placeholder capabilities ▾':'Show all 5 placeholder capabilities ▸';b.setAttribute('aria-expanded',open)}
+document.querySelectorAll('.nav-item').forEach(function(i){i.addEventListener('click',function(){document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');n.removeAttribute('aria-current')});this.classList.add('active');this.setAttribute('aria-current','page');if(window.innerWidth<1024)toggleSidebar()})})
 </script>
 </body>
 </html>
