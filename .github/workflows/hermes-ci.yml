@@ -4,7 +4,7 @@ name: "Hermes Product OS v3.1 CI"
 
 on:
   push:
-    branches: [feature/**]
+    branches: [feature/**, recovery/**, main]
   pull_request:
     branches: [main]
 
@@ -30,11 +30,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install validation dependencies
-        run: pip install pyyaml jsonschema
+        run: pip install "PyYAML==6.0.2" "jsonschema==4.23.0"
 
       - name: Set CI environment
         run: |
-          echo "TASK_ID=CI" >> $GITHUB_ENV
+          echo "TASK_ID=TASK-CI-001" >> $GITHUB_ENV
           echo "TASK_BASE_REF=${GITHUB_BASE_REF:-origin/main}" >> $GITHUB_ENV
 
       - name: Schema Validation

@@ -1,0 +1,7 @@
+# INVALID: missing required field 'decision_id'
+title: "Missing decision_id"
+status: proposed
+owner: amjad
+category: governance
+decision: "No decision_id field — this should fail validation."
+reason: "Missing the required decision_id field."

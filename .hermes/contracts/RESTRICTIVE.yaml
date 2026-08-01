@@ -1,0 +1,5 @@
+task_id: RESTRICTIVE
+task_base_ref: HEAD~1
+allowed_files:
+  - "README.md"
+allowed_folders: []

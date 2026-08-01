@@ -1,0 +1,4 @@
+finding_id: F-FIXTURE-001
+decision: accepted
+reason: "Finding is valid and the proposed correction is appropriate."
+approved_correction: "Apply the suggested fix."

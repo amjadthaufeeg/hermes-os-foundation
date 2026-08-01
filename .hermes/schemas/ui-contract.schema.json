@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-os.local/schemas/ui-contract.schema.json",
+  "title": "Hermes Product OS v3.1 UI Contract",
+  "type": "object",
+  "required": ["task_id", "design_owner", "required_states", "required_breakpoints", "visual_acceptance_criteria", "required_visual_evidence"],
+  "properties": {
+    "task_id": {"type": "string", "pattern": "^TASK-[A-Z0-9-]+$"},
+    "design_owner": {"type": "string"},
+    "design_reference": {"type": "string"},
+    "user_goal": {"type": "string"},
+    "primary_journey": {"type": "string"},
+    "information_hierarchy": {"type": "array", "items": {"type": "string"}},
+    "required_states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"enum": ["default", "loading", "empty", "error", "success", "disabled"]}
+    },
+    "required_breakpoints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"enum": ["mobile", "tablet", "desktop"]}
+    },
+    "required_components": {"type": "array", "items": {"type": "string"}},
+    "approved_tokens": {
+      "type": "object",
+      "properties": {
+        "colors": {"type": "array", "items": {"type": "string"}},
+        "typography": {"type": "array", "items": {"type": "string"}},
+        "spacing": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "interaction_requirements": {"type": "array", "items": {"type": "string"}},
+    "accessibility_requirements": {"type": "array", "items": {"type": "string"}},
+    "content_requirements": {"type": "array", "items": {"type": "string"}},
+    "visual_acceptance_criteria": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "protected_behaviour": {"type": "array", "items": {"type": "string"}},
+    "must_not_change": {"type": "array", "items": {"type": "string"}},
+    "required_visual_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "breakpoint"],
+        "properties": {
+          "type": {"enum": ["screenshot", "video", "comparison"]},
+          "breakpoint": {"enum": ["mobile", "tablet", "desktop"]},
+          "state": {"enum": ["default", "loading", "empty", "error", "success", "disabled"]}
+        }
+      }
+    }
+  }
+}

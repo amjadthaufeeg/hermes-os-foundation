@@ -1,0 +1,26 @@
+task_id: TEST-HOS-1C
+project: hermes-os-foundation
+type: DOCUMENTATION
+risk_level: R1
+title: "Test contract for HOS-1C script validation"
+objective: "Validate that scripts work correctly"
+allowed_files:
+  - ".hermes/scripts/*"
+  - ".hermes/contracts/*"
+  - "*.md"
+  - "*.sh"
+allowed_folders:
+  - ".hermes/"
+  - "docs/"
+task_base_ref: HEAD~1
+must_not_change:
+  - "backend/app/pricing/**"
+  - "backend/app/auth/**"
+protected_areas:
+  - pricing_engine
+  - authentication
+authorized_protected_changes: []
+acceptance_criteria:
+  - "Scripts pass all tests"
+stop_conditions:
+  - "Contract fails"

@@ -1,0 +1,4 @@
+task_id: NO-FILES
+task_base_ref: HEAD~1
+allowed_files: []
+allowed_folders: []

@@ -1,0 +1,9 @@
+decision_id: DEC-TEST-001
+title: "Valid test decision record"
+status: proposed
+date: "2026-08-01"
+owner: amjad
+applies_to: all
+category: governance
+decision: "This is a valid test decision record with sufficient length for validation."
+reason: "This reason is also long enough to pass minLength validation requirements."

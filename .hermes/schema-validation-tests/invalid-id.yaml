@@ -1,0 +1,7 @@
+decision_id: bad-format
+title: "Invalid decision ID format"
+status: proposed
+owner: amjad
+category: governance
+decision: "This ID does not match the required pattern."
+reason: "Testing that malformed identifiers fail pattern validation."

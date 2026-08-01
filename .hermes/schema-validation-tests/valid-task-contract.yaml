@@ -1,0 +1,14 @@
+task_id: TASK-FIXTURE-001
+project: Test
+title: "Valid fixture task contract"
+task_type: feature
+risk_level: R1
+objective: "Test fixture validating task contract schema with all required fields."
+allowed_files: ["test/*"]
+allowed_folders: ["test/"]
+protected_areas: ["test/"]
+must_not_change: ["production/"]
+acceptance_criteria: ["All validation tests pass"]
+stop_conditions: ["Scope exceeded"]
+builder: hermes
+reviewer: claude-code

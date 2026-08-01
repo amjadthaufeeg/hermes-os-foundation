@@ -1,0 +1,7 @@
+decision_id: DEC-INVALID-001
+title: "Invalid status value"
+status: nonexistent
+owner: amjad
+category: governance
+decision: "This has an invalid status that should fail enum validation."
+reason: "Testing that invalid enum values cause validation failure."

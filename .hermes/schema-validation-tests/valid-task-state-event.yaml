@@ -1,0 +1,5 @@
+event_id: TEVT-FIXTURE-001
+task_id: TASK-FIXTURE-001
+timestamp: "2026-08-01T00:00:00Z"
+to_state: BUILDING
+actor: hermes

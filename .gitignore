@@ -12,5 +12,6 @@
 *.swo
 *~
 
-# Hermes agent working files
-.hermes/
+# Hermes Product OS — governance files tracked
+# .hermes/ is the foundation directory; all subdirectories are tracked
+# No runtime/cache/tmp/logs/secrets directories exist currently
