@@ -2,7 +2,7 @@ task_id: TASK-HOS-002
 project: Hermes Product OS
 release: HOS-2
 title: "Design Studio Foundation"
-task_type: design_infrastructure
+task_type: infrastructure
 risk_level: R1
 
 objective: >
