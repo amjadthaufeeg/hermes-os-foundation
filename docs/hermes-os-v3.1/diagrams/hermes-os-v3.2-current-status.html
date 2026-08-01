@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hermes Product OS v3.2 — Current Status</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'JetBrains Mono',monospace;background:#020617;min-height:100vh;padding:2rem;color:white}
+.container{max-width:1000px;margin:0 auto}
+.header{margin-bottom:2rem}.header-row{display:flex;align-items:center;gap:1rem;margin-bottom:.5rem}
+.pulse-dot{width:12px;height:12px;background:#C99A3B;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+h1{font-size:1.5rem;font-weight:700}.subtitle{color:#94a3b8;font-size:.875rem;margin-left:1.75rem}
+.panel{background:rgba(15,23,42,.5);border-radius:.75rem;border:1px solid #1e293b;padding:1.5rem;margin-bottom:1rem}
+.panel h3{font-size:.9rem;font-weight:600;margin-bottom:1rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+.stat{background:rgba(30,41,59,.5);border-radius:.5rem;padding:.75rem;border:1px solid #1e293b}
+.stat .label{color:#94a3b8;font-size:.7rem;margin-bottom:.25rem}
+.stat .value{font-size:1rem;font-weight:600}
+.stat .note{color:#64748b;font-size:.65rem;margin-top:.25rem}
+.green{color:#34d399}.amber{color:#C99A3B}.red{color:#fb7185}.cyan{color:#22d3ee}.slate{color:#94a3b8}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:600}
+.badge-green{background:rgba(52,211,153,.2);color:#34d399}
+.badge-amber{background:rgba(201,154,59,.2);color:#C99A3B}
+.badge-red{background:rgba(251,113,133,.2);color:#fb7185}
+.badge-slate{background:rgba(148,163,184,.2);color:#94a3b8}
+.row{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid #1e293b;font-size:.8rem}
+.row:last-child{border-bottom:none}
+.footer{text-align:center;margin-top:1.5rem;color:#475569;font-size:.75rem}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><div class="header-row"><div class="pulse-dot"></div><h1>Hermes Product OS v3.2 — Current Status</h1></div><p class="subtitle">Snapshot — 1 Aug 2026 — No dynamic data, manual update</p></div>
+
+<div class="panel"><h3>Release Status</h3>
+<div class="grid2">
+<div class="stat"><div class="label">HOS-1</div><div class="value"><span class="badge badge-green">CLOSED</span></div><div class="note">Governance and CI foundation</div></div>
+<div class="stat"><div class="label">HOS-1.1</div><div class="value"><span class="badge badge-green">CLOSED</span></div><div class="note">Hardening and branch protection</div></div>
+<div class="stat"><div class="label">HOS-2</div><div class="value"><span class="badge badge-green">CLOSED</span></div><div class="note">Design Studio planning</div></div>
+<div class="stat"><div class="label">HOS-3</div><div class="value"><span class="badge badge-amber">AWAITING DESIGN</span></div><div class="note">Paused — no design direction</div></div>
+</div></div>
+
+<div class="panel"><h3>Hermes Maturity</h3>
+<div class="row"><span class="slate">Stage</span><span class="amber">STAGE 1: ASSISTED ORCHESTRATION</span></div>
+<div class="row"><span class="slate">Contracts drafted</span><span>HOS-1, HOS-1.1, HOS-2, Loop Engineering</span></div>
+<div class="row"><span class="slate">Production features shipped</span><span class="red">0</span></div>
+<div class="row"><span class="slate">Runtime loops active</span><span class="green">0</span></div>
+<div class="row"><span class="slate">Capability Managers active</span><span class="green">0</span></div>
+<div class="row"><span class="slate">Command Center runtime</span><span class="red">NOT_IMPLEMENTED</span></div>
+<div class="row"><span class="slate">Promotion criteria</span><span>Nav pilot + evidence + Amjad approval</span></div>
+</div></div>
+
+<div class="panel"><h3>Agent and Tool Maturity</h3>
+<div class="row"><span class="slate">Kimi K3 (Agent · Primary Builder)</span><span class="badge badge-red">UNPROVEN · PROVISIONAL</span></div>
+<div class="row"><span class="slate">Codex (Agent · Precision Builder)</span><span class="badge badge-red">UNPROVEN · PROVISIONAL</span></div>
+<div class="row"><span class="slate">Claude model (Role: Independent Reviewer)</span><span class="badge badge-amber">PILOT</span></div>
+<div class="row"><span class="slate">DeepSeek V4 Pro (Optional research)</span><span class="badge badge-red">RESTRICTED</span></div>
+<div class="row"><span class="slate">GitHub + Actions (Platform · CI/CD)</span><span class="badge badge-green">PROVEN</span></div>
+<div class="note" style="margin-top:.5rem">DeepSeek: repeated timeouts, zero HOS-2 completions. Claude model: useful reviews but factual errors requiring human verification.</div></div>
+
+<div class="panel"><h3>Capability Status</h3>
+<div class="row"><span>CAP-001 Commercial Safety</span><span class="slate">COMPLETE · NOT_IMPLEMENTED · INACTIVE · UNPROVEN · UNKNOWN</span></div>
+<div class="row"><span>CAP-002 Design Quality</span><span class="slate">COMPLETE · NOT_IMPLEMENTED · INACTIVE · UNPROVEN · UNKNOWN</span></div>
+<div class="row"><span>CAP-003 Documentation Health</span><span class="slate">COMPLETE · NOT_IMPLEMENTED · INACTIVE · UNPROVEN · UNKNOWN</span></div>
+<div class="row"><span>CAP-004..008</span><span class="slate">PLACEHOLDER · NOT_IMPLEMENTED · INACTIVE · UNPROVEN · UNKNOWN</span></div>
+<div class="note" style="margin-top:.5rem">Zero capabilities active. No HEALTHY claims until runtime evidence.</div></div>
+
+<div class="panel"><h3>Delivery Metrics</h3>
+<div class="row"><span class="slate">Features shipped</span><span class="red">NO_BASELINE</span></div>
+<div class="row"><span class="slate">Production releases</span><span class="red">NO_BASELINE</span></div>
+<div class="row"><span class="slate">Lead time</span><span class="red">NOT_MEASURED</span></div>
+<div class="row"><span class="slate">Cycle time</span><span class="red">INSUFFICIENT_DATA</span></div>
+<div class="row"><span class="slate">Regression rate</span><span class="red">NO_BASELINE</span></div>
+<div class="row"><span class="slate">Reopened task rate</span><span class="red">NOT_MEASURED</span></div>
+<div class="row"><span class="slate">Scope violation rate</span><span class="red">INSUFFICIENT_DATA</span></div>
+<div class="row"><span class="slate">Human coordination burden</span><span class="red">NOT_MEASURED</span></div>
+</div></div>
+
+<div class="panel"><h3>Current Blockers</h3>
+<div class="row"><span class="red">Product rename unresolved</span></div>
+<div class="row"><span class="red">Experience Language incomplete</span></div>
+<div class="row"><span class="red">Platinum UI Standard not created</span></div>
+<div class="row"><span class="red">Command Center Visual Language not created</span></div>
+<div class="row"><span class="amber">HOS-3 paused — awaiting design direction</span></div>
+</div></div>
+
+<div class="panel"><h3>Next Human Decisions Required</h3>
+<div class="row"><span>1. Select and clear new product name</span></div>
+<div class="row"><span>2. Approve Experience Language</span></div>
+<div class="row"><span>3. Approve Platinum UI Standard</span></div>
+<div class="row"><span>4. Approve Command Center Visual Language</span></div>
+<div class="row"><span>5. Authorize HOS-3</span></div>
+<div class="row"><span>6. Authorize any loop or capability implementation (separately)</span></div>
+</div></div>
+
+<p class="footer">Hermes Product OS v3.2 — Current Status Snapshot — Manual update — No runtime data sources</p>
+</div></body></html>

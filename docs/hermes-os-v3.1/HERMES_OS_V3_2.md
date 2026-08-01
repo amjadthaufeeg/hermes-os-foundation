@@ -8,7 +8,7 @@
 
 v3.2 removes ambiguity from the v3.1 operating model. It introduces earned authority, clarifies the human-control boundary, formally separates agents from tools, and adds delivery-oriented maturity tracking.
 
-This is a planning and documentation refinement. No runtime activation. No new architectural layers beyond what is specified here.
+This is a planning and documentation refinement. No runtime activation. No new architectural layers.
 
 After v3.2 is merged, the operating model is **feature-frozen** until real operational evidence justifies another change.
 
@@ -18,8 +18,6 @@ After v3.2 is merged, the operating model is **feature-frozen** until real opera
 
 Every capability, loop, agent role, and operational component must carry its current maturity state.
 
-### State Definitions
-
 | Dimension | Values |
 |---|---|
 | **SPECIFICATION** | COMPLETE / PARTIAL / PLACEHOLDER / NOT_DEFINED |
@@ -27,225 +25,360 @@ Every capability, loop, agent role, and operational component must carry its cur
 | **ACTIVATION** | ACTIVE / INACTIVE / PAUSED |
 | **OPERATIONAL MATURITY** | UNPROVEN / PILOT / PROBATION / PROVEN / SUSPENDED |
 
-### How Maturity Tracks
-
-```
-SPECIFICATION: NOT_DEFINED → PLACEHOLDER → PARTIAL → COMPLETE
-IMPLEMENTATION: NOT_IMPLEMENTED → IMPLEMENTED
-ACTIVATION: INACTIVE → ACTIVE (requires Amjad)
-OPERATIONAL MATURITY: UNPROVEN → PILOT → PROBATION → PROVEN
-                                                    ↘ SUSPENDED
-```
-
-- **UNPROVEN:** Spec exists, never run in real conditions.
-- **PILOT:** Running in controlled, read-only or test-only scope. No production impact.
-- **PROBATION:** Running in production scope but under heightened oversight. Status reviewed every cycle.
-- **PROVEN:** Demonstrated reliability over ≥3 consecutive successful cycles with clean independent review and no human override. Earned, not declared.
-- **SUSPENDED:** Previously proven but paused due to failure, evidence gap, or human decision.
-
-### Maturity Cannot Be Self-Declared
-
-An agent cannot declare itself PROVEN. Operational maturity is assigned by Hermes after independent review and Amjad acknowledgment. PROVEN status can be revoked by Hermes or Amjad at any time.
+Maturity advances through demonstrated reliable performance. No agent or tool self-declares its maturity. PROVEN status requires Hermes recommendation and Amjad acknowledgment. Maturity can be revoked at any time.
 
 ---
 
-## 3. Agents vs. Tools — Formal Separation
+## 3. Current Hermes Maturity
+
+**Hermes authority stage: STAGE_1_ASSISTED_ORCHESTRATION**
+
+Reason:
+- Hermes prepares contracts, routes work, and coordinates evidence.
+- Every material task still requires Amjad approval.
+- No runtime loops are active.
+- No Capability Managers are active.
+- No production feature has shipped through the complete model.
+- Several role and reporting deviations required human correction.
+- Runtime observability and execution controls are not yet implemented.
+
+### Stage Definitions
+
+| Stage | Name | Criteria |
+|---|---|---|
+| 0 | Human-Orchestrated | Amjad performs all orchestration directly |
+| **1** | **Assisted Orchestration** | **Hermes drafts, recommends, coordinates. Amjad approves. Current.** |
+| 2 | Supervised Orchestration | Hermes approves R1-R2 tasks within contracts. Amjad approves R3+. |
+| 3 | Conditional Orchestration | Hermes manages complete cycles with human gates only at key transitions. |
+| 4 | Capability-Specific Autonomy | Hermes operates autonomously within proven capabilities. Amjad reserves commercial and critical gates. |
+
+### Promotion Criteria
+
+**To Stage 2:** Successful Navigation Component pilot; no unresolved scope/authority violations; complete evidence; stable CI; successful independent review; verified rollback; Amjad approval.
+
+**To Stage 3:** Ten successfully governed tasks; three production features; acceptable regression/reopen rates; no bypassed human gates; operational observability active; Amjad approval.
+
+**To Stage 4:** Capability-specific. Requires proven performance in that capability. Separately authorized.
+
+---
+
+## 4. Agents vs. Tools — Formal Separation
 
 ### Agents (Directed Actors)
 
-Agents are AI systems that receive task contracts, make implementation decisions, and produce work. They operate within Hermes-defined bounds.
+Agents receive task contracts, make implementation decisions, and produce work. Their output is reviewed. They earn operational maturity.
 
-| Agent | Type | Role | Maturity |
-|---|---|---|---|
-| **Kimi K3** | Agent | Primary Builder | UNPROVEN (pilot pending) |
-| **Codex** | Agent | Precision Builder | UNPROVEN (pilot pending) |
+| Agent | Role | Spec | Impl | Activation | Maturity |
+|---|---|---|---|---|---|
+| **Kimi K3** | Primary Builder | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
+| **Codex** | Precision Builder | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
 
 ### Tools (Directed Instruments)
 
-Tools are deterministic or AI-based systems that perform specific verification, review, or rendering functions. They do not make implementation decisions. They are invoked and their output is adjudicated.
+Tools perform verification, review, or rendering. Their output is evidence — accepted or rejected by Hermes. Tools are validated every time.
 
-| Tool | Type | Function | Maturity |
+| Tool | Function | Activation | Maturity |
 |---|---|---|---|
-| **Claude Code** | Tool | Independent Reviewer (read-only) | UNPROVEN (pilot pending) |
-| **Replit** | Tool | Live Preview (read-only) | UNPROVEN |
-| **GitHub Actions** | Tool | CI/CD, validation gates | PROVEN |
-| **GitHub** | Tool | Source of truth, branch protection | PROVEN |
-| **OpenCode** | Tool | Review path when native Claude unavailable | UNPROVEN |
-| **DeepSeek V4 Pro** | Tool | Optional non-blocking research/challenger | PILOT |
+| **Claude Code** | Reviewer interface | INACTIVE | UNPROVEN |
+| **GitHub Actions** | CI/CD, validation gates | ACTIVE | PROVEN |
+| **GitHub** | Source of truth | ACTIVE | PROVEN |
+| **Replit** | Live Preview | INACTIVE | UNPROVEN |
+| **OpenCode** | Claude fallback interface | INACTIVE | UNPROVEN |
+| **DeepSeek V4 Pro** | Optional research | ACTIVE | PROBATION |
 
-### The Distinction Matters
+### Role / Model / Tool / Platform Separation
 
-- An **Agent** earns trust through proven delivery. Its output goes through review.
-- A **Tool** produces output that is either accepted or rejected by Hermes. It does not earn trust — it is validated every time.
+| Category | Examples | Maturity |
+|---|---|---|
+| **Organizational Roles** | Product Owner, Lead Builder, Precision Builder, Independent Technical Reviewer, Visual QA | Assigned per task |
+| **Execution Agents/Models** | Kimi K3, Codex, Claude model, DeepSeek V4 Pro | Varies |
+| **Agent Tools/Interfaces** | Claude Code, OpenCode, Hermes runtime, GitHub CLI | Varies |
+| **Platforms/Infrastructure** | GitHub, GitHub Actions, Replit, Deployment platform | Varies |
 
-Agents may advance in maturity. Tools remain tools — their output is evidence, not authority.
+Claude Code is the **tool** through which the Claude **model** performs the **Independent Technical Reviewer role**. These are distinct concepts.
 
 ---
 
-## 4. Earned Authority
+## 5. Fallback Orchestration Policy
 
-Agents do not start with full authority. Authority is earned through demonstrated reliable performance in controlled conditions.
+### Normal Path
 
-### Authority Progression
+Amjad → Hermes-assisted orchestration → Approved builder → Automated validation → Independent review → Hermes finding triage → Amjad approval.
 
+### Probation Breach
+
+When Hermes breaches probation:
+- Stop new Hermes-routed work.
+- Preserve current branches and evidence.
+- Mark Hermes maturity **SUSPENDED**.
+- Return active work to **AWAITING_HUMAN_GATE**.
+- Amjad becomes direct orchestrator.
+- CI, protected-zone, and review gates remain active.
+
+### Direct-Orchestration Fallback
+
+Amjad may directly: define the task, select Kimi or Codex, select the reviewer, approve corrections, approve merge.
+
+Hermes may remain read-only for: context retrieval, evidence collection, status reporting.
+
+### Suspension Triggers
+
+- Unauthorized scope expansion
+- Bypassed human gate
+- False readiness claim
+- Repeated missing evidence
+- Unauthorized production change
+- Repeated unreported provider stalls
+- Repeated role-boundary violation
+- Unresolved critical review finding
+- Self-expansion of permissions
+- Repeated regression caused by orchestration
+
+### Restoration
+
+Hermes may be restored only after: root-cause review, corrective controls, successful probation task, independent review, Amjad approval.
+
+---
+
+## 6. Human-Gate Matrix
+
+| Action | R1 | R2 | R3 | R4 | Approver | Entry Evidence | Exit Evidence |
+|---|---|---|---|---|---|---|---|
+| Task-contract approval | Amjad | Amjad | Amjad | Amjad | Amjad | Task contract, risk classification | Approved contract |
+| Scope expansion | Hermes | Amjad | Amjad | Amjad | Amjad (R2+) | Original contract, proposed expansion | Amended contract |
+| Protected-zone authorization | Amjad | Amjad | Amjad | Amjad | Amjad | Protected zone, change detail, justification | Authorization record |
+| Implementation auth | Amjad | Amjad | Amjad | Amjad | Amjad | Approved contract | Dispatch record |
+| Correction auth | Hermes | Amjad | Amjad | Amjad | Amjad (R2+) | Review findings, proposed correction | Correction contract |
+| Merge | Amjad | Amjad | Amjad | Amjad | Amjad | CI pass, review pass, findings resolved, rollback | Merge commit |
+| Deployment | Amjad | Amjad | Amjad | Amjad | Amjad | Merge, post-merge CI, rollback package | Deployment record |
+| Rollback | Amjad | Amjad | Amjad | Amjad | Amjad | Affected commit, rollback procedure | Reverted state |
+| Irreversible action | Amjad | Amjad | Amjad | Amjad | Amjad | Action detail, impact, alternatives | Confirmation record |
+| Capability activation | Amjad | Amjad | Amjad | Amjad | Amjad | Capability spec, risk assessment, pilot results | Activation record |
+| Loop activation | Amjad | Amjad | Amjad | Amjad | Amjad | Loop contract, pilot results | Activation record |
+| Recurring schedule | Amjad | Amjad | Amjad | Amjad | Amjad | Schedule spec, risk assessment | Schedule record |
+| Permission expansion | Amjad | Amjad | Amjad | Amjad | Amjad | Current permissions, proposed expansion, justification | Updated permissions |
+| Model-roster change | Amjad | Amjad | Amjad | Amjad | Amjad | Evidence, benchmarks, risk assessment | Updated roster, decision record |
+
+**During Stage 1:** Amjad approves every production implementation, merge, deployment, protected-zone change, capability activation, and loop activation. Human gates have no timeout override. Silence is not approval.
+
+---
+
+## 7. Product and Architecture Responsibility
+
+### Executive and Product
+
+**Owner:** Amjad
+
+Responsibilities: product direction, priorities, roadmap, business outcome, commercial acceptance, final product approval.
+
+### Architecture
+
+**Accountable authority:** Amjad during Stage 1.
+
+Advisory/drafting: Hermes, designated Architect role, approved technical reviewer.
+
+Responsibilities: system boundaries, API contracts, data architecture, event architecture, security architecture, scalability, technical standards, cross-system dependencies.
+
+Builders may implement approved architecture. Builders may not redefine architecture informally. Material architecture changes require: decision record, impact assessment, migration plan, rollback, Amjad approval.
+
+---
+
+## 8. Division Clarification
+
+Divisions are responsibility domains — not claims that Hermes Product OS has seven staffed departments. A human, model, or tool may serve multiple roles, each under its own permissions and contract.
+
+| Division | Owner | Status | Purpose |
+|---|---|---|---|
+| Executive | Amjad | ACTIVE | Product direction, business authority |
+| Engineering | Hermes | ACTIVE (planning) | Capabilities, loops, task execution |
+| Design Studio | Design Studio | PLANNED | Visual and interaction quality |
+| Quality | Hermes | ACTIVE (planning) | Gates, reviews, evidence |
+| Knowledge | Hermes | PLANNED | Decisions, regressions, memory |
+| Research | Research Div | PLANNED | Read-only evidence and analysis |
+| Operations | Hermes | PLANNED | CI, deployment, monitoring |
+
+Planned divisions are not active operational teams. They activate when their first runtime responsibility is authorized.
+
+---
+
+## 9. Builder-Selection Policy
+
+### Roster Statuses
+
+PROVISIONAL / PILOT / APPROVED / RESTRICTED / SUSPENDED
+
+### Selection Criteria
+
+Task type, risk level, golden-task performance, regression fixtures, scope adherence, correctness, review findings, correction rate, timeout rate, execution speed, cost, evidence quality, tool availability.
+
+### Current Roster
+
+| Model | Role | Status | Reason |
+|---|---|---|---|
+| **Kimi K3** | Primary Builder | **PROVISIONAL** | Selected through observed use; no comparative benchmarks |
+| **Codex** | Precision/Fallback Builder | **PROVISIONAL** | Observed reliability for narrow corrections; no formal comparison |
+| **Claude model** | Independent Technical Reviewer | **PILOT** | Multiple useful reviews; reviewer has produced factual errors requiring human verification |
+| **DeepSeek V4 Pro** | Optional research/challenger | **RESTRICTED** | Repeated timeouts; zero successful HOS-2 specialist completions |
+
+No model is classified as PROVEN without comparative evidence.
+
+### Model-Roster Change Rule
+
+Every change requires: reason, evidence, benchmark/observed task record, risk impact, fallback, Amjad approval, effective date, review date. Flow: Evidence → Recommendation → Decision → Amjad → Policy update → Pilot → Review.
+
+---
+
+## 10. Delivery Metrics
+
+| Metric | Formula | Status |
+|---|---|---|
+| Features shipped | Count of production features merged, deployed, accepted | **NO_BASELINE** |
+| Production releases | Count of verified production releases | **NO_BASELINE** |
+| Lead time | Approved request → production acceptance | **NOT_MEASURED** |
+| Cycle time | BUILDING → READY_FOR_AMJAD / CLOSED | **INSUFFICIENT_DATA** |
+| Regression rate | Verified regressions / completed production tasks | **NO_BASELINE** |
+| Reopened-task rate | Tasks reopened / approved tasks | **NOT_MEASURED** |
+| Scope-violation rate | SCOPE_EXCEEDED / executed tasks | **INSUFFICIENT_DATA** |
+| Human coordination burden | Count + time of Amjad interventions / completed task | **NOT_MEASURED** |
+
+All metrics are advisory. They inform routing and maturity decisions — they do not replace human judgment. No targets are set until baseline data exists.
+
+---
+
+## 11. Operating-Model Evaluation Framework
+
+### Review Questions
+
+- What production value was shipped?
+- Did regressions decrease? Did rework decrease?
+- Did cycle time improve?
+- Did Hermes reduce Amjad's coordination burden?
+- Did evidence quality improve?
+- Were unsafe changes prevented?
+- Did governance create excessive delay?
+- Were model assignments effective?
+- Were provider stalls handled correctly?
+
+### Review Triggers
+
+- First Navigation Component pilot
+- First three production features
+- First ten governed tasks
+- First rollback or major regression
+- Three months of operation
+
+### Review Outcomes
+
+**CONTINUE** — Operating model is working. Continue with current settings.
+**SIMPLIFY** — Remove excessive governance that produced no safety benefit.
+**SUSPEND** — Pause governed operation. Return to direct orchestration.
+**ROLL_BACK** — Revert to previous operating model version.
+**REVISE** — Targeted changes to specific policies without full model change.
+
+The OS must be capable of failing its own evaluation.
+
+---
+
+## 12. Observability and Execution Budgets
+
+### Required Visible State
+
+Task ID, current stage, active agent/model, provider, branch, HEAD commit, last successful action, last heartbeat, runtime, files changed, commits created, validation cycles, repair cycles, external retries, provider status, current blocker, remaining budget, next gate, safest resume point.
+
+### Default Controls
+
+```yaml
+execution_controls:
+  heartbeat_interval_minutes: 2
+  silent_warning_minutes: 5
+  checkpoint_interval_minutes: 15
+  provider_timeout_minutes: 8
+  max_provider_retries: 1
+  max_repair_cycles: 3
+  max_validation_cycles: 4
+  max_external_retries: 5
+  max_runtime_minutes: 30
 ```
-PILOT (read-only or R1)
-  ↓ (clean review, no scope violations, all evidence passes)
-PROBATION (R1-R2, heightened oversight)
-  ↓ (≥3 consecutive cycles, all gates pass, no human override)
-PROVEN (R1-R4, standard oversight)
-  ↓ (failure, evidence gap, scope violation)
-SUSPENDED (requires investigation, may return to PILOT)
-```
 
-### What Earned Authority Grants
+**Current state:** Specification COMPLETE. Implementation NOT_IMPLEMENTED. Activation INACTIVE. Maturity UNPROVEN.
 
-| Level | Scope | Oversight | Review | Merge |
+---
+
+## 13. Capability Status Model
+
+| CAP | Spec | Impl | Activation | Maturity | Health |
+|---|---|---|---|---|---|
+| CAP-001 Commercial Safety | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-002 Design Quality | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-003 Documentation Health | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-004 Release Readiness | PLACEHOLDER | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-005 Engineering Health | PLACEHOLDER | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-006 Research Intelligence | PLACEHOLDER | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-007 Knowledge Integrity | PLACEHOLDER | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+| CAP-008 Operations | PLACEHOLDER | NOT_IMPLEMENTED | INACTIVE | UNPROVEN | UNKNOWN |
+
+No capability may display HEALTHY before runtime evidence exists.
+
+---
+
+## 14. Loop Status Model
+
+| Loop | Access | Impl | Activation | Maturity |
 |---|---|---|---|---|
-| PILOT | Read-only or R1 only | Hermes reviews every output | Mandatory | Never |
-| PROBATION | R1-R2 | Hermes reviews evidence package | Mandatory | Hermes-only |
-| PROVEN | R1-R4 | Standard gates | Mandatory for R3+ | Hermes with Amjad for R4 |
+| LOOP-PILOT-001 CI Triage | Read-only | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
+| LOOP-PILOT-002 Governance Drift | Read-only | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
+| LOOP-PILOT-003 Regression Verify | Test-only | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
+| LOOP-PILOT-004 Documentation Drift | Read-only | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
 
-### What Earned Authority Never Grants
-
-No agent — regardless of maturity — may:
-- Approve its own task contracts
-- Unlock protected zones without authorization
-- Accept its own review findings
-- Merge into protected branches independently
-- Deploy to production
-- Override Amjad
-
-Earned authority reduces oversight depth, not oversight existence.
+**Zero runtime loops active.**
 
 ---
 
-## 5. Human Control Clarification
+## 15. v3.2 Migration Plan
 
-### Amjad's Irrevocable Authority
+| Phase | Description | Entry | Rollback |
+|---|---|---|---|
+| A — Documentation | Complete all v3.2 specs and diagrams | Correction authorization | Revert docs |
+| B — Validation | Remote CI + independent review | Phase A complete | Fix findings |
+| C — Merge | Amjad approval + merge to main | Phase B pass | Revert merge |
+| D — Feature Freeze | Freeze architectural expansion | Phase C complete | Unfreeze by Amjad |
+| E — Operational Evidence | Navigation pilot + governed tasks | Phase D complete + separate auth | Pause tasks |
+| F — Maturity Review | Evaluate Stage 1→2 promotion | Phase E complete | Remain at Stage 1 |
 
-Amjad is the Product Owner and final authority. The following can only be authorized by Amjad:
-
-| Decision | Delegable? |
-|---|---|
-| Product direction | No — Amjad only |
-| Business rule changes | No — Amjad only |
-| Commercial behaviour changes | No — Amjad only |
-| Pricing changes | No — Amjad only |
-| Protected zone unlock (R4) | No — Amjad only |
-| PROVEN status conferral | No — Amjad acknowledgment required |
-| Activation of new capability | No — Amjad only |
-| Activation of new loop | No — Amjad only |
-| Production deployment | No — Amjad only |
-| Irreversible actions | No — Amjad only |
-| v3.3 feature-unfreeze | No — Amjad only |
-
-### Hermes's Derived Authority
-
-Hermes derives authority from Amjad. Hermes may:
-
-| Decision | Scope |
-|---|---|
-| Task contract approval | Within approved capability and risk ceiling |
-| Builder routing | Based on documented routing rules |
-| Review finding adjudication | Accept/reject/defer reviewer findings |
-| Merge (R1-R3) | After all gates pass |
-| Activation freeze/thaw | Temporary within a cycle |
-| PROVEN status recommendation | Submitted to Amjad for acknowledgment |
-| Evidence rejection | On stale, missing, or commit-mismatched evidence |
-
-### Human Gate Is Not a Suggestion
-
-Every human gate is mandatory. No timeout override. No auto-approval. No silent escalation. When a human gate is pending, the loop or task pauses and waits.
+No phase activates automatically. Each requires explicit authorization.
 
 ---
 
-## 6. Delivery Measures
+## 16. Independent Review Plan
 
-Success is measured by delivered, verified, reviewed, accepted work — not by activity.
+Reviewer: Independent Technical Reviewer through Claude Code or OpenCode + Claude fallback.
 
-### Cycle Completion Definition
+Scope: completeness, consistency, authority clarity, probation model, fallback path, human-gate precision, role/model/tool/platform separation, roster rationale, delivery metrics, evaluation framework, observability, diagram accuracy, feature-freeze safety, governance overhead, planning-only compliance.
 
-A task cycle is complete when:
-1. Implementation submitted with evidence
-2. All automated gates pass
-3. Independent review complete
-4. All accepted findings resolved
-5. Hermes marks READY_FOR_AMJAD
-6. Amjad approves (for R2+ or when required by contract)
-
-### Delivery Metrics (Advisory)
-
-| Metric | Definition |
-|---|---|
-| **Cycle success rate** | Completed cycles / started cycles |
-| **First-pass rate** | Cycles passing all gates on first submission |
-| **Review burden** | Average findings per cycle (trending down = improvement) |
-| **Scope compliance** | Cycles without scope violations / total cycles |
-| **Correction cycles** | Average corrections per cycle |
-| **Human overrides** | Count of Amjad interventions (trending down = trust earned) |
-| **Evidence rejections** | Count of stale/missing evidence incidents |
-| **Time to proven** | Cycles from PILOT to PROVEN |
-
-These are advisory. They inform routing and maturity decisions. They do not replace human judgment.
-
-### What Delivery Is Not
-
-- Task count is not delivery.
-- Agent activity is not delivery.
-- Lines of code written is not delivery.
-- Promises or self-assessments are not delivery.
-
-Only completed, verified, reviewed, and accepted evidence constitutes delivery.
+Findings: BLOCKER / HIGH / MEDIUM / LOW / OPTIONAL. All BLOCKER and HIGH must be resolved.
 
 ---
 
-## 7. v3.2 Operating Principles
+## 17. v3.2 Operating Principles
 
-### P1 — Evidence Before Trust
-Trust is earned through repeated evidence of reliable performance. No agent starts trusted.
-
-### P2 — Human Gate Is Absolute
-No automated bypass. No timeout override. No silent escalation. When human judgment is required, the system waits.
-
-### P3 — Separation of Generation and Evaluation
-The agent that produces work is never the sole evaluator of that work. Every output faces independent verification.
-
-### P4 — Default Closed
-All protected zones, elevated permissions, and autonomous actions default to closed. They are opened only by explicit, recorded authorization.
-
-### P5 — Delivery Over Activity
-What is delivered, verified, and accepted is the only measure of progress. Activity without evidence is not progress.
-
-### P6 — Maturity Is Earned
-Operational maturity advances through demonstrated reliable performance in controlled conditions. It is never self-declared and can be revoked.
-
-### P7 — Feature Freeze Is Binding
-After v3.2 merge, the operating model is frozen. Changes require real operational evidence — not speculation, not redesign impulse, not preference.
+**P1 — Evidence Before Trust:** Trust earned through repeated evidence. No agent starts trusted.
+**P2 — Human Gate Is Absolute:** No timeout override. No silent escalation.
+**P3 — Separation of Generation and Evaluation:** Builder never sole evaluator.
+**P4 — Default Closed:** Protected zones and permissions default closed.
+**P5 — Delivery Over Activity:** Verified, accepted evidence is the only measure.
+**P6 — Maturity Is Earned:** Never self-declared. Can be revoked.
+**P7 — Feature Freeze Is Binding:** After merge, changes require operational evidence.
 
 ---
 
-## 8. Implementation Scope
+## 18. Feature-Freeze Policy
 
-v3.2 changes no production code. It updates:
+Effective after: all deliverables complete, both diagrams exist, independent review passes, remote CI passes, Amjad approves merge, post-merge CI passes.
 
-| File | Change |
-|---|---|
-| `docs/hermes-os-v3.1/02_ORGANIZATIONAL_MODEL.md` | Maturity states, agent/tool separation, earned authority |
-| `docs/hermes-os-v3.1/HERMES_OS_V3_2.md` | This document — operating model refinement |
+Freeze applies to: architectural expansion, new organizational layers, new divisions, new agent roles.
 
-No new divisions. No new agents. No new architectural layers. No runtime activation.
+Freeze does not apply to: bug fixes, evidence corrections, security fixes, compliance fixes, operational simplification, changes required by observed runtime failure.
 
 ---
 
-## 9. Rollback
-
-```bash
-git revert <merge-commit>
-```
-
-Documentation-only. No production impact.
-
----
-
-*Hermes Product OS v3.2 — Feature-frozen after merge. Changes require real operational evidence.*
+*Hermes Product OS v3.2 — Feature-frozen after merge.*
