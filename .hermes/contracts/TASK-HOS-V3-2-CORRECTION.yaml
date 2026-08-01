@@ -3,7 +3,7 @@ parent_task_id: TASK-HOS-V3-2
 project: Hermes Product OS
 release: v3.2
 title: "Complete v3.2 Refinement Deliverables"
-task_type: governance_correction
+task_type: infrastructure
 risk_level: R1
 
 objective: >
