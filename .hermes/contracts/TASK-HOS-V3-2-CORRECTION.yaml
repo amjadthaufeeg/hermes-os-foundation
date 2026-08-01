@@ -46,3 +46,7 @@ builder: hermes
 reviewer: claude-code
 design_review_required: false
 amjad_approval_required: true
+
+stop_conditions:
+  - "Production code modified"
+  - "Scope expands beyond approved files"
