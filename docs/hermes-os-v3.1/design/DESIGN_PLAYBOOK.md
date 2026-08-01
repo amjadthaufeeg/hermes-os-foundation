@@ -68,13 +68,13 @@
 2. Design system tokens version-controlled in the repository.
 3. Visual QA compares every implementation against the frozen reference.
 4. Regression tests flag any visual deviation.
-5. Design decisions recorded as decision records (DEC-DSN-XXX).
+5. Design decisions recorded as decision records (DES-XXX).
 
 ---
 
 ## 7. How Design Decisions Are Stored
 
-1. Major design decisions → Decision Register (`DEC-DSN-NNN`).
+1. Major design decisions → Decision Register (`DES-NNN`).
 2. Design system token changes → Version-controlled in design system documentation.
 3. Component specifications → Component Library specification.
 4. Approved design references → `docs/design/approved/` directory.
