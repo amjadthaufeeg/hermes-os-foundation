@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Command Center — Executive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0A1628;color:#E8ECF1;min-height:100vh}
+.header{background:#0F1D35;border-bottom:1px solid #1a2d4a;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.25rem;font-weight:600;color:#C99A3B;letter-spacing:-.02em}
+.header .meta{font-size:.75rem;color:#6B7B8D}
+.main{padding:1.5rem 2rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:1rem;max-width:1440px;margin:0 auto}
+.card{background:#0F1D35;border:1px solid #1a2d4a;border-radius:8px;padding:1.25rem}
+.card h3{font-size:.8rem;font-weight:600;color:#C99A3B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid rgba(26,45,74,.5);font-size:.8rem;gap:.5rem}
+.row:last-child{border-bottom:none}
+.label{color:#8899B4;min-width:140px}
+.value{font-weight:500;text-align:right}
+.value.wide{text-align:left;flex:1}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:600;white-space:nowrap}
+.bg-green{background:rgba(52,211,153,.15);color:#34d399}
+.bg-amber{background:rgba(201,154,59,.15);color:#C99A3B}
+.bg-red{background:rgba(251,113,133,.15);color:#fb7185}
+.bg-cyan{background:rgba(34,211,238,.15);color:#22d3ee}
+.bg-slate{background:rgba(107,123,141,.15);color:#8899B4}
+.section-label{color:#4a5d73;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 0 .25rem;border-bottom:1px solid #1a2d4a}
+.empty{color:#4a5d73;font-style:italic;padding:.5rem 0}
+.status-bar{display:flex;gap:1.5rem;padding:.75rem 2rem;background:#0F1D35;border-top:1px solid #1a2d4a;font-size:.7rem;color:#6B7B8D}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.5rem}
+.status-dot.green{background:#34d399}
+.status-dot.amber{background:#C99A3B}
+.frozen-banner{background:rgba(251,113,133,.08);border-bottom:1px solid rgba(251,113,133,.2);padding:.5rem 2rem;text-align:center;font-size:.7rem;color:#fb7185;font-weight:500}
+</style>
+</head>
+<body>
+<div class="frozen-banner">FEATURE FROZEN · Hermes Product OS v3.2 · No architectural changes without operational evidence</div>
+<div class="header">
+<h1>Hermes Command Center</h1>
+<div class="meta">MVP · Stage 1 · Snapshot: 1 Aug 2026</div>
+</div>
+<div class="main">
+
+<div class="card"><h3>1. Current Projects</h3>
+<div class="row"><span class="label">Hermes Product OS</span><span class="value"><span class="badge bg-green">ACTIVE</span></span></div>
+<div class="row"><span class="label">AVOA Connect</span><span class="value"><span class="badge bg-amber">AWAITING DESIGN</span></span></div>
+</div>
+
+<div class="card"><h3>2. Items Awaiting Amjad</h3>
+<div class="row"><span class="label">Product name</span><span class="value wide">Select and legally clear new AVOA name</span></div>
+<div class="row"><span class="label">Experience Language</span><span class="value wide">Create v1.0</span></div>
+<div class="row"><span class="label">Platinum UI Standard</span><span class="value wide">Create standard</span></div>
+<div class="row"><span class="label">Command Center VL</span><span class="value wide">Create visual language</span></div>
+<div class="row"><span class="label">Nav Component pilot</span><span class="value wide">Approve for implementation</span></div>
+<div class="row"><span class="label">HOS-3 authorization</span><span class="value wide">Authorize after design docs</span></div>
+</div>
+
+<div class="card"><h3>3. Active Work</h3>
+<div class="row"><span class="label">HOS-2.5 CC MVP</span><span class="value"><span class="badge bg-cyan">BUILDING</span></span></div>
+<div class="row"><span class="label">Runtime loops</span><span class="value"><span class="badge bg-slate">0 ACTIVE</span></span></div>
+<div class="row"><span class="label">Capability Managers</span><span class="value"><span class="badge bg-slate">0 ACTIVE</span></span></div>
+<div class="row"><span class="label">Production tasks</span><span class="value"><span class="badge bg-slate">NONE</span></span></div>
+</div>
+
+<div class="card"><h3>4. Capability Status</h3>
+<div class="section-label">Complete (3)</div>
+<div class="row"><span class="label">Commercial Safety</span><span class="value"><span class="badge bg-slate">NOT_IMPLEMENTED</span> <span class="badge bg-slate">INACTIVE</span></span></div>
+<div class="row"><span class="label">Design Quality</span><span class="value"><span class="badge bg-slate">NOT_IMPLEMENTED</span> <span class="badge bg-slate">INACTIVE</span></span></div>
+<div class="row"><span class="label">Doc Health</span><span class="value"><span class="badge bg-slate">NOT_IMPLEMENTED</span> <span class="badge bg-slate">INACTIVE</span></span></div>
+<div class="section-label">Placeholder (5)</div>
+<div class="row"><span class="label">Release, Eng, Research, Knowledge, Ops</span><span class="value"><span class="badge bg-slate">PLACEHOLDER</span></span></div>
+</div>
+
+<div class="card"><h3>5. Hermes Status</h3>
+<div class="row"><span class="label">Maturity</span><span class="value"><span class="badge bg-amber">STAGE 1 · ASSISTED</span></span></div>
+<div class="row"><span class="label">Role</span><span class="value">Sole orchestrator — drafts, recommends</span></div>
+<div class="row"><span class="label">Approval</span><span class="value">All material decisions → Amjad</span></div>
+<div class="row"><span class="label">Code authorship</span><span class="value"><span class="badge bg-slate">NONE</span></span></div>
+<div class="row"><span class="label">Scope violations</span><span class="value"><span class="badge bg-green">0 RESOLVED</span></span></div>
+</div>
+
+<div class="card"><h3>6. Recent Releases</h3>
+<div class="row"><span class="label">HOS-1</span><span class="value"><span class="badge bg-green">CLOSED</span></span></div>
+<div class="row"><span class="label">HOS-1.1</span><span class="value"><span class="badge bg-green">CLOSED</span></span></div>
+<div class="row"><span class="label">HOS-2</span><span class="value"><span class="badge bg-green">CLOSED</span></span></div>
+<div class="row"><span class="label">Loop Engineering</span><span class="value"><span class="badge bg-green">CLOSED</span></span></div>
+<div class="row"><span class="label">Hermes OS v3.2</span><span class="value"><span class="badge bg-green">CLOSED</span></span></div>
+<div class="row"><span class="label">HOS-3</span><span class="value"><span class="badge bg-amber">AWAITING DESIGN</span></span></div>
+</div>
+
+<div class="card"><h3>7. Current Priorities</h3>
+<div class="row"><span class="label">1</span><span class="value wide">Product name clearance</span></div>
+<div class="row"><span class="label">2</span><span class="value wide">Experience Language v1.0</span></div>
+<div class="row"><span class="label">3</span><span class="value wide">Platinum UI Standard</span></div>
+<div class="row"><span class="label">4</span><span class="value wide">Command Center Visual Language</span></div>
+<div class="row"><span class="label">5</span><span class="value wide">Navigation Component pilot</span></div>
+<div class="row"><span class="label">6</span><span class="value wide">HOS-3 authorization</span></div>
+</div>
+
+<div class="card"><h3>8. Recent Decisions</h3>
+<div class="row"><span class="label">DEC-HOS-001</span><span class="value"><span class="badge bg-amber">LOCKED</span> Sole orchestrator</span></div>
+<div class="row"><span class="label">DEC-HOS-002</span><span class="value"><span class="badge bg-amber">LOCKED</span> Kimi K3 primary builder</span></div>
+<div class="row"><span class="label">DEC-AVOA-PRICING-001</span><span class="value"><span class="badge bg-amber">LOCKED</span> Deterministic commercial</span></div>
+<div class="row"><span class="label">DES-001</span><span class="value"><span class="badge bg-slate">PROPOSED</span> Navy desktop nav</span></div>
+<div class="row"><span class="label">Feature Freeze</span><span class="value"><span class="badge bg-red">ACTIVE</span> v3.2</span></div>
+</div>
+
+<div class="card"><h3>9. Review Queue</h3>
+<div class="row"><span class="label">Open PRs</span><span class="value"><span class="badge bg-slate">0</span></span></div>
+<div class="row"><span class="label">Pending reviews</span><span class="value"><span class="badge bg-slate">0</span></span></div>
+<div class="row"><span class="label">Ready for Amjad</span><span class="value"><span class="badge bg-slate">0</span></span></div>
+<div class="empty">No items awaiting review</div>
+</div>
+
+<div class="card"><h3>10. System Health</h3>
+<div class="row"><span class="label">CI (main)</span><span class="value"><span class="badge bg-green">PASSING</span></span></div>
+<div class="row"><span class="label">Branch protection</span><span class="value"><span class="badge bg-green">ACTIVE</span></span></div>
+<div class="row"><span class="label">Schema validation</span><span class="value"><span class="badge bg-green">PASSING</span></span></div>
+<div class="row"><span class="label">Decision records</span><span class="value"><span class="badge bg-green">20 LOCKED</span></span></div>
+<div class="row"><span class="label">Deployments</span><span class="value"><span class="badge bg-slate">PRE-PROD</span></span></div>
+<div class="row"><span class="label">Feature freeze</span><span class="value"><span class="badge bg-red">ACTIVE</span></span></div>
+</div>
+
+</div>
+<div class="status-bar">
+<div><span class="status-dot green"></span> CI Passing</div>
+<div><span class="status-dot amber"></span> Stage 1 Assisted Orchestration</div>
+<div><span class="status-dot amber"></span> HOS-3 Awaiting Design</div>
+<div style="margin-left:auto">Hermes Product OS v3.2 · FEATURE FROZEN · Not connected to live data</div>
+</div>
+</body>
+</html>
