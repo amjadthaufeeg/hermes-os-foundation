@@ -70,8 +70,8 @@ required_checks:
   - "Protected-zone check"
 
 required_evidence:
-  - "All 12 deliverables listed"
-  - "Changed file manifest"
+  - "build"
+  - "scope_check"
 
 stop_conditions:
   - "Production code modified"
