@@ -1,0 +1,51 @@
+task_id: TASK-HOS-2.5
+project: Hermes Product OS
+release: HOS-2.5
+title: "Hermes Mission Control MVP v1 — Executive Dashboard"
+task_type: feature
+risk_level: R1
+
+objective: >
+  Build a calm, premium, decision-first executive dashboard for Amjad.
+  Display only truthful data from existing governance records. No fabrication.
+  No runtime capability activation. No production automation.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/command-center/**"
+  - ".hermes/contracts/TASK-HOS-2.5.yaml"
+
+protected_areas:
+  - "backend/"
+  - "frontend/src/"
+
+must_not_change:
+  - "AVOA production code"
+  - "Loop or Capability runtime"
+  - "Deployment configuration"
+
+change_budget:
+  max_files: 12
+  max_folders: 2
+  max_lines_changed: 2500
+  dependency_changes_allowed: false
+
+acceptance_criteria:
+  - "Dashboard matches approved visual reference"
+  - "All displayed data truthful and sourced"
+  - "No fabricated metrics"
+  - "Responsive desktop/tablet/mobile"
+  - "Accessibility baseline passes"
+  - "CI passes"
+  - "Visual QA passes"
+  - "Independent review passes"
+  - "No production automation"
+
+stop_conditions:
+  - "Production code modified"
+  - "Runtime capability activated"
+  - "Fabricated data inserted"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: true
+amjad_approval_required: true
