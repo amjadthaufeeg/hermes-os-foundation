@@ -1,0 +1,52 @@
+task_id: TASK-HOS-V3-2-CORRECTION
+parent_task_id: TASK-HOS-V3-2
+project: Hermes Product OS
+release: v3.2
+title: "Complete v3.2 Refinement Deliverables"
+task_type: infrastructure
+risk_level: R1
+
+objective: >
+  Complete the missing and partial Hermes Product OS v3.2
+  planning deliverables without changing runtime behaviour,
+  production application code or established architecture.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/HERMES_OS_V3_2.md"
+  - "docs/hermes-os-v3.1/02_ORGANIZATIONAL_MODEL.md"
+  - "docs/hermes-os-v3.1/diagrams/hermes-os-v3.2-*.html"
+  - ".hermes/contracts/TASK-HOS-V3-2-CORRECTION.yaml"
+
+protected_areas:
+  - "backend/"
+  - "frontend/src/"
+
+must_not_change:
+  - "Production application code"
+  - "Runtime behaviour"
+
+change_budget:
+  max_files: 6
+  max_folders: 3
+  max_lines_changed: 1800
+
+acceptance_criteria:
+  - "All 20 deliverables complete or explicitly deferred"
+  - "Stable v3.2 diagram created"
+  - "Current Status diagram created"
+  - "Fallback orchestration policy explicit"
+  - "Human-gate matrix complete"
+  - "Builder-selection policy defined"
+  - "Delivery metrics with formulas"
+  - "Evaluation framework specified"
+  - "Observability specification complete"
+  - "Hermes at Stage 1"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: false
+amjad_approval_required: true
+
+stop_conditions:
+  - "Production code modified"
+  - "Scope expands beyond approved files"

@@ -1,11 +1,11 @@
-# Hermes OS v3.1 — Organizational Model
+# Hermes Product OS v3.2 — Organizational Model
 
-**Document ID:** HERMES-OS-ORG-v3.1.0  
-**Version:** 3.1.0  
-**Status:** Draft  
-**Last Updated:** 2026-07-31  
-**Owner:** Hermes Engineering OS Foundation  
-**Dependencies:** [01_HERMES_OS_V3_1_ARCHITECTURE.md](./01_HERMES_OS_V3_1_ARCHITECTURE.md)
+**Document ID:** HERMES-OS-ORG-v3.2.0  
+**Version:** 3.2.0  
+**Status:** Specification — feature-frozen after merge  
+**Last Updated:** 2026-08-01  
+**Owner:** Hermes Product OS Foundation  
+**Dependencies:** [HERMES_OS_V3_2.md](./HERMES_OS_V3_2.md), [01_HERMES_OS_V3_1_ARCHITECTURE.md](./01_HERMES_OS_V3_1_ARCHITECTURE.md)
 
 ---
 
@@ -13,9 +13,55 @@
 
 1. [Overview](#1-overview)
 2. [Core Principle: Hermes as Sole Orchestrator](#2-core-principle-hermes-as-sole-orchestrator)
-3. [Division 1: Executive / Product](#3-division-1-executive--product)
-4. [Division 2: Engineering](#4-division-2-engineering)
-5. [Division 3: Design Studio](#5-division-3-design-studio)
+3. [Maturity Model](#3-maturity-model)
+4. [Agents vs. Tools](#4-agents-vs-tools)
+5. [Division 1: Executive / Product](#5-division-1-executive--product)
+## 3. Maturity Model
+
+Every role, agent, tool, capability, and loop must carry its current maturity.
+
+| Dimension | Values |
+|---|---|
+| **SPECIFICATION** | COMPLETE / PARTIAL / PLACEHOLDER / NOT_DEFINED |
+| **IMPLEMENTATION** | IMPLEMENTED / NOT_IMPLEMENTED |
+| **ACTIVATION** | ACTIVE / INACTIVE / PAUSED |
+| **OPERATIONAL MATURITY** | UNPROVEN / PILOT / PROBATION / PROVEN / SUSPENDED |
+
+Maturity advances through demonstrated reliable performance in controlled conditions. No agent or tool self-declares its maturity. PROVEN status requires Hermes recommendation and Amjad acknowledgment. Maturity can be revoked at any time by Hermes or Amjad.
+
+---
+
+## 4. Agents vs. Tools
+
+v3.2 formally separates agents from tools.
+
+### Agents (Directed Actors)
+
+Agents receive task contracts, make implementation decisions, and produce work. Their output is reviewed. They earn operational maturity over time.
+
+| Agent | Role | Spec | Impl | Activation | Maturity |
+|---|---|---|---|---|---|
+| **Kimi K3** | Primary Builder | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
+| **Codex** | Precision Builder | COMPLETE | NOT_IMPLEMENTED | INACTIVE | UNPROVEN |
+
+### Tools (Directed Instruments)
+
+Tools perform specific verification, review, or rendering functions. Their output is evidence — accepted or rejected by Hermes. They do not earn maturity — they are validated every time.
+
+| Tool | Function | Activation | Maturity |
+|---|---|---|---|
+| **Claude Code** | Independent Reviewer (read-only) | INACTIVE | UNPROVEN |
+| **GitHub Actions** | CI/CD, validation gates | ACTIVE | PROVEN |
+| **GitHub** | Source of truth, branch protection | ACTIVE | PROVEN |
+| **Replit** | Live Preview (read-only) | INACTIVE | UNPROVEN |
+| **OpenCode** | Review path (Claude fallback) | INACTIVE | UNPROVEN |
+| **DeepSeek V4 Pro** | Optional research/challenger | ACTIVE | PILOT |
+
+**Key rule:** Agent output goes through review. Tool output is evidence — it is adjudicated, not trusted blindly.
+
+---
+
+
 6. [Division 4: Quality](#6-division-4-quality)
 7. [Division 5: Knowledge](#7-division-5-knowledge)
 8. [Division 6: Research](#8-division-6-research)
