@@ -1,0 +1,84 @@
+task_id: TASK-HOS-002
+project: Hermes Product OS
+release: HOS-2
+title: "Design Studio Foundation"
+task_type: design_infrastructure
+risk_level: R1
+
+objective: >
+  Establish the Design Studio division, its operating model, and the
+  AVOA Design System V1. No production code changes. No AVOA redesign.
+  All outputs are planning documents, audits, specifications, and
+  wireframes that will be implemented in HOS-3+.
+
+business_outcome: >
+  The Design Studio is operational with documented roles, workflows,
+  standards, and a comprehensive AVOA design system ready for
+  implementation in subsequent releases.
+
+user_outcome: >
+  Amjad has a complete design foundation package to review and approve
+  before any visual implementation work begins.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/*.md"
+  - "docs/hermes-os-v3.1/design/**"
+  - ".hermes/design/**"
+
+protected_areas:
+  - "backend/"
+  - "frontend/src/"
+  - "Production UI"
+
+must_not_change:
+  - "Any production application code"
+  - "Pricing Engine"
+  - "Offer Engine"
+  - "Reservation Engine"
+  - "Authentication"
+  - "Permissions"
+  - "Database"
+  - "API Contracts"
+  - "Commercial Logic"
+  - "Deployment configuration"
+
+change_budget:
+  max_files: 25
+  max_folders: 5
+  max_lines_changed: 8000
+  dependency_changes_allowed: false
+  migration_changes_allowed: false
+
+acceptance_criteria:
+  - "Design Studio Operating Manual exists"
+  - "AVOA Design Audit is complete"
+  - "AVOA Design System V1 is documented"
+  - "Component Library specification exists"
+  - "UI Contract specification exists"
+  - "Design Review workflow documented"
+  - "Visual QA standards documented"
+  - "Accessibility Baseline documented"
+  - "Command Center wireframes exist"
+  - "Three pilot candidates identified"
+  - "Design Playbook exists"
+  - "Research Division roles documented"
+  - "No production code changed"
+
+required_checks:
+  - "Schema validation"
+  - "Scope check"
+  - "Protected-zone check"
+
+required_evidence:
+  - "All 12 deliverables listed"
+  - "Changed file manifest"
+
+stop_conditions:
+  - "Production code modified"
+  - "Scope expands beyond approved files"
+  - "Protected zone touched"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: false
+amjad_approval_required: true
