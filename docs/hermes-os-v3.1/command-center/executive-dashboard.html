@@ -76,14 +76,16 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
     <h2>Hermes MC</h2>
     <div class="stag">Mission Control v1</div>
   </div>
-  <div class="nav-item active" data-route="/"><span class="icon">◈</span>Mission Overview</div>
-  <div class="nav-item" data-route="/decisions"><span class="icon">◆</span>Decisions</div>
-  <div class="nav-item" data-route="/execution"><span class="icon">⬡</span>Execution</div>
-  <div class="nav-item" data-route="/products"><span class="icon">◻</span>Products</div>
-  <div class="nav-item" data-route="/capabilities"><span class="icon">◉</span>Capabilities</div>
-  <div class="nav-item" data-route="/releases"><span class="icon">◎</span>Releases</div>
-  <div class="nav-item" data-route="/evidence"><span class="icon">⬒</span>Evidence</div>
-  <div class="nav-item" data-route="/settings"><span class="icon">⚙</span>Settings</div>
+  <nav aria-label="Main navigation">
+  <div class="nav-item active" data-route="/" role="button" tabindex="0" aria-current="page"><span class="icon" aria-hidden="true">◈</span>Mission Overview</div>
+  <div class="nav-item" data-route="/decisions" role="button" tabindex="0"><span class="icon" aria-hidden="true">◆</span>Decisions</div>
+  <div class="nav-item" data-route="/execution" role="button" tabindex="0"><span class="icon" aria-hidden="true">⬡</span>Execution</div>
+  <div class="nav-item" data-route="/products" role="button" tabindex="0"><span class="icon" aria-hidden="true">◻</span>Products</div>
+  <div class="nav-item" data-route="/capabilities" role="button" tabindex="0"><span class="icon" aria-hidden="true">◉</span>Capabilities</div>
+  <div class="nav-item" data-route="/releases" role="button" tabindex="0"><span class="icon" aria-hidden="true">◎</span>Releases</div>
+  <div class="nav-item" data-route="/evidence" role="button" tabindex="0"><span class="icon" aria-hidden="true">⬒</span>Evidence</div>
+  <div class="nav-item" data-route="/settings" role="button" tabindex="0"><span class="icon" aria-hidden="true">⚙</span>Settings</div>
+  </nav>
 </nav>
 
 <main class="main" id="main-content">
