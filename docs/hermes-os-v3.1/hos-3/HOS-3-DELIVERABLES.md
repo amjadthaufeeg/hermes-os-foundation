@@ -109,7 +109,7 @@ Calm, trustworthy, controlled, precise, premium, focused, operational, intellige
 
 ```css
 :root {
-  --hermes-font: 'Inter', system-ui, -apple-system, sans-serif;
+  - **Font stack:** 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif (Inter preferred when available locally; zero external dependency)
   --hermes-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
   --hermes-text-display: 700 1.5rem/1.3 var(--hermes-font);
   --hermes-text-heading: 600 1.1rem/1.4 var(--hermes-font);
@@ -223,7 +223,7 @@ Capability rows now collapsed by default for placeholder entries. Full detail be
 | ID | Finding | Status | Evidence |
 |---|---|---|---|
 | L-1 | Amber outside palette | **RESOLVED** | `--hermes-amber` token defined; used for HOLD/PENDING/ATTENTION only |
-| L-2 | System font stack | **RESOLVED** | Inter loaded; system-ui fallback; mono stack for code |
+| L-2 | System font stack | **RESOLVED** | Inter-preferred stack with system-ui fallback; zero external font dependency |
 | L-3 | Muted badge noise | **RESOLVED** | Collapse pattern applied to Capability rows; "Show all" toggle |
 
 ---
