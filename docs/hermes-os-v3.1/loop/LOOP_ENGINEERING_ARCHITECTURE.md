@@ -22,29 +22,106 @@ A loop is not autonomous. Hermes remains the sole orchestrator. Every irreversib
                  │  HERMES │ ← Sole Orchestrator
                  └────┬────┘
                       |
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+  Capability      Capability     Capability
+  Manager         Manager        Manager     ← Organizational layer
+  (Commercial)    (Design)       (Health)
+        │             │             │
+        └─────────────┼─────────────┘
+                      |
             ┌─────────┴──────────┐
-            │ Loop Controller    │ ← Subordinate capability
-            │ (Hermes delegates) │
+            │ Loop Controller    │ ← Execution layer
+            │ (per capability)   │
             └─────────┬──────────┘
                       |
         ┌─────────────┼─────────────┐
         ▼             ▼             ▼
    DISCOVERY     EXECUTION     VERIFICATION
-   (eligible      (builder      (independent
-    work)          agent)        evaluator)
-        │             │             │
-        └─────────────┼─────────────┘
+                      │
                       ▼
                  HUMAN GATE
-                 (approval)
                       |
                  LOOP MEMORY
-                 (state + evidence + decisions)
 ```
+
+Each Capability owns one or more loops. Capability Managers report health and status upward. Loop Controllers execute downward. Hermes retains final authority over all transitions.
 
 ---
 
-## 3. Loop Controller
+## 3. Capability Engineering
+
+Capability Engineering is the organizational layer above Loop Engineering. A Capability represents an enduring business responsibility. Capabilities own loops. Loops execute. Capabilities report.
+
+### Capability Hierarchy
+
+```
+Hermes
+ ↓
+Capability Manager
+ ↓
+Loop Controller
+ ↓
+Task Controller
+ ↓
+Approved Builders and Reviewers
+```
+
+### Defined Capabilities
+
+| Capability | Purpose | Owner |
+|---|---|---|
+| **Commercial Safety** | Pricing, offers, occupancy, taxes, commissions, reconciliation integrity | Hermes |
+| **Design Quality** | Design-system compliance, visual QA, accessibility, interaction polish | Design Studio |
+| **Documentation Health** | Spec consistency, schema accuracy, policy currency, decision freshness | Hermes |
+| **Release Readiness** | CI health, fixture pass rates, rollback readiness, deployment safety | Hermes |
+| **Engineering Health** | Build health, test coverage, scope compliance, protected-zone integrity | Hermes |
+| **Research Intelligence** | Competitive analysis, UX patterns, technology assessment, evidence briefs | Research Division |
+| **Knowledge Integrity** | Decision register, regression register, memory accuracy, archival health | Hermes |
+| **Operations** | Deployment status, preview environments, monitoring readiness, cost tracking | Hermes |
+
+### Capability Specification
+
+Every Capability must define:
+
+```yaml
+capability_id: CAP-XXX
+name: "Design Quality"
+purpose: "Ensure visual and interaction quality across all products"
+owner: design-studio
+participating_roles: [ux-architect, product-designer, visual-designer, visual-qa]
+managed_loops:
+  - LOOP-XXX-001  # Visual regression check
+  - LOOP-XXX-002  # Accessibility audit
+success_metrics:
+  - "Design-system compliance score >= 4"
+  - "Accessibility baseline met on all active screens"
+health_status: HEALTHY | DEGRADED | AT_RISK | UNKNOWN
+evidence_sources:
+  - "Visual QA reports"
+  - "Accessibility audit logs"
+  - "Design review findings"
+escalation_rules:
+  - "Status AT_RISK for >24h → alert Amjad"
+human_gates:
+  - before_merge: true
+  - before_deploy: true
+```
+
+### Capability Health Status
+
+| Status | Meaning |
+|---|---|
+| HEALTHY | All managed loops passing, metrics within targets |
+| DEGRADED | One or more loops in non-blocking failure |
+| AT_RISK | Blocking failure or budget exceeded on critical loop |
+| UNKNOWN | Insufficient evidence to determine health |
+
+Health status rolls up to Command Center Capability Dashboard. The dashboard reports capability health, not raw loop counts.
+
+---
+
+## 4. Loop Controller
 
 The Loop Controller is a subordinate Hermes capability. It does not replace Hermes — it operates within bounds Hermes defines.
 
@@ -152,14 +229,30 @@ No loop may merge itself or write directly to main.
 
 ---
 
-## 8. Initial Pilots (Planning Only)
+## 9. Initial Pilots (Planning Only)
 
-| ID | Name | Risk | Purpose |
-|---|---|---|---|
-| LOOP-PILOT-001 | CI Failure Triage | R1 | Inspect failed checks, classify causes, propose contract. Read-only. |
-| LOOP-PILOT-002 | Governance Drift Check | R1 | Check schema/policy/decision consistency. Read-only. |
-| LOOP-PILOT-003 | Regression Verification | R1-R2 | Run approved fixtures, report failures. No production code changes. |
-| LOOP-PILOT-004 | Documentation Drift | R1 | Identify docs conflicting with schemas/policies. Propose corrections only. |
+| ID | Name | Capability | Risk | Purpose |
+|---|---|---|---|---|
+| LOOP-PILOT-001 | CI Failure Triage | Engineering Health | R1 | Inspect failed checks, classify causes, propose contract. Read-only. |
+| LOOP-PILOT-002 | Governance Drift Check | Documentation Health | R1 | Check schema/policy/decision consistency. Read-only. |
+| LOOP-PILOT-003 | Regression Verification | Engineering Health | R1-R2 | Run approved fixtures, report failures. No production code changes. |
+| LOOP-PILOT-004 | Documentation Drift | Knowledge Integrity | R1 | Identify docs conflicting with schemas/policies. Propose corrections only. |
+
+---
+
+## 10. Migration Path
+
+Loop Engineering was architected first. Capability Engineering is the layer above it.
+
+**Phase 1 (current):** Loop Engineering architecture. Pilots operate as standalone loops with direct Hermes oversight.
+
+**Phase 2:** Capability Engineering specification. Capability definitions formalized. Loop contracts assigned to capabilities.
+
+**Phase 3:** Capability Managers activated. Loops report through capabilities. Command Center shows capability health.
+
+**Phase 4:** Full Capability Dashboard. All 8 capabilities reporting. Health status drives prioritization.
+
+No loop behavior changes are required at each phase. Capabilities are organizational — loops execute identically regardless.
 
 ---
 
