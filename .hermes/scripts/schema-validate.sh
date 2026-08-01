@@ -57,7 +57,7 @@ for schema_file in .hermes/schemas/*.schema.json; do
     case "$schema_name" in
         task-contract)
             validate_records "$schema_name" "$schema_file" \
-                ".hermes/contracts/TASK-"* ".hermes/contracts/CI.yaml" \
+                ".hermes/contracts/TASK-"* ".hermes/contracts/TASK-CI-001.yaml" \
                 ".hermes/schema-validation-tests/valid-task-contract.yaml"
             ;;
         ui-contract)
