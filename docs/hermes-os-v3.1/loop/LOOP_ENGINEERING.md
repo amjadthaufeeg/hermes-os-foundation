@@ -279,4 +279,139 @@ git revert <merge-commit>  # Governance docs only, no production impact
 
 ---
 
+## Complete Capability Definitions
+
+### CAP-001: Commercial Safety
+
+```yaml
+capability_id: CAP-001
+name: "Commercial Safety"
+purpose: "Ensure pricing, offers, occupancy, taxes, commissions, markup, cancellation and reconciliation integrity"
+owner: hermes
+status: proposed
+risk_ceiling: R4
+managed_loops: []
+participating_roles: [hermes, kimi-k3, claude-code]
+success_conditions:
+  - "All pricing fixtures pass"
+  - "No protected-zone violations in R4 areas"
+  - "All commercial decisions locked and validated"
+health_evidence:
+  - "Fixture pass/fail reports"
+  - "Protected-zone check output"
+  - "Decision register validation"
+health_rules:
+  - "Any R4 fixture failure → BLOCKED"
+  - "Protected-zone violation in pricing → BLOCKED"
+  - "All checks passing ≥24h → HEALTHY"
+human_gates:
+  before_protected_change: true
+  before_merge: true
+  before_deploy: true
+  before_irreversible_action: true
+escalation_rules:
+  - "BLOCKED for >1h → alert Amjad"
+protected_zones: ["pricing/", "offers/", "occupancy/", "tax/", "commissions/"]
+memory_location: ".hermes/capabilities/CAP-001/"
+audit_requirements: ["all_state_transitions", "all_gate_events"]
+terminal_or_paused_conditions:
+  - "All managed loops SUCCEEDED or ARCHIVED"
+  - "Explicit human pause"
+```
+
+### CAP-002: Design Quality
+
+```yaml
+capability_id: CAP-002
+name: "Design Quality"
+purpose: "Ensure visual and interaction quality, design-system compliance, accessibility"
+owner: design-studio
+status: proposed
+risk_ceiling: R2
+managed_loops: []
+participating_roles: [ux-architect, product-designer, visual-designer, visual-qa]
+success_conditions:
+  - "Design-system compliance score consistently ≥4"
+  - "Accessibility baseline met on all active screens"
+  - "No blocking visual QA findings"
+health_evidence: ["Visual QA reports", "Accessibility audit logs", "Design review findings"]
+health_rules:
+  - "Blocking visual finding on critical screen → DEGRADED"
+  - "Accessibility baseline failure → DEGRADED"
+  - "All checks passing ≥24h → HEALTHY"
+human_gates: {before_merge: true}
+escalation_rules: ["DEGRADED >24h → alert Design Studio owner"]
+protected_zones: ["design-system/", "approved-designs/"]
+memory_location: ".hermes/capabilities/CAP-002/"
+audit_requirements: ["all_state_transitions"]
+terminal_or_paused_conditions:
+  - "All managed loops SUCCEEDED or ARCHIVED"
+```
+
+### CAP-003: Documentation Health
+
+```yaml
+capability_id: CAP-003
+name: "Documentation Health"
+purpose: "Ensure spec consistency, schema accuracy, policy currency, decision freshness"
+owner: hermes
+status: proposed
+risk_ceiling: R1
+managed_loops: [LOOP-PILOT-002]
+participating_roles: [hermes]
+success_conditions:
+  - "All schemas validate"
+  - "All policies parse and are internally consistent"
+  - "No decision record with status proposed for >30 days"
+health_evidence: ["Schema validation output", "Policy parse results", "Decision freshness scan"]
+health_rules:
+  - "Schema validation failure → DEGRADED"
+  - "Stale proposed decision >30d → DEGRADED"
+  - "All checks passing → HEALTHY"
+human_gates: {before_merge: true}
+protected_zones: [".hermes/schemas/", ".hermes/policies/"]
+memory_location: ".hermes/capabilities/CAP-003/"
+audit_requirements: ["weekly_health_snapshot"]
+terminal_or_paused_conditions: ["All loops SUCCEEDED or ARCHIVED"]
+```
+
+### CAP-004 through CAP-008
+
+```yaml
+# CAP-004: Release Readiness — CI health, fixture pass rates, rollback readiness. owner: hermes, risk: R2
+# CAP-005: Engineering Health — Build health, test coverage, scope compliance. owner: hermes, risk: R2
+# CAP-006: Research Intelligence — Competitive analysis, UX patterns, technology assessment. owner: research-division, risk: R1
+# CAP-007: Knowledge Integrity — Decision register, regression register, memory accuracy. owner: hermes, risk: R1
+# CAP-008: Operations — Deployment status, preview environments, monitoring readiness. owner: hermes, risk: R2
+```
+
+Each follows the same specification structure. Full definitions deferred to Phase 2.
+
+## Failure Containment Rules
+
+| Scenario | Behavior |
+|---|---|
+| One loop fails | Capability DEGRADED; unrelated capabilities unaffected |
+| Several loops fail | Capability BLOCKED; dependency check for related |
+| Evidence becomes stale | Health → UNKNOWN; no inference from old evidence |
+| Protected change required | Loop stops; human gate activated; capability DEGRADED |
+| Provider timeout | Loop stops; on max retries → BLOCKED |
+| Execution budget exceeded | Loop stops; BUDGET_EXCEEDED; capability DEGRADED |
+| Human approval pending | Loop pauses at AWAITING_HUMAN_GATE; capability DEGRADED |
+| Evidence conflicts | Raise to Hermes; health → UNKNOWN until resolved |
+| Repeated identical failure | After max_repair_cycles → loop FAILED; capability BLOCKED |
+
+**Failure in one capability does not block unrelated capabilities.** Only declared dependencies propagate blocking.
+
+## Migration Phase Criteria
+
+| Phase | Entry | Rollback |
+|---|---|---|
+| Phase 1 | Specifications approved | Remove loop engineering docs |
+| Phase 2 | Phase 1 merged; Amjad authorizes | Remove capability definitions |
+| Phase 3 | Phase 2 stable; ≥2 pilots passed independently | Pause managers; revert to Phase 2 |
+| Phase 4 | Phase 3 stable ≥1 cycle; CC built | Disable dashboard; retain evidence |
+
+---
+
 *Part of Hermes Product OS v3.1 — Loop Engineering Planning.*
