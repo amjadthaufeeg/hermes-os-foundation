@@ -1,0 +1,26 @@
+task_id: TASK-HOS-4D-4
+project: Hermes Product OS
+release: HOS-4D.4
+title: "Audit Checkpoint, Monitoring, Incident Response and Recovery Foundation"
+task_type: infrastructure
+risk_level: R3
+
+objective: >
+  Design operational safety for authoritative decisions: external trusted
+  audit checkpoint, operational monitoring and alerting, incident response,
+  emergency disable, production backup/recovery with off-host storage,
+  restore testing, and staging validation. No activation authorized.
+
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees]
+
+change_budget: {max_files: 8, max_folders: 2, max_lines_changed: 4000}
+
+acceptance_criteria: [All 6 direct blockers addressed, Off-host backup arch defined,
+  Incident response plan complete, Emergency disable designed, Staging gates planned]
+
+stop_conditions: [Production deployed, Live mutations enabled]
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true
