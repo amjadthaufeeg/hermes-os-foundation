@@ -3,7 +3,7 @@
 import uuid, hashlib, json, sqlite3
 from datetime import datetime, timezone
 from typing import Optional
-from database import get_db
+from backend.hos4c.database import get_db
 
 def _hash_event(prev_hash: str, data: dict) -> str:
     payload = prev_hash + json.dumps(data, sort_keys=True, default=str)

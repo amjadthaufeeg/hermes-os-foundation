@@ -71,7 +71,9 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
 );
 """
 
-def init_db(path: str = DATABASE_PATH):
+def init_db(path: str = None):
+    if path is None:
+        path = os.environ.get("DATABASE_PATH", DATABASE_PATH)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     conn = sqlite3.connect(path)
     conn.executescript(SCHEMA)
@@ -79,7 +81,9 @@ def init_db(path: str = DATABASE_PATH):
     conn.close()
 
 @contextmanager
-def get_db(path: str = DATABASE_PATH):
+def get_db(path: str = None):
+    if path is None:
+        path = os.environ.get("DATABASE_PATH", DATABASE_PATH)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     try:

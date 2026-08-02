@@ -22,10 +22,10 @@ class ActionResponse(BaseModel):
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import *
-from database import init_db, get_db
-from audit import record_audit_event, verify_hash_chain
-from state_machine import (
+from backend.hos4c.config import *
+from backend.hos4c.database import init_db, get_db
+from backend.hos4c.audit import record_audit_event, verify_hash_chain
+from backend.hos4c.state_machine import (
     validate_transition, is_high_risk, requires_typed_confirmation,
     requires_rationale, min_rationale_length, ROLE_PERMISSIONS,
 )
@@ -39,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-init_db()
+# init_db() — called by fixtures or startup, not at module level
 
 # --- Simulation Data ---
 SIM_DECISIONS = [
