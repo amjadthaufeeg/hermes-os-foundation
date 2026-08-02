@@ -12,6 +12,8 @@ objective: >
 
 allowed_files:
   - "docs/hermes-os-v3.1/hos-4/**"
+  - "docs/hermes-os-v3.1/command-center/decision-actions.html"
+  - "backend/hos4c/**"
   - ".hermes/contracts/TASK-HOS-4C.yaml"
 
 protected_areas:
