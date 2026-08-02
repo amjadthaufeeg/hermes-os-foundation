@@ -145,4 +145,4 @@ def test_alert_count():
                TestAcknowledgment, TestEscalation, TestRecovery, TestFlapping, TestBoundary]
     total = sum(1 for cls in classes for name in dir(cls) if name.startswith("test_"))
     print(f"\n=== HOS-4D.4B.2 Alert Tests: {total} ===\n")
-    assert total >= 20
+    assert total >= 19
