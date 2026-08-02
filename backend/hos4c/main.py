@@ -1,8 +1,24 @@
 """HOS-4C: FastAPI Backend — Simulation Mode Only"""
 
-import uuid, time, json
+import uuid, time, json, secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, Body
+from pydantic import BaseModel, Field
+
+class ActionRequest(BaseModel):
+    action: str
+    rationale: str = ""
+    typed_confirmation: str = ""
+
+class ActionResponse(BaseModel):
+    decision_id: str
+    action: str
+    previous_state: str
+    resulting_state: str
+    version: int
+    audit_event_id: str
+    mode: str = "SIMULATION"
+    warning: str = "NO AUTHORITATIVE DECISION WAS CHANGED"
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,15 +50,16 @@ SIM_DECISIONS = [
 
 # --- Session Management ---
 def create_session(actor_id: str, role: str = "AMJAD_OWNER") -> str:
-    session_id = f"sess-{uuid.uuid4().hex[:16]}"
+    session_id = f"sess-{secrets.token_hex(16)}"
+    csrf_token = secrets.token_hex(32)
     now = datetime.now(timezone.utc).isoformat()
     expires = (datetime.now(timezone.utc) + timedelta(hours=SESSION_TIMEOUT_HOURS)).isoformat()
     with get_db() as db:
         db.execute(
-            "INSERT INTO sessions (session_id, actor_id, actor_role, created_at, expires_at, last_activity) VALUES (?,?,?,?,?,?)",
-            (session_id, actor_id, role, now, expires, now)
+            "INSERT INTO sessions (session_id, actor_id, actor_role, csrf_token, created_at, expires_at, last_activity) VALUES (?,?,?,?,?,?,?)",
+            (session_id, actor_id, role, csrf_token, now, expires, now)
         )
-    return session_id
+    return session_id, csrf_token
 
 def get_session(session_id: str) -> dict:
     with get_db() as db:
@@ -56,7 +73,19 @@ def get_session(session_id: str) -> dict:
         raise HTTPException(401, "Session expired")
     return dict(row)
 
-# --- Authority Middleware ---
+# --- CSRF Protection ---
+def validate_csrf(request: Request):
+    """Validate CSRF token for state-changing requests."""
+    session_id = request.cookies.get("hermes_session")
+    if not session_id:
+        raise HTTPException(401, "Not authenticated")
+    session = get_session(session_id)
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not csrf_header:
+        raise HTTPException(403, "Missing CSRF token")
+    stored = session.get("csrf_token", "")
+    if not stored or not secrets.compare_digest(csrf_header, stored):
+        raise HTTPException(403, "Invalid CSRF token")
 def require_role(min_role: str):
     async def _auth(request: Request):
         session_id = request.cookies.get("hermes_session")
@@ -78,8 +107,8 @@ def health():
 @app.post("/api/auth/login")
 def login_simulated():
     """Simulated login — returns a session for 'amjad' with AMJAD_OWNER role."""
-    session_id = create_session("amjadthaufeeg", "AMJAD_OWNER")
-    resp = JSONResponse({"actor": "amjadthaufeeg", "role": "AMJAD_OWNER", "mode": "SIMULATION"})
+    session_id, csrf_token = create_session("amjadthaufeeg", "AMJAD_OWNER")
+    resp = JSONResponse({"actor": "amjadthaufeeg", "role": "AMJAD_OWNER", "csrf_token": csrf_token, "mode": "SIMULATION"})
     resp.set_cookie("hermes_session", session_id, httponly=True, samesite="lax", max_age=SESSION_TIMEOUT_HOURS * 3600)
     return resp
 
@@ -117,22 +146,11 @@ def get_decision(decision_id: str):
 def perform_action(
     decision_id: str,
     request: Request,
-    action: str = None,
-    rationale: str = None,
-    typed_confirmation: str = None,
+    body: ActionRequest,
 ):
-    """Simulated decision action. No authoritative writes."""
-    # Parse JSON body
-    try:
-        import asyncio
-        async def _body():
-            return await request.json()
-    except:
-        body = {"action": action, "rationale": rationale}
-    else:
-        body = {"action": action, "rationale": rationale or ""}
 
-    # Simulated auth
+    validate_csrf(request)
+
     session_id = request.cookies.get("hermes_session", "sess-simulated")
     actor_id = "amjadthaufeeg"
     actor_role = "AMJAD_OWNER"
@@ -146,8 +164,8 @@ def perform_action(
     if not decision:
         raise HTTPException(404, "Decision not found")
 
-    action_name = body.get("action", action)
-    rationale_text = body.get("rationale", rationale or "")
+    action_name = body.action
+    rationale_text = body.rationale
     idempotency_key = str(uuid.uuid4())
 
     # Validate
@@ -159,7 +177,7 @@ def perform_action(
         raise HTTPException(422, f"Rationale must be at least {min_rationale_length(action_name)} characters")
     if requires_typed_confirmation(action_name):
         expected = f"{action_name} {decision_id}"
-        confirm = body.get("typed_confirmation", typed_confirmation or "")
+        confirm = body.typed_confirmation
         if confirm != expected:
             raise HTTPException(422, f"Type '{expected}' to confirm")
 

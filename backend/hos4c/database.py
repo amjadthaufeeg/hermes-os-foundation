@@ -2,7 +2,7 @@
 
 import sqlite3, os
 from contextlib import contextmanager
-from config import DATABASE_PATH
+from backend.hos4c.config import DATABASE_PATH
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS decisions (
@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
     actor_id TEXT NOT NULL,
     actor_role TEXT NOT NULL DEFAULT 'AMJAD_OWNER',
+    csrf_token TEXT NOT NULL,
     created_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     last_activity TEXT NOT NULL,
