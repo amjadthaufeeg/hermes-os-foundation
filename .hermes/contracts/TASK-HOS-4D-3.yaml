@@ -1,0 +1,32 @@
+task_id: TASK-HOS-4D-3
+project: Hermes Product OS
+release: HOS-4D.3
+title: "Authoritative Decision Adapter and Migration Foundation"
+task_type: infrastructure
+risk_level: R3
+
+objective: >
+  Design the controlled boundary between the HOS-4C decision-action
+  foundation and the future authoritative decision source. SQLite
+  operational DB, append-only audit ledger, Git-backed read-only
+  export, migration runner, legacy decision import. Planning only.
+
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees]
+
+change_budget: {max_files: 8, max_folders: 2, max_lines_changed: 3500}
+
+acceptance_criteria:
+  - "Authoritative source architecture recommended with options compared"
+  - "Adapter interface contract defined"
+  - "Transaction contract specified"
+  - "Migration runner design complete with dry-run"
+  - "Legacy decision import classification defined"
+  - "Git projection model designed"
+  - "No authoritative writes, no deployment"
+
+stop_conditions: ["Production deployed", "Live mutations enabled"]
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true
