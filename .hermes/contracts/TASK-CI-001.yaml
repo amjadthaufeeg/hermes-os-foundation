@@ -13,6 +13,7 @@ allowed_files:
   - ".github/**"
   - "docs/**"
   - "backend/hos4c/**"
+  - "deploy/**"
   - "03_Engineering_OS/**"
   - ".gitignore"
   - "*.md"
@@ -22,6 +23,7 @@ allowed_folders:
   - ".github/"
   - "docs/"
   - "backend/"
+  - "deploy/"
   - "03_Engineering_OS/"
 
 protected_areas:
