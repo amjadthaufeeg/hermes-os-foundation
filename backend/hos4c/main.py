@@ -33,6 +33,7 @@ from backend.hos4c.auth_oauth import (
     oauth_login_redirect, oauth_callback, SIMULATION_MODE as OAUTH_SIM,
 )
 from backend.hos4c.environment import get_env as env_get_env, is_protected, mutations_disabled, validate_startup
+from backend.hos4c.observability import logger, metrics, set_observability_state
 
 app = FastAPI(title="Hermes Decision Actions", version="0.1.0-simulation")
 
@@ -113,6 +114,12 @@ def readiness():
     if errors:
         return {"ready": False, "errors": errors}
     return {"ready": True, "environment": env_get_env().value, "mutations_disabled": mutations_disabled()}
+
+@app.get("/api/metrics")
+def metrics_endpoint():
+    """Prometheus-compatible metrics endpoint."""
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(metrics.export_prometheus(), media_type="text/plain")
 
 # --- Auth (Simulated) ---
 @app.post("/api/auth/login")
