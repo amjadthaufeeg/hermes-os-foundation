@@ -1,0 +1,20 @@
+task_id: TASK-HOS-4D-4C
+project: Hermes Product OS
+release: HOS-4D.4C
+title: "Backup, Recovery, Off-Host Storage and Production Key Custody"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Design complete recovery: consistent SQLite backup, encryption, off-host
+  storage, retention, restore procedures, signing-key custody, recovery
+  authority, backup alerts. Planning only — no real backups or keys.
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees]
+change_budget: {max_files: 8, max_folders: 2, max_lines_changed: 3500}
+acceptance_criteria: [Backup architecture defined, Encryption design, Off-host storage,
+  Key custody model, Restore procedure, Recovery authority, Restore test plan]
+stop_conditions: [Production deployed, Live mutations enabled]
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true
