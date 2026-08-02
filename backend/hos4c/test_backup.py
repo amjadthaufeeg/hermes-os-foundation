@@ -7,7 +7,7 @@ Run: python3.11 -m pytest backend/hos4c/test_backup.py -v
 import pytest, os, tempfile, sqlite3, json
 from backend.hos4c.backup import (
     check_integrity, create_backup, sha256_file, build_manifest,
-    BackupState, RETENTION_CLASSES, is_expired,
+    verify_manifest, BackupState, RETENTION_CLASSES, is_expired,
 )
 
 @pytest.fixture
@@ -114,6 +114,30 @@ class TestCleanup:
         d = tempfile.mkdtemp()
         create_backup(source_db, d)
         assert len(os.listdir(d)) >= 1
+
+# --- Manifest Tampering Detection ---
+class TestManifestTampering:
+    def test_valid_manifest_passes(self, source_db, dest_dir):
+        backup = create_backup(source_db, dest_dir)
+        manifest = build_manifest(backup, source_db)
+        assert verify_manifest(manifest, backup)
+
+    def test_changed_checksum_detected(self, source_db, dest_dir):
+        backup = create_backup(source_db, dest_dir)
+        manifest = build_manifest(backup, source_db)
+        manifest["files"]["backup.db"] = "sha256:0000000000000000"
+        assert not verify_manifest(manifest, backup)
+
+    def test_nonexistent_file_fails(self, source_db, dest_dir):
+        backup = create_backup(source_db, dest_dir)
+        manifest = build_manifest(backup, source_db)
+        assert not verify_manifest(manifest, "/nonexistent/path")
+
+    def test_missing_required_field(self, source_db, dest_dir):
+        backup = create_backup(source_db, dest_dir)
+        manifest = build_manifest(backup, source_db)
+        del manifest["files"]
+        assert not verify_manifest(manifest, backup)
 
 # --- Count ---
 def test_backup_count():

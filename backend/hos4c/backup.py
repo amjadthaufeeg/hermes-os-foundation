@@ -69,6 +69,22 @@ def sha256_file(path: str) -> str:
     return h.hexdigest()
 
 # --- Manifest ---
+# --- Manifest Verification ---
+def verify_manifest(manifest: dict, backup_path: str) -> bool:
+    """Verify manifest against actual backup file. Returns True if valid."""
+    if not isinstance(manifest, dict) or not os.path.exists(backup_path):
+        return False
+    required = ["backup_state", "manifest_schema_version", "files"]
+    for field in required:
+        if field not in manifest:
+            return False
+    for fname, expected_checksum in manifest.get("files", {}).items():
+        actual = sha256_file(backup_path)
+        if actual != expected_checksum:
+            return False
+    return True
+
+
 def build_manifest(backup_path: str, source_db: str, key_id: str = "test-key-001") -> dict:
     """Build deterministic backup manifest."""
     return {
