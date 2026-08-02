@@ -29,6 +29,9 @@ from backend.hos4c.state_machine import (
     validate_transition, is_high_risk, requires_typed_confirmation,
     requires_rationale, min_rationale_length, ROLE_PERMISSIONS,
 )
+from backend.hos4c.auth_oauth import (
+    oauth_login_redirect, oauth_callback, SIMULATION_MODE as OAUTH_SIM,
+)
 
 app = FastAPI(title="Hermes Decision Actions", version="0.1.0-simulation")
 
@@ -128,6 +131,101 @@ def current_session(request: Request):
         return {"authenticated": True, "actor": session["actor_id"], "role": session["actor_role"]}
     except HTTPException:
         return {"authenticated": False}
+
+# --- GitHub OAuth Routes (Production Auth — gated behind SIMULATION_MODE) ---
+@app.get("/auth/github/login")
+def github_login():
+    """Initiate GitHub OAuth login. Redirects to GitHub."""
+    if SIMULATION_MODE:
+        raise HTTPException(400, "OAuth unavailable in simulation mode — use /api/auth/login")
+    result = oauth_login_redirect()
+    if not result:
+        raise HTTPException(503, "OAuth not configured")
+    return RedirectResponse(result["redirect"])
+
+@app.get("/auth/github/callback")
+def github_callback(code: str, state: str, request: Request):
+    """Handle GitHub OAuth callback. Creates authenticated session."""
+    if SIMULATION_MODE:
+        raise HTTPException(400, "OAuth unavailable in simulation mode")
+    try:
+        user = oauth_callback(code, state)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
+
+    # Create authenticated session
+    session_id, csrf_token = create_session(user["github_login"], user["role"])
+
+    # Record audit event
+    from backend.hos4c.audit import record_audit_event
+    record_audit_event(
+        event_type="auth.oauth_completed",
+        decision_id="N/A",
+        action="LOGIN",
+        actor_id=user["github_login"],
+        actor_role=user["role"],
+        session_id=session_id,
+        previous_state="UNAUTHENTICATED",
+        resulting_state="AUTHENTICATED",
+        rationale=f"GitHub OAuth: user_id={user['github_id']}",
+        reason_code="OAUTH_SUCCESS",
+        decision_version=0,
+        expected_version=0,
+        idempotency_key=str(uuid.uuid4()),
+        result="success",
+        correlation_id=str(uuid.uuid4()),
+    )
+
+    resp = RedirectResponse("/")
+    resp.set_cookie("hermes_session", session_id, httponly=True, samesite="lax",
+                    max_age=SESSION_TIMEOUT_HOURS * 3600)
+    return resp
+
+@app.post("/auth/logout")
+def auth_logout(request: Request):
+    """Logout — invalidates session."""
+    session_id = request.cookies.get("hermes_session")
+    if session_id:
+        try:
+            session = get_session(session_id)
+            with get_db() as db:
+                db.execute("UPDATE sessions SET is_revoked = 1 WHERE session_id = ?", (session_id,))
+        except HTTPException:
+            pass
+    resp = JSONResponse({"status": "logged_out"})
+    resp.delete_cookie("hermes_session")
+    return resp
+
+@app.post("/auth/sessions/revoke")
+def revoke_session(request: Request):
+    """Revoke current session (CSRF-protected)."""
+    validate_csrf(request)
+    session_id = request.cookies.get("hermes_session")
+    if session_id:
+        with get_db() as db:
+            db.execute("UPDATE sessions SET is_revoked = 1 WHERE session_id = ?", (session_id,))
+    resp = JSONResponse({"status": "revoked"})
+    resp.delete_cookie("hermes_session")
+    return resp
+
+@app.post("/auth/sessions/revoke-all")
+def revoke_all_sessions(request: Request):
+    """Revoke all sessions for the current actor (CSRF-protected)."""
+    validate_csrf(request)
+    session_id = request.cookies.get("hermes_session")
+    if session_id:
+        try:
+            session = get_session(session_id)
+            with get_db() as db:
+                db.execute("UPDATE sessions SET is_revoked = 1 WHERE actor_id = ?",
+                          (session["actor_id"],))
+        except HTTPException:
+            pass
+    resp = JSONResponse({"status": "all_revoked"})
+    resp.delete_cookie("hermes_session")
+    return resp
 
 # --- Decisions ---
 @app.get("/api/decisions")
