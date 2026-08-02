@@ -49,24 +49,30 @@ POLICY = {
 }
 
 def get_env() -> Environment:
-    """Return current environment. Fails if invalid."""
+    """Return current environment. Reads from os.environ every call.
+    Fails safe: unknown → LOCAL_SIMULATION."""
+    global ENV_CACHE
     val = os.environ.get("HERMES_ENVIRONMENT", "")
     try:
         env = Environment(val.upper())
     except ValueError:
-        # Fail closed: unknown environment → safest known
-        return Environment.LOCAL_SIMULATION
+        env = Environment.LOCAL_SIMULATION
     if env not in POLICY:
-        return Environment.LOCAL_SIMULATION
+        env = Environment.LOCAL_SIMULATION
+    ENV_CACHE = env
     return env
 
 def policy(key: str) -> bool:
     """Read a boolean policy value for the current environment."""
-    return POLICY.get(ENV, {}).get(key, False)
+    env = get_env()
+    return POLICY.get(env, {}).get(key, False)
 
 def is_protected() -> bool:
     """True in STAGING or PRODUCTION."""
-    return ENV in (Environment.STAGING, Environment.PRODUCTION)
+    env = get_env()
+    return env in (Environment.STAGING, Environment.PRODUCTION)
+
+# Module-level ENV removed — always call get_env()
 
 def validate_startup() -> list:
     """Validate configuration at startup. Returns list of errors."""

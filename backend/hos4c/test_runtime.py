@@ -23,26 +23,17 @@ def setup():
 class TestEnvironmentPolicy:
     def test_local_test_env(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "LOCAL_TEST")
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy
         assert get_env().value == "LOCAL_TEST"
         assert policy("sim_login") == True
 
     def test_local_simulation_env(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "LOCAL_SIMULATION")
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy
         assert get_env().value == "LOCAL_SIMULATION"
 
     def test_auth_review_env(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "AUTH_REVIEW")
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy
         assert get_env().value == "AUTH_REVIEW"
         assert policy("sim_login") == False
@@ -50,9 +41,6 @@ class TestEnvironmentPolicy:
 
     def test_staging_env(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "STAGING")
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy, is_protected
         assert is_protected() == True
         assert policy("secure_cookies") == True
@@ -60,28 +48,18 @@ class TestEnvironmentPolicy:
 
     def test_production_env(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy, is_protected
         assert is_protected() == True
         assert policy("mutations") == False
 
     def test_missing_env_defaults_safe(self, monkeypatch):
         monkeypatch.delenv("HERMES_ENVIRONMENT", raising=False)
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env
         assert get_env().value in ("LOCAL_SIMULATION", "LOCAL_TEST")
 
     def test_invalid_env_falls_back(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "INVALID_ENV")
-        import importlib
-        import backend.hos4c.environment as env_mod
-        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env
-        # Falls back to LOCAL_SIMULATION (safe default)
         assert get_env().value != "INVALID_ENV"
         assert get_env().value != "PRODUCTION"
         assert get_env().value in ("LOCAL_SIMULATION", "LOCAL_TEST")
