@@ -1,0 +1,29 @@
+# systemd service unit for Hermes Mission Control
+# Install: cp hermes.service /etc/systemd/system/ && systemctl daemon-reload
+
+[Unit]
+Description=Hermes Mission Control
+After=network.target
+
+[Service]
+Type=simple
+User=hermes
+Group=hermes
+WorkingDirectory=/opt/hermes
+ExecStart=/opt/hermes/venv/bin/uvicorn backend.hos4c.main:app --host 127.0.0.1 --port 8420
+Restart=on-failure
+RestartSec=5
+
+# Environment
+EnvironmentFile=/opt/hermes/.env
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/hermes/data /opt/hermes/logs
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
