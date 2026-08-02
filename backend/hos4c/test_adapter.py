@@ -101,10 +101,11 @@ class TestTransitionAuth:
 # --- State and Version Validation ---
 class TestStateVersion:
     def test_invalid_transition_rejected(self):
+        """RESUME from AWAITING_AMJAD is invalid — only valid from HOLD."""
         with pytest.raises(TransitionError, match="TRANSITION_FAILED"):
             apply_transition(
-                "DEC-TEST-001", "APPROVE", "AWAITING_AMJAD", 1,
-                "amjad", "AMJAD_OWNER", "Should not approve from this state.",
+                "DEC-TEST-001", "RESUME", "AWAITING_AMJAD", 1,
+                "amjad", "AMJAD_OWNER", "Can't resume from AWAITING_AMJAD.",
                 str(uuid.uuid4()))
 
     def test_stale_version_rejected(self):
