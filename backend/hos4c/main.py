@@ -152,8 +152,9 @@ def perform_action(
     validate_csrf(request)
 
     session_id = request.cookies.get("hermes_session", "sess-simulated")
-    actor_id = "amjadthaufeeg"
-    actor_role = "AMJAD_OWNER"
+    session = get_session(session_id)
+    actor_id = session["actor_id"]
+    actor_role = session["actor_role"]
 
     # Find decision
     decision = None
@@ -167,6 +168,15 @@ def perform_action(
     action_name = body.action
     rationale_text = body.rationale
     idempotency_key = str(uuid.uuid4())
+
+    # Idempotency: check if this action was already processed
+    with get_db() as db:
+        existing = db.execute(
+            "SELECT result FROM idempotency_records WHERE idempotency_key = ? AND decision_id = ? AND action = ?",
+            (idempotency_key, decision_id, action_name)
+        ).fetchone()
+        if existing:
+            return {"status": "duplicate", "result": existing["result"], "idempotency_key": idempotency_key}
 
     # Validate
     if not action_name:
@@ -209,6 +219,15 @@ def perform_action(
         result="success",
         correlation_id=str(uuid.uuid4()),
     )
+
+    # Persist idempotency record
+    now = datetime.now(timezone.utc).isoformat()
+    expires = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO idempotency_records (idempotency_key, decision_id, action, result, created_at, expires_at) VALUES (?,?,?,?,?,?)",
+            (idempotency_key, decision_id, action_name, "success", now, expires)
+        )
 
     return {
         "decision_id": decision_id,

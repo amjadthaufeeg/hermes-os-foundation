@@ -4,27 +4,35 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>HOS-4C — Decision Actions (Simulation)</title>
 <style>
-:root{--bg:#0a0e14;--surface:#11161d;--border:#1a2030;--text:#cfd4db;--muted:#5c6470;--gold:#c9a03b;--cyan:#26c6da;--green:#34c97a;--red:#e0556a;--amber:#d4a843;--font:'Inter',system-ui,-apple-system,sans-serif;--radius:6px}
+:root{--hermes-bg-primary:#0a0e14;--hermes-bg-surface:#11161d;--hermes-border:#1a2030;--hermes-text:#cfd4db;--hermes-muted:#5c6470;--hermes-gold:#c9a03b;--hermes-cyan:#26c6da;--hermes-green:#34c97a;--hermes-red:#e0556a;--hermes-amber:#d4a843;--hermes-font:'Inter',system-ui,-apple-system,sans-serif;--radius:6px}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+body{font-family:var(--hermes-font);background:var(--hermes-bg-primary);color:var(--hermes-text);min-height:100vh;line-height:1.5}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .app{max-width:800px;margin:0 auto;padding:2rem}
-.banner{background:var(--amber);color:var(--bg);padding:.5rem 1rem;border-radius:var(--radius);font-size:.7rem;font-weight:600;text-align:center;margin-bottom:1.5rem}
-h1{font-size:1.1rem;color:var(--gold);margin-bottom:1rem}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem}
-.card h2{font-size:.85rem;color:var(--gold);margin-bottom:.5rem}
+.banner{background:var(--hermes-amber);color:var(--hermes-bg-primary);padding:.5rem 1rem;border-radius:var(--radius);font-size:.7rem;font-weight:600;text-align:center;margin-bottom:1.5rem}
+h1{font-size:1.1rem;color:var(--hermes-gold);margin-bottom:1rem}
+.card{background:var(--hermes-bg-surface);border:1px solid var(--hermes-border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem}
+.card h2{font-size:.85rem;color:var(--hermes-gold);margin-bottom:.5rem}
 .row{display:flex;justify-content:space-between;padding:.3rem 0;font-size:.75rem;border-bottom:1px solid rgba(26,32,48,.5)}
-.row .label{color:var(--muted)}.badge{font-size:.6rem;padding:.1rem .4rem;border-radius:10px;font-weight:600}
-.badge.gold{background:rgba(201,160,59,.12);color:var(--gold)}.badge.green{background:rgba(52,201,122,.12);color:var(--green)}.badge.cyan{background:rgba(38,198,218,.1);color:var(--cyan)}.badge.red{background:rgba(224,85,106,.1);color:var(--red)}.badge.amber{background:rgba(212,168,67,.12);color:var(--amber)}
+.row .label{color:var(--hermes-muted)}
+.badge.gold{background:rgba(201,160,59,.12);color:var(--hermes-gold)}
+.badge.green{background:rgba(52,201,122,.12);color:var(--hermes-green)}
+.badge.cyan{background:rgba(38,198,218,.1);color:var(--hermes-cyan)}
+.badge.red{background:rgba(224,85,106,.1);color:var(--hermes-red)}
+.badge.amber{background:rgba(212,168,67,.12);color:var(--hermes-amber)}
 .actions{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
-.btn{padding:.4rem .8rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:.72rem;font-family:var(--font)}
-.btn:hover{opacity:.9}.btn.gold{background:var(--gold);color:var(--bg);border-color:var(--gold)}.btn.red{background:var(--red);color:var(--bg);border-color:var(--red)}.btn:focus-visible{outline:2px solid var(--cyan)}
-.panel{background:var(--surface);border:1px solid var(--gold);border-radius:var(--radius);padding:1.5rem;margin-top:1rem}
-.panel textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:.5rem;font-family:var(--font);font-size:.75rem;min-height:60px;margin:.5rem 0}
-.panel textarea:focus{outline:2px solid var(--cyan)}
-.panel input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:.4rem;font-family:var(--font);font-size:.75rem;margin:.25rem 0}
-.result{background:var(--surface);border:1px solid var(--green);border-radius:var(--radius);padding:1rem;margin-top:.5rem;font-size:.75rem}
-.result.error{border-color:var(--red)}.result .audit{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:.5rem}
-.mono{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted)}
+.btn{padding:.4rem .8rem;border-radius:var(--radius);border:1px solid var(--hermes-border);background:var(--hermes-bg-surface);color:var(--hermes-text);cursor:pointer;font-size:.72rem;font-family:var(--hermes-font)}
+.btn:hover{opacity:.9}.btn.gold{background:var(--hermes-gold);color:var(--hermes-bg-primary);border-color:var(--hermes-gold)}
+.btn.red{background:var(--hermes-red);color:var(--hermes-bg-primary);border-color:var(--hermes-red)}
+.btn:focus-visible{outline:2px solid var(--hermes-cyan)}
+.panel{background:var(--hermes-bg-surface);border:1px solid var(--hermes-gold);border-radius:var(--radius);padding:1.5rem;margin-top:1rem}
+.panel textarea{width:100%;background:var(--hermes-bg-primary);border:1px solid var(--hermes-border);border-radius:var(--radius);color:var(--hermes-text);padding:.5rem;font-family:var(--hermes-font);font-size:.75rem;min-height:60px;margin:.5rem 0}
+.panel textarea:focus{outline:2px solid var(--hermes-cyan)}
+.panel input[type=text]{width:100%;background:var(--hermes-bg-primary);border:1px solid var(--hermes-border);border-radius:var(--radius);color:var(--hermes-text);padding:.4rem;font-family:var(--hermes-font);font-size:.75rem;margin:.25rem 0}
+.result{background:var(--hermes-bg-surface);border:1px solid var(--hermes-green);border-radius:var(--radius);padding:1rem;margin-top:.5rem;font-size:.75rem}
+.result.error{border-color:var(--hermes-red)}
+.result .audit{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--hermes-muted);margin-top:.5rem}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--hermes-muted)}
 @media(max-width:767px){.app{padding:1rem}.actions{flex-direction:column}}
 </style>
 </head>
@@ -68,7 +76,7 @@ function confirmAction(i,action){
   if(!target){alert('Invalid transition');return}
   var old=d.state;
   d.state=target;d.version++;
-  document.getElementById('result').innerHTML='<div class="result" id="res-div"><strong>✓ Simulated '+action+'</strong><br>'+d.id+': '+old+' → '+target+' (v'+d.version+')<br><span class="mono">Audit event recorded · No authoritative change</span></div>';
+  document.getElementById('result').innerHTML='<div class="result" id="res-div"><strong>Simulation completed — no authoritative decision was changed.</strong><br>'+d.id+': '+old+' → '+target+' (v'+d.version+')<br><span class="mono">Audit event recorded · Simulation mode only</span></div>';
   document.getElementById('panel').innerHTML='';
   renderDecisions();
 }
