@@ -24,8 +24,9 @@ AUTH_DB_PATH = os.environ.get("AUTH_DB_PATH", os.environ.get("DATABASE_PATH", ":
 
 @contextmanager
 def get_auth_db():
-    """Get authoritative database connection."""
-    conn = sqlite3.connect(AUTH_DB_PATH)
+    """Get authoritative database connection. Reads path from env at call time."""
+    path = os.environ.get("AUTH_DB_PATH", os.environ.get("DATABASE_PATH", ":memory:"))
+    conn = sqlite3.connect(path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=5000")

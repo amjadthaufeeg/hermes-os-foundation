@@ -10,27 +10,29 @@ from starlette.testclient import TestClient
 
 TEST_AUTH_DB = tempfile.mktemp(suffix=".db")
 TEST_RT_DB = tempfile.mktemp(suffix=".db")
+os.environ["AUTH_DB_PATH"] = TEST_AUTH_DB
+os.environ["DATABASE_PATH"] = TEST_RT_DB
+os.environ["SIMULATION_MODE"] = "true"
+os.environ["MUTATIONS_DISABLED"] = "false"
+
+from backend.hos4c.authoritative_adapter import (
+    init_auth_db, get_decision, list_decisions,
+    apply_transition, dry_run_import, project_to_directory,
+    TransitionError, _map_state,
+)
 
 @pytest.fixture(autouse=True)
 def fresh_auth_db():
-    """Fresh authoritative database per test — no state leakage."""
-    # Always use fresh paths
+    """Fresh database + fresh env path per test. No state leakage."""
     global TEST_AUTH_DB, TEST_RT_DB
     TEST_AUTH_DB = tempfile.mktemp(suffix=".db")
     TEST_RT_DB = tempfile.mktemp(suffix=".db")
     os.environ["AUTH_DB_PATH"] = TEST_AUTH_DB
     os.environ["DATABASE_PATH"] = TEST_RT_DB
-    os.environ["SIMULATION_MODE"] = "true"
     os.environ["MUTATIONS_DISABLED"] = "false"
 
-    # Re-import to get fresh module state
-    import importlib
-    import backend.hos4c.authoritative_adapter as adapter_mod
-    importlib.reload(adapter_mod)
     from backend.hos4c.authoritative_adapter import init_auth_db, get_auth_db
     init_auth_db()
-
-    # Seed a test decision
     with get_auth_db() as db:
         db.execute("""
             INSERT INTO authoritative_decisions (id, title, project, workflow_state, owner, version, created_at, updated_at)
@@ -40,17 +42,9 @@ def fresh_auth_db():
         db.commit()
 
     yield
-    # Cleanup
     for path in [TEST_AUTH_DB, TEST_RT_DB]:
         if os.path.exists(path):
             os.remove(path)
-
-# Re-import after fixture to get fresh references
-from backend.hos4c.authoritative_adapter import (
-    init_auth_db, get_decision, list_decisions,
-    apply_transition, dry_run_import, project_to_directory,
-    TransitionError, _map_state,
-)
 
 # --- Adapter Reads ---
 class TestAdapterReads:
