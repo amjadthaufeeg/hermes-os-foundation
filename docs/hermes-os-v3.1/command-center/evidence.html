@@ -82,6 +82,22 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
   <button class="filter-btn" data-key="freshness" data-val="stale" onclick="setFilter('freshness','stale',this)">Stale</button>
 </div>
 
+<div class="filter-section">Trust Level</div>
+<div class="filters" id="trust-filters">
+  <button class="filter-btn active" data-key="trust" data-val="all" onclick="setFilter('trust','all',this)">All</button>
+  <button class="filter-btn" data-key="trust" data-val="HIGH" onclick="setFilter('trust','HIGH',this)">HIGH</button>
+  <button class="filter-btn" data-key="trust" data-val="MEDIUM" onclick="setFilter('trust','MEDIUM',this)">MEDIUM</button>
+</div>
+
+<div class="filter-section">Source</div>
+<div class="filters" id="source-filters">
+  <button class="filter-btn active" data-key="source" data-val="all" onclick="setFilter('source','all',this)">All</button>
+  <button class="filter-btn" data-key="source" data-val="decisions" onclick="setFilter('source','decisions',this)">Decision Register</button>
+  <button class="filter-btn" data-key="source" data-val="contracts" onclick="setFilter('source','contracts',this)">Task Contracts</button>
+  <button class="filter-btn" data-key="source" data-val="reviews" onclick="setFilter('source','reviews',this)">Review Reports</button>
+  <button class="filter-btn" data-key="source" data-val="git" onclick="setFilter('source','git',this)">Git History</button>
+</div>
+
 <div class="list" id="list"></div>
 <div id="detail"></div>
 </div>
@@ -97,7 +113,7 @@ var DATA=[];
 // Releases
 [{id:"EVID-REL-HOS-1",title:"Release: HOS-1",type:"release",decisions:[],claims:["Governance and CI foundation merged"]},{id:"EVID-REL-HOS-2",title:"Release: HOS-2",type:"release",decisions:[],claims:["Design Studio planning merged"]},{id:"EVID-REL-HOS-2-5",title:"Release: HOS-2.5 Mission Control MVP",type:"release",decisions:[],claims:["Executive dashboard merged and operational"]},{id:"EVID-REL-HOS-3",title:"Release: HOS-3",type:"release",decisions:[],claims:["Experience Language and Mission Control refinement merged"]},{id:"EVID-REL-HOS-4A",title:"Release: HOS-4A",type:"release",decisions:[],claims:["Decisions Workspace merged"]}].forEach(function(r){DATA.push(Object.assign({produced:"2026-08-01",verified:"2026-08-01",freshness:"current",trust:"HIGH",verification:"verified",tasks:[],commits:[],source:"Git merge history"},r))});
 
-var filters={type:'all',verification:'all',freshness:'all'};
+var filters={type:'all',verification:'all',freshness:'all',trust:'all',source:'all'};
 function setFilter(key,val,btn){
   filters[key]=val;
   document.querySelectorAll('.filter-btn[data-key="'+key+'"]').forEach(function(b){b.classList.remove('active')});
@@ -110,6 +126,13 @@ function render(){
     if(filters.type!=='all'&&d.type!==filters.type)return false;
     if(filters.verification!=='all'&&d.verification!==filters.verification)return false;
     if(filters.freshness!=='all'&&d.freshness!==filters.freshness)return false;
+    if(filters.trust!=='all'&&d.trust!==filters.trust)return false;
+    if(filters.source!=='all'){
+      if(filters.source==='decisions'&&d.source.indexOf('decisions')===-1)return false;
+      if(filters.source==='contracts'&&d.source.indexOf('.hermes/contracts')===-1)return false;
+      if(filters.source==='reviews'&&d.source.indexOf('.hermes/reviews')===-1)return false;
+      if(filters.source==='git'&&d.source!=='Git merge history')return false;
+    }
     return true;
   }).filter(function(d){return !q||d.title.toLowerCase().indexOf(q)>-1||d.id.toLowerCase().indexOf(q)>-1||(d.desc||'').toLowerCase().indexOf(q)>-1});
   document.getElementById('count').textContent=items.length;
