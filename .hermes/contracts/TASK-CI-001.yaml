@@ -12,6 +12,7 @@ allowed_files:
   - ".hermes/**"
   - ".github/**"
   - "docs/**"
+  - "backend/hos4c/**"
   - "03_Engineering_OS/**"
   - ".gitignore"
   - "*.md"
@@ -20,6 +21,7 @@ allowed_folders:
   - ".hermes/"
   - ".github/"
   - "docs/"
+  - "backend/"
   - "03_Engineering_OS/"
 
 protected_areas:
