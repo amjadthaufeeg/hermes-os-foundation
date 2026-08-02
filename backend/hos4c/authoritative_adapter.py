@@ -142,7 +142,10 @@ def apply_transition(decision_id: str, action: str, expected_state: str,
                 "VERSION_MISMATCH")
 
         # Validate transition
-        target = validate_transition(decision["workflow_state"], action, actor_role)
+        try:
+            target = validate_transition(decision["workflow_state"], action, actor_role)
+        except ValueError as e:
+            raise TransitionError(str(e), "TRANSITION_FAILED")
         new_version = expected_version + 1
         now = datetime.now(timezone.utc).isoformat()
 
