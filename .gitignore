@@ -17,3 +17,6 @@
 # No runtime/cache/tmp/logs/secrets directories exist currently__pycache__/
 .hermes/audit/audit.db
 .env
+__pycache__/
+*.pyc
+.pytest_cache/
