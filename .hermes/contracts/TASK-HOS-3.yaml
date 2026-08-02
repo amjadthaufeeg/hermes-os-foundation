@@ -1,0 +1,49 @@
+task_id: TASK-HOS-3
+project: Hermes Product OS
+release: HOS-3
+title: "Hermes Experience Language and Mission Control Refinement"
+task_type: feature
+risk_level: R1
+
+objective: >
+  Create the Hermes Experience Language v1.0 and refine Mission Control
+  from a successful MVP into a reusable, coherent executive product system.
+  Planning only — no implementation until Amjad approves.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/hos-3/**"
+  - "docs/hermes-os-v3.1/command-center/**"
+
+protected_areas:
+  - "backend/"
+  - "frontend/src/"
+
+must_not_change:
+  - "AVOA production code"
+  - "Loop or Capability runtime"
+  - "Deployment configuration"
+  - "Mission Control production dashboard (until authorized)"
+
+change_budget:
+  max_files: 12
+  max_folders: 2
+  max_lines_changed: 3000
+
+acceptance_criteria:
+  - "Hermes Experience Language v1.0 complete"
+  - "Design tokens specified"
+  - "Component standard defined"
+  - "Interaction standard defined"
+  - "Accessibility standard defined"
+  - "Mission Control refinement plan complete"
+  - "HOS-2.5 LOW findings mapped and resolved"
+  - "No implementation"
+
+stop_conditions:
+  - "Implementation begun without authorization"
+  - "Design tokens applied to production"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: true
+amjad_approval_required: true
