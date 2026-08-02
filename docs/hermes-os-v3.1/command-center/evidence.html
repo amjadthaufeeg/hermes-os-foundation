@@ -40,6 +40,12 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
 .detail-row .label{color:var(--muted);min-width:140px;font-size:.7rem}
 .detail-row .value{font-weight:500;flex:1;margin-left:.75rem}
 .not-recorded{color:var(--muted);font-style:italic}
+.nav-bar{display:flex;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border);margin-bottom:1rem;flex-wrap:wrap}
+.nav-link{padding:.35rem .7rem;border-radius:var(--radius);font-size:.7rem;text-decoration:none;color:var(--muted);background:var(--surface);border:1px solid var(--border)}
+.nav-link:hover{color:var(--text);border-color:var(--muted)}
+.nav-link.active{color:var(--gold);border-color:var(--gold);background:var(--gold-dim)}
+.nav-link:focus-visible{outline:2px solid var(--focus)}
+.footer{display:flex;justify-content:space-between;padding:1rem 0;margin-top:1.5rem;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted);flex-wrap:wrap;gap:.5rem}
 .detail-section{margin-top:1rem}
 .detail-section h3{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
 .source{font-size:.65rem;color:var(--muted);font-family:var(--mono);margin-top:1rem}
@@ -53,7 +59,12 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
 </head>
 <body><div class="app">
 <a href="executive-dashboard.html" class="back">← Mission Overview</a>
-<header class="header"><h1>Evidence</h1><div style="font-size:.7rem;color:var(--muted)"><span id="count">30</span> records · Source: .hermes/ · Repository records</div></header>
+<div class="nav-bar">
+  <a href="executive-dashboard.html" class="nav-link">◈ Overview</a>
+  <a href="decisions.html" class="nav-link">◆ Decisions</a>
+  <a href="evidence.html" class="nav-link active">⬒ Evidence</a>
+</div>
+<header class="header"><h1>Evidence</h1><div style="font-size:.7rem;color:var(--muted)"><span id="count">34</span> records · Source: .hermes/ · Repository records</div></header>
 
 <div style="display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
   <input type="search" class="search-input" placeholder="Search evidence..." id="search" oninput="render()" aria-label="Search evidence">
@@ -172,6 +183,8 @@ function showDetail(id){
 function closeDetail(){document.getElementById('list').style.display='';document.getElementById('detail').innerHTML='';history.pushState(null,'','#/evidence')}
 render();
 window.onpopstate=function(){if(location.hash.indexOf('/evidence/')===0){showDetail(location.hash.split('/').pop())}else{closeDetail()}};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail()});
 </script>
+<footer class="footer"><div><span class="badge green">Stage 1</span><span class="badge muted" style="margin-left:.35rem">Evidence-Based</span></div><div>Read-only · HOS-4C mutations NOT IMPLEMENTED</div></footer>
 </body>
 </html>
