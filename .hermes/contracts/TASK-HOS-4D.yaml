@@ -1,0 +1,46 @@
+task_id: TASK-HOS-4D
+project: Hermes Product OS
+release: HOS-4D
+title: "Production Authentication and Activation Readiness"
+task_type: infrastructure
+risk_level: R3
+
+objective: >
+  Plan production authentication, verified identity, deployment architecture,
+  secrets management, and activation readiness for Hermes decision actions.
+  All 12 activation blockers addressed. No deployment or activation authorized.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/hos-4/**"
+  - ".hermes/contracts/TASK-HOS-4D.yaml"
+
+protected_areas:
+  - "Commercial logic, pricing, offers, occupancy, taxes, commissions"
+  - "Production databases, APIs, credentials"
+  - "Loop/Capability runtime, deployment automation"
+
+must_not_change:
+  - "Frozen HOS-3 baselines"
+  - "Authoritative decision register"
+  - "Production infrastructure"
+
+change_budget:
+  max_files: 8
+  max_folders: 2
+  max_lines_changed: 3500
+
+acceptance_criteria:
+  - "All 12 activation blockers addressed with proposed solutions"
+  - "Authentication architecture comparison complete"
+  - "Deployment architecture recommended"
+  - "Activation checklist and gates defined"
+  - "No production deployment or mutation activation"
+
+stop_conditions:
+  - "Production service deployed"
+  - "GitHub OAuth activated"
+  - "Decision mutations connected to authoritative source"
+
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true
