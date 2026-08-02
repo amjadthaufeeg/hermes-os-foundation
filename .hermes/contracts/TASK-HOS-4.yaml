@@ -1,0 +1,48 @@
+task_id: TASK-HOS-4
+project: Hermes Product OS
+release: HOS-4
+title: "Decisions, Evidence and Controlled Actions Program"
+task_type: feature
+risk_level: R1
+
+objective: >
+  Transform Mission Control from a read-only executive overview into
+  a usable operational decision workflow. HOS-4A: Decisions Workspace.
+  HOS-4B: Evidence Workspace. HOS-4C: Controlled Decision Actions
+  (planning and security only — no mutation activation).
+
+allowed_files:
+  - "docs/hermes-os-v3.1/command-center/**"
+  - "docs/hermes-os-v3.1/hos-4/**"
+  - ".hermes/contracts/TASK-HOS-4*.yaml"
+
+protected_areas:
+  - "backend/"
+  - "frontend/src/"
+
+must_not_change:
+  - "AVOA production code"
+  - "Frozen HOS-3 baselines"
+  - "Loop or Capability runtime"
+  - "Deployment configuration"
+
+change_budget:
+  max_files: 20
+  max_folders: 3
+  max_lines_changed: 5000
+
+acceptance_criteria:
+  - "HOS-4A Decisions Workspace implemented and reviewed"
+  - "HOS-4B Evidence Workspace implemented and reviewed"
+  - "HOS-4C security and mutation plan complete"
+  - "HOS-4C mutation activation separately authorized by Amjad"
+  - "All within frozen HOS-3 design baselines"
+
+stop_conditions:
+  - "Decision mutations activated without Amjad authorization"
+  - "HOS-3 baselines modified without approval"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: true
+amjad_approval_required: true
