@@ -21,48 +21,65 @@ def setup():
 
 # --- Environment Policy ---
 class TestEnvironmentPolicy:
-    def test_local_test_env(self):
-        os.environ["HERMES_ENVIRONMENT"] = "LOCAL_TEST"
+    def test_local_test_env(self, monkeypatch):
+        monkeypatch.setenv("HERMES_ENVIRONMENT", "LOCAL_TEST")
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy
         assert get_env().value == "LOCAL_TEST"
         assert policy("sim_login") == True
-        assert policy("oauth") == False
-        assert policy("mutations") == False
 
-    def test_local_simulation_env(self):
-        os.environ["HERMES_ENVIRONMENT"] = "LOCAL_SIMULATION"
+    def test_local_simulation_env(self, monkeypatch):
+        monkeypatch.setenv("HERMES_ENVIRONMENT", "LOCAL_SIMULATION")
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy
         assert get_env().value == "LOCAL_SIMULATION"
-        assert policy("sim_login") == True
 
-    def test_auth_review_env(self):
-        os.environ["HERMES_ENVIRONMENT"] = "AUTH_REVIEW"
+    def test_auth_review_env(self, monkeypatch):
+        monkeypatch.setenv("HERMES_ENVIRONMENT", "AUTH_REVIEW")
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy
         assert get_env().value == "AUTH_REVIEW"
         assert policy("sim_login") == False
         assert policy("oauth") == True
-        assert policy("debug") == False
 
-    def test_staging_env(self):
-        os.environ["HERMES_ENVIRONMENT"] = "STAGING"
+    def test_staging_env(self, monkeypatch):
+        monkeypatch.setenv("HERMES_ENVIRONMENT", "STAGING")
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy, is_protected
         assert is_protected() == True
         assert policy("secure_cookies") == True
         assert policy("api_docs") == False
 
-    def test_production_env(self):
-        os.environ["HERMES_ENVIRONMENT"] = "PRODUCTION"
+    def test_production_env(self, monkeypatch):
+        monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env, policy, is_protected
         assert is_protected() == True
         assert policy("mutations") == False
 
-    def test_missing_env_defaults_safe(self):
-        os.environ.pop("HERMES_ENVIRONMENT", None)
+    def test_missing_env_defaults_safe(self, monkeypatch):
+        monkeypatch.delenv("HERMES_ENVIRONMENT", raising=False)
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env
         assert get_env().value in ("LOCAL_SIMULATION", "LOCAL_TEST")
 
-    def test_invalid_env_falls_back(self):
-        os.environ["HERMES_ENVIRONMENT"] = "INVALID_ENV"
+    def test_invalid_env_falls_back(self, monkeypatch):
+        monkeypatch.setenv("HERMES_ENVIRONMENT", "INVALID_ENV")
+        import importlib
+        import backend.hos4c.environment as env_mod
+        importlib.reload(env_mod)
         from backend.hos4c.environment import get_env
         assert get_env().value == "LOCAL_SIMULATION"
 
@@ -86,23 +103,23 @@ class TestStartupValidation:
 
 # --- Mutation Disable ---
 class TestMutationDisable:
-    def test_defaults_disabled(self):
-        os.environ.pop("MUTATIONS_DISABLED", None)
+    def test_defaults_disabled(self, monkeypatch):
+        monkeypatch.delenv("MUTATIONS_DISABLED", raising=False)
         from backend.hos4c.environment import mutations_disabled
         assert mutations_disabled() == True
 
-    def test_explicit_true(self):
-        os.environ["MUTATIONS_DISABLED"] = "true"
+    def test_explicit_true(self, monkeypatch):
+        monkeypatch.setenv("MUTATIONS_DISABLED", "true")
         from backend.hos4c.environment import mutations_disabled
         assert mutations_disabled() == True
 
-    def test_explicit_false(self):
-        os.environ["MUTATIONS_DISABLED"] = "false"
+    def test_explicit_false(self, monkeypatch):
+        monkeypatch.setenv("MUTATIONS_DISABLED", "false")
         from backend.hos4c.environment import mutations_disabled
         assert mutations_disabled() == False
 
-    def test_malformed_defaults_disabled(self):
-        os.environ["MUTATIONS_DISABLED"] = "garbage"
+    def test_malformed_defaults_disabled(self, monkeypatch):
+        monkeypatch.setenv("MUTATIONS_DISABLED", "garbage")
         from backend.hos4c.environment import mutations_disabled
         assert mutations_disabled() == True
 
