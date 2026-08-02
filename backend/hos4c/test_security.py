@@ -294,7 +294,7 @@ class TestSimulationIsolation:
     def test_decisions_in_memory(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/decisions")
-            assert r.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
+            assert r.json()["mode"] == "SIMULATION"
 
 # ============================================================
 # Concurrency & Idempotency
