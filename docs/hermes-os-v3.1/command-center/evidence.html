@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Evidence — Hermes Mission Control</title>
+<style>
+:root{
+  --hermes-bg-primary:#0a0e14;--surface:#11161d;--border:#1a2030;--text:#cfd4db;--muted:#5c6470;--secondary:#8899b4;
+  --gold:#c9a03b;--gold-dim:rgba(201,160,59,.12);--cyan:#26c6da;--green:#34c97a;--green-dim:rgba(52,201,122,.12);
+  --red:#e0556a;--red-dim:rgba(224,85,106,.1);--amber:#d4a843;--amber-dim:rgba(212,168,67,.12);
+  --focus:#26c6da;--radius:6px;--font:'Inter',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--hermes-bg-primary);color:var(--text);min-height:100vh;line-height:1.5}
+.app{max-width:1200px;margin:0 auto;padding:1.5rem 2rem}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
+.back{color:var(--gold);text-decoration:none;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .6rem;border-radius:var(--radius)}
+.back:hover{background:var(--gold-dim)}.back:focus-visible{outline:2px solid var(--focus)}
+h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem}
+.filter-btn{padding:.35rem .7rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:.7rem;font-family:var(--font)}
+.filter-btn:hover{color:var(--text);border-color:var(--muted)}
+.filter-btn.active{color:var(--gold);border-color:var(--gold);background:var(--gold-dim)}
+.filter-btn:focus-visible{outline:2px solid var(--focus)}
+.filter-section{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem;margin-top:.5rem}
+.list{display:grid;gap:.5rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:var(--gold)}.card:focus-visible{outline:2px solid var(--focus)}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap}
+.card-title{font-weight:600;font-size:.85rem;flex:1;min-width:200px}
+.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;border-radius:10px;font-size:.6rem;font-weight:600}
+.badge.gold{background:var(--gold-dim);color:var(--gold)}.badge.green{background:var(--green-dim);color:var(--green)}
+.badge.amber{background:var(--amber-dim);color:var(--amber)}.badge.red{background:var(--red-dim);color:var(--red)}
+.badge.cyan{background:rgba(38,198,218,.1);color:var(--cyan)}.badge.muted{background:rgba(92,100,112,.12);color:var(--muted)}
+.card-meta{display:flex;gap:.5rem;align-items:center;font-size:.7rem;flex-wrap:wrap}
+.empty{text-align:center;padding:3rem;color:var(--muted)}
+.detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:1rem}
+.detail-panel h2{font-size:1rem;font-weight:600;color:var(--gold);margin-bottom:.75rem}
+.detail-row{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(26,32,48,.5);font-size:.78rem}
+.detail-row .label{color:var(--muted);min-width:140px;font-size:.7rem}
+.detail-row .value{font-weight:500;flex:1;margin-left:.75rem}
+.not-recorded{color:var(--muted);font-style:italic}
+.nav-bar{display:flex;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border);margin-bottom:1rem;flex-wrap:wrap}
+.nav-link{padding:.35rem .7rem;border-radius:var(--radius);font-size:.7rem;text-decoration:none;color:var(--muted);background:var(--surface);border:1px solid var(--border)}
+.nav-link:hover{color:var(--text);border-color:var(--muted)}
+.nav-link.active{color:var(--gold);border-color:var(--gold);background:var(--gold-dim)}
+.nav-link:focus-visible{outline:2px solid var(--focus)}
+.footer{display:flex;justify-content:space-between;padding:1rem 0;margin-top:1.5rem;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted);flex-wrap:wrap;gap:.5rem}
+.detail-section{margin-top:1rem}
+.detail-section h3{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.source{font-size:.65rem;color:var(--muted);font-family:var(--mono);margin-top:1rem}
+.ni-label{display:inline-block;padding:.15rem .45rem;border-radius:10px;font-size:.6rem;font-weight:600;background:rgba(92,100,112,.12);color:var(--muted);margin-left:.5rem}
+.search-input{flex:1;min-width:200px;padding:.4rem .6rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.75rem;font-family:var(--font)}
+.search-input:focus{outline:2px solid var(--focus)}.search-input::placeholder{color:var(--muted)}
+.link{color:var(--cyan);text-decoration:none;font-size:.78rem}
+.link:hover{text-decoration:underline}
+@media(max-width:767px){.app{padding:1rem}}
+</style>
+</head>
+<body><div class="app">
+<a href="executive-dashboard.html" class="back">← Mission Overview</a>
+<div class="nav-bar">
+  <a href="executive-dashboard.html" class="nav-link">◈ Overview</a>
+  <a href="decisions.html" class="nav-link">◆ Decisions</a>
+  <a href="evidence.html" class="nav-link active">⬒ Evidence</a>
+</div>
+<header class="header"><h1>Evidence</h1><div style="font-size:.7rem;color:var(--muted)"><span id="count">34</span> records · Source: .hermes/ · Repository records</div></header>
+
+<div style="display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+  <input type="search" class="search-input" placeholder="Search evidence..." id="search" oninput="render()" aria-label="Search evidence">
+</div>
+
+<div class="filter-section">Type</div>
+<div class="filters" id="type-filters">
+  <button class="filter-btn active" data-key="type" data-val="all" onclick="setFilter('type','all',this)">All</button>
+  <button class="filter-btn" data-key="type" data-val="decision_record" onclick="setFilter('type','decision_record',this)">Decision</button>
+  <button class="filter-btn" data-key="type" data-val="task_contract" onclick="setFilter('type','task_contract',this)">Task Contract</button>
+  <button class="filter-btn" data-key="type" data-val="review_report" onclick="setFilter('type','review_report',this)">Review</button>
+  <button class="filter-btn" data-key="type" data-val="release" onclick="setFilter('type','release',this)">Release</button>
+</div>
+
+<div class="filter-section">Verification</div>
+<div class="filters" id="verif-filters">
+  <button class="filter-btn active" data-key="verification" data-val="all" onclick="setFilter('verification','all',this)">All</button>
+  <button class="filter-btn" data-key="verification" data-val="verified" onclick="setFilter('verification','verified',this)">Verified</button>
+  <button class="filter-btn" data-key="verification" data-val="not_verified" onclick="setFilter('verification','not_verified',this)">Not Verified</button>
+</div>
+
+<div class="filter-section">Freshness</div>
+<div class="filters" id="freshness-filters">
+  <button class="filter-btn active" data-key="freshness" data-val="all" onclick="setFilter('freshness','all',this)">All</button>
+  <button class="filter-btn" data-key="freshness" data-val="current" onclick="setFilter('freshness','current',this)">Current</button>
+  <button class="filter-btn" data-key="freshness" data-val="stale" onclick="setFilter('freshness','stale',this)">Stale</button>
+</div>
+
+<div class="filter-section">Trust Level</div>
+<div class="filters" id="trust-filters">
+  <button class="filter-btn active" data-key="trust" data-val="all" onclick="setFilter('trust','all',this)">All</button>
+  <button class="filter-btn" data-key="trust" data-val="HIGH" onclick="setFilter('trust','HIGH',this)">HIGH</button>
+  <button class="filter-btn" data-key="trust" data-val="MEDIUM" onclick="setFilter('trust','MEDIUM',this)">MEDIUM</button>
+</div>
+
+<div class="filter-section">Source</div>
+<div class="filters" id="source-filters">
+  <button class="filter-btn active" data-key="source" data-val="all" onclick="setFilter('source','all',this)">All</button>
+  <button class="filter-btn" data-key="source" data-val="decisions" onclick="setFilter('source','decisions',this)">Decision Register</button>
+  <button class="filter-btn" data-key="source" data-val="contracts" onclick="setFilter('source','contracts',this)">Task Contracts</button>
+  <button class="filter-btn" data-key="source" data-val="reviews" onclick="setFilter('source','reviews',this)">Review Reports</button>
+  <button class="filter-btn" data-key="source" data-val="git" onclick="setFilter('source','git',this)">Git History</button>
+</div>
+
+<div class="list" id="list"></div>
+<div id="detail"></div>
+</div>
+
+<script>
+var DATA=[];
+// Decision records as evidence
+["DEC-AVOA-PRICING-001","DEC-HOS-001","DEC-HOS-002","DEC-HOS-003","DEC-HOS-004","DEC-HOS-005","DEC-HOS-006","DEC-HOS-007","DEC-HOS-008","DEC-HOS-009","DEC-HOS-010","DEC-HOS-011","DEC-HOS-012","DEC-HOS-013","DEC-HOS-014","DEC-HOS-015","DEC-HOS-016","DEC-HOS-017","DEC-HOS-018","DEC-HOS-019"].forEach(function(id){DATA.push({id:"EVID-"+id,title:"Decision Record: "+id,type:"decision_record",desc:"Locked governance decision from Hermes Product OS decision register.",source:".hermes/registers/decisions/"+id+".yaml",produced:"2026-08-01",verified:"2026-08-01",freshness:"current",trust:"HIGH",verification:"verified",claims:["Governance policy is defined and locked"],decisions:[id],tasks:[],releases:[],commits:[]})});
+// Task contracts
+[{id:"EVID-TASK-HOS-001",title:"Task Contract: HOS-1",type:"task_contract",decisions:["DEC-HOS-001","DEC-HOS-002"]},{id:"EVID-TASK-HOS-002",title:"Task Contract: HOS-2",type:"task_contract",decisions:[]},{id:"EVID-TASK-HOS-2-5",title:"Task Contract: HOS-2.5",type:"task_contract",decisions:[]},{id:"EVID-TASK-HOS-3",title:"Task Contract: HOS-3",type:"task_contract",decisions:[]},{id:"EVID-TASK-HOS-4",title:"Task Contract: HOS-4",type:"task_contract",decisions:[]},{id:"EVID-TASK-CI-001",title:"Task Contract: CI Default",type:"task_contract",decisions:[]},{id:"EVID-TASK-V3-2",title:"Task Contract: v3.2 Correction",type:"task_contract",decisions:[]}].forEach(function(t){DATA.push(Object.assign({desc:"Hermes Product OS task contract.",source:".hermes/contracts/",produced:"2026-08-01",verified:"2026-08-01",freshness:"current",trust:"HIGH",verification:"verified",claims:["Task scope and acceptance criteria defined"],tasks:[],releases:[],commits:[]},t))});
+// Review reports
+[{id:"EVID-REV-HOS-002",title:"Review Report: HOS-2 Design Studio",type:"review_report",source:".hermes/reviews/HOS-002-INDEPENDENT-REVIEW.md",decisions:[],claims:["Independent review completed with findings"]},{id:"EVID-REV-V3-2",title:"Review Report: v3.2 Operating Model",type:"review_report",source:".hermes/reviews/HOS-V3.2-INDEPENDENT-REVIEW.md",decisions:[],claims:["Independent review completed with findings"]}].forEach(function(r){DATA.push(Object.assign({produced:"2026-08-01",verified:"2026-08-01",freshness:"current",trust:"HIGH",verification:"verified",tasks:[],releases:[],commits:[]},r))});
+// Releases
+[{id:"EVID-REL-HOS-1",title:"Release: HOS-1",type:"release",decisions:[],claims:["Governance and CI foundation merged"]},{id:"EVID-REL-HOS-2",title:"Release: HOS-2",type:"release",decisions:[],claims:["Design Studio planning merged"]},{id:"EVID-REL-HOS-2-5",title:"Release: HOS-2.5 Mission Control MVP",type:"release",decisions:[],claims:["Executive dashboard merged and operational"]},{id:"EVID-REL-HOS-3",title:"Release: HOS-3",type:"release",decisions:[],claims:["Experience Language and Mission Control refinement merged"]},{id:"EVID-REL-HOS-4A",title:"Release: HOS-4A",type:"release",decisions:[],claims:["Decisions Workspace merged"]}].forEach(function(r){DATA.push(Object.assign({produced:"2026-08-01",verified:"2026-08-01",freshness:"current",trust:"HIGH",verification:"verified",tasks:[],commits:[],source:"Git merge history"},r))});
+
+var filters={type:'all',verification:'all',freshness:'all',trust:'all',source:'all'};
+function setFilter(key,val,btn){
+  filters[key]=val;
+  document.querySelectorAll('.filter-btn[data-key="'+key+'"]').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  render();
+}
+function render(){
+  var q=(document.getElementById('search').value||'').toLowerCase();
+  var items=DATA.filter(function(d){
+    if(filters.type!=='all'&&d.type!==filters.type)return false;
+    if(filters.verification!=='all'&&d.verification!==filters.verification)return false;
+    if(filters.freshness!=='all'&&d.freshness!==filters.freshness)return false;
+    if(filters.trust!=='all'&&d.trust!==filters.trust)return false;
+    if(filters.source!=='all'){
+      if(filters.source==='decisions'&&d.source.indexOf('decisions')===-1)return false;
+      if(filters.source==='contracts'&&d.source.indexOf('.hermes/contracts')===-1)return false;
+      if(filters.source==='reviews'&&d.source.indexOf('.hermes/reviews')===-1)return false;
+      if(filters.source==='git'&&d.source!=='Git merge history')return false;
+    }
+    return true;
+  }).filter(function(d){return !q||d.title.toLowerCase().indexOf(q)>-1||d.id.toLowerCase().indexOf(q)>-1||(d.desc||'').toLowerCase().indexOf(q)>-1});
+  document.getElementById('count').textContent=items.length;
+  var typeNames={decision_record:'Decision',task_contract:'Contract',review_report:'Review',release:'Release'};
+  var html='';
+  if(!items.length){html='<div class="empty">No evidence matches your filters</div>'}
+  else{items.forEach(function(d){html+='<div class="card" tabindex="0" role="button" onclick="showDetail(\''+d.id+'\')" onkeydown="if(event.key===\'Enter\')showDetail(\''+d.id+'\')"><div class="card-row"><span class="card-title">'+d.title+'</span><span class="card-meta"><span class="badge green">'+d.verification.toUpperCase()+'</span><span class="badge muted">'+(typeNames[d.type]||d.type)+'</span></span></div><div style="font-size:.65rem;color:var(--muted);margin-top:.35rem">Trust: '+d.trust+' · '+d.freshness+' · '+d.produced+'</div></div>'})}
+  document.getElementById('list').innerHTML=html;
+}
+function showDetail(id){
+  var d=DATA.find(function(x){return x.id===id});if(!d)return;
+  var typeNames={decision_record:'Decision Record',task_contract:'Task Contract',review_report:'Review Report',release:'Release'};
+  var vc=d.verification==='verified'?'green':'amber';
+  var html='<div class="detail-panel"><h2>'+d.title+'</h2>';
+  html+='<div class="detail-row"><span class="label">ID</span><span class="value" style="font-family:var(--mono)">'+d.id+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Type</span><span class="value">'+(typeNames[d.type]||d.type)+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Verification</span><span class="value"><span class="badge '+vc+'">'+d.verification.toUpperCase()+'</span></span></div>';
+  html+='<div class="detail-row"><span class="label">Trust Level</span><span class="value"><span class="badge green">'+d.trust+'</span></span></div>';
+  html+='<div class="detail-row"><span class="label">Freshness</span><span class="value">'+d.freshness+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Produced</span><span class="value">'+d.produced+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Verified</span><span class="value">'+(d.verified||'NOT RECORDED')+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Source</span><span class="value" style="font-family:var(--mono);font-size:.7rem">'+d.source+'</span></div>';
+  html+='<div class="detail-section"><h3>Supported Claims</h3>'+(d.claims||[]).map(function(c){return'<p style="font-size:.78rem;color:var(--secondary);padding:.2rem 0">'+c+'</p>'}).join('')+'</div>';
+  html+='<div class="detail-section"><h3>Related Decisions</h3>';
+  if(d.decisions&&d.decisions.length){d.decisions.forEach(function(did){html+='<a href="decisions.html#/decisions/'+did+'" class="link" style="margin-right:.75rem">'+did+'</a>'})}else{html+='<span class="not-recorded">NOT RECORDED</span>'}
+  html+='</div>';
+  html+='<div class="detail-row"><span class="label">Related Tasks</span><span class="value"><span class="not-recorded">'+((d.tasks&&d.tasks.length)?d.tasks.join(', '):'NOT RECORDED')+'</span></span></div>';
+  html+='<div class="detail-row"><span class="label">Related Releases</span><span class="value"><span class="not-recorded">'+((d.releases&&d.releases.length)?d.releases.join(', '):'NOT RECORDED')+'</span></span></div>';
+  html+='<div class="detail-row"><span class="label">Related Commits</span><span class="value"><span class="not-recorded">'+((d.commits&&d.commits.length)?d.commits.join(', '):'NOT RECORDED')+'</span></span></div>';
+  html+='<div class="source">Source: '+d.source+' · Trust: '+d.trust+' · Freshness: '+d.freshness+'</div>';
+  html+='<button onclick="closeDetail()" style="margin-top:1rem;padding:.35rem .7rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-family:var(--font);font-size:.75rem">← Back to list</button></div>';
+  document.getElementById('list').style.display='none';
+  document.getElementById('detail').innerHTML=html;
+  document.getElementById('detail').scrollIntoView();
+  history.pushState({detail:id},d.title,'#/evidence/'+d.id);
+}
+function closeDetail(){document.getElementById('list').style.display='';document.getElementById('detail').innerHTML='';history.pushState(null,'','#/evidence')}
+render();
+window.onpopstate=function(){if(location.hash.indexOf('/evidence/')===0){showDetail(location.hash.split('/').pop())}else{closeDetail()}};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDetail()});
+</script>
+<footer class="footer"><div><span class="badge green">Stage 1</span><span class="badge muted" style="margin-left:.35rem">Evidence-Based</span></div><div>Read-only · HOS-4C mutations NOT IMPLEMENTED</div></footer>
+</body>
+</html>

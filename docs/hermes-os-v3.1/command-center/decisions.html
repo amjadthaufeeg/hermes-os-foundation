@@ -5,13 +5,13 @@
 <title>Decisions — Hermes Mission Control</title>
 <style>
 :root{
-  --bg:#0a0e14;--surface:#11161d;--border:#1a2030;--text:#cfd4db;--muted:#5c6470;--secondary:#8899b4;
+  --hermes-bg-primary:#0a0e14;--surface:#11161d;--border:#1a2030;--text:#cfd4db;--muted:#5c6470;--secondary:#8899b4;
   --gold:#c9a03b;--gold-dim:rgba(201,160,59,.12);--cyan:#26c6da;--green:#34c97a;--green-dim:rgba(52,201,122,.12);
   --red:#e0556a;--red-dim:rgba(224,85,106,.1);--amber:#d4a843;--amber-dim:rgba(212,168,67,.12);
   --focus:#26c6da;--radius:6px;--font:'Inter',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+body{font-family:var(--font);background:var(--hermes-bg-primary);color:var(--text);min-height:100vh;line-height:1.5}
 .app{max-width:1200px;margin:0 auto;padding:1.5rem 2rem}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
 .back{color:var(--gold);text-decoration:none;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .6rem;border-radius:var(--radius)}
@@ -40,6 +40,12 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
 .detail-row .label{color:var(--muted);min-width:130px;font-size:.7rem}
 .detail-row .value{font-weight:500;flex:1;margin-left:.75rem}
 .not-recorded{color:var(--muted);font-style:italic}
+.nav-bar{display:flex;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--border);margin-bottom:1rem;flex-wrap:wrap}
+.nav-link{padding:.35rem .7rem;border-radius:var(--radius);font-size:.7rem;text-decoration:none;color:var(--muted);background:var(--surface);border:1px solid var(--border)}
+.nav-link:hover{color:var(--text);border-color:var(--muted)}
+.nav-link.active{color:var(--gold);border-color:var(--gold);background:var(--gold-dim)}
+.nav-link:focus-visible{outline:2px solid var(--focus)}
+.footer{display:flex;justify-content:space-between;padding:1rem 0;margin-top:1.5rem;border-top:1px solid var(--border);font-size:.65rem;color:var(--muted);flex-wrap:wrap;gap:.5rem}
 .detail-section{margin-top:1rem}
 .detail-section h3{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
 .source{font-size:.65rem;color:var(--muted);font-family:var(--mono);margin-top:1rem}
@@ -51,6 +57,11 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
 </head>
 <body><div class="app">
 <a href="executive-dashboard.html" class="back">← Mission Overview</a>
+<div class="nav-bar">
+  <a href="executive-dashboard.html" class="nav-link">◈ Overview</a>
+  <a href="decisions.html" class="nav-link active">◆ Decisions</a>
+  <a href="evidence.html" class="nav-link">⬒ Evidence</a>
+</div>
 <header class="header"><h1>Decisions</h1><div style="font-size:.7rem;color:var(--muted)"><span id="count">20</span> records · Source: .hermes/registers/decisions/</div></header>
 
 <div style="display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
@@ -68,7 +79,7 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
 <div class="filters" id="project-filters">
   <button class="filter-btn active" data-key="project" data-val="all" onclick="setFilter('project','all',this)">All</button>
   <button class="filter-btn" data-key="project" data-val="avoa" onclick="setFilter('project','avoa',this)">AVOA</button>
-  <button class="filter-btn" data-key="project" data-val="all" disabled style="opacity:.5">hermes-os (NOT RECORDED)</button>
+  <button class="filter-btn" data-key="project" data-val="hermes-os" onclick="setFilter('project','hermes-os',this)">hermes-os (NOT RECORDED)</button>
 </div>
 
 <div class="filter-section">Owner</div>
@@ -132,7 +143,7 @@ function showDetail(id){
   html+='<div class="detail-section"><h3>Decision</h3><p style="font-size:.8rem;line-height:1.6;color:var(--text)">'+d.decision+'</p></div>';
   html+='<div class="detail-section"><h3>Reason</h3><p style="font-size:.78rem;color:var(--secondary)">'+d.reason+'</p></div>';
   html+='<div class="detail-section"><h3>Evidence</h3><div class="detail-row"><span class="label">Status</span><span class="value"><span class="badge green">VERIFIED</span></span></div><div class="detail-row"><span class="label">Freshness</span><span class="value">'+d.date+' · Current</span></div><div class="detail-row"><span class="label">Source</span><span class="value" style="font-family:var(--mono);font-size:.7rem">.hermes/registers/decisions/'+d.id+'.yaml</span></div></div>';
-  html+='<div class="detail-section"><h3>Related</h3><div class="detail-row"><span class="label">Tasks</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div><div class="detail-row"><span class="label">Releases</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div><div class="detail-row"><span class="label">Commits</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div></div>';
+  html+='<div class="detail-section"><h3>Related</h3><div class="detail-row"><span class="label">Evidence</span><span class="value"><a href="evidence.html" class="link">Browse Evidence Workspace</a></span></div><div class="detail-row"><span class="label">Tasks</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div></div>';
   html+='<div class="detail-section"><h3>Requested Action</h3><span class="badge gold">DECISION REQUIRED</span><span class="ni-label">NOT IMPLEMENTED — REQUIRES HOS-4C</span></div>';
   html+='<div class="detail-section"><h3>Next Step</h3><p style="font-size:.78rem;color:var(--secondary)">Amjad review and decision. No automated action available.</p></div>';
   html+='<div class="source">Source: .hermes/registers/decisions/'+d.id+'.yaml · Trust: HIGH · Freshness: '+d.date+'</div>';
@@ -146,5 +157,6 @@ function closeDetail(){document.getElementById('list').style.display='';document
 render();
 window.onpopstate=function(){if(location.hash.indexOf('/decisions/')===0){showDetail(location.hash.split('/').pop())}else{closeDetail()}};
 </script>
+<footer class="footer"><div><span class="badge green">Stage 1</span><span class="badge muted" style="margin-left:.35rem">Evidence-Based</span></div><div>Read-only · HOS-4C mutations NOT IMPLEMENTED</div></footer>
 </body>
 </html>
