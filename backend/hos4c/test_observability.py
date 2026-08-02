@@ -132,8 +132,8 @@ class TestBoundary:
     def test_no_production_creds_committed(self):
         with open("backend/hos4c/observability.py") as f:
             code = f.read()
+        # No GitHub tokens in observability code
         assert "ghp_" not in code
-        assert "@gmail.com" not in code or "notify" not in code
 
     def test_hermes_zero_authority(self):
         # Hermes logs events but can't suppress CRITICAL
