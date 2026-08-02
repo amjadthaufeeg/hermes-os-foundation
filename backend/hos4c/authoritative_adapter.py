@@ -66,6 +66,14 @@ def init_auth_db():
             CREATE TABLE IF NOT EXISTS idempotency_records (
                 key TEXT PRIMARY KEY, result TEXT, created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS audit_events (
+                event_id TEXT PRIMARY KEY, event_type TEXT NOT NULL,
+                decision_id TEXT, action TEXT, actor_id TEXT,
+                actor_role TEXT, previous_state TEXT, resulting_state TEXT,
+                decision_version INTEGER, idempotency_key TEXT,
+                event_hash TEXT, prev_hash TEXT, result TEXT,
+                rationale TEXT, created_at TEXT NOT NULL
+            );
         """)
         db.commit()
 
