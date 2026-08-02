@@ -21,6 +21,7 @@ from backend.hos4c.auth_oauth import (
 @pytest.fixture(autouse=True)
 def fresh_db():
     os.environ["SIMULATION_MODE"] = "true"
+    os.environ["MUTATIONS_DISABLED"] = "false"  # Allow simulation actions in tests
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
     init_db()

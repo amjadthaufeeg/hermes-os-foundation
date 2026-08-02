@@ -16,7 +16,8 @@ class Environment(enum.Enum):
 ENV = Environment(os.environ.get("HERMES_ENVIRONMENT", "LOCAL_SIMULATION").upper())
 
 # Mutation safety: always disabled unless explicitly authorized
-MUTATIONS_DISABLED = os.environ.get("MUTATIONS_DISABLED", "true").lower() != "false"
+def mutations_disabled() -> bool:
+    return os.environ.get("MUTATIONS_DISABLED", "true").lower() != "false"
 
 # Environment policy matrix
 POLICY = {
@@ -87,7 +88,7 @@ def validate_startup() -> list:
             errors.append("Debug mode must be disabled in protected environments")
 
     # Mutations must remain disabled
-    if not MUTATIONS_DISABLED:
+    if not mutations_disabled():
         errors.append("MUTATIONS_DISABLED must be true — live mutations not authorized")
 
     # Database persistence check

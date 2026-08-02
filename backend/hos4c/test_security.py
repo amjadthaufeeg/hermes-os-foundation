@@ -17,6 +17,7 @@ def fresh_db():
     """Fresh database per test function."""
     os.environ["DATABASE_PATH"] = TEST_DB
     os.environ["SIMULATION_MODE"] = "true"
+    os.environ["MUTATIONS_DISABLED"] = "false"  # Allow simulation actions in tests
     from backend.hos4c.database import init_db
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
