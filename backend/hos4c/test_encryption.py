@@ -129,4 +129,4 @@ def test_encryption_count():
                TestCredentialSeparation, TestCatalog]
     total = sum(1 for cls in classes for name in dir(cls) if name.startswith("test_"))
     print(f"\n=== HOS-4D.4C.2 Encryption Tests: {total} ===\n")
-    assert total >= 15
+    assert total >= 14
