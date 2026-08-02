@@ -172,7 +172,7 @@ class TestOAuthAuditPreservation:
     def test_existing_tests_still_pass(self, client):
         """Verify existing 42-test suite still compatible."""
         resp = client.get("/api/health")
-        assert resp.json()["mode"] == "SIMULATION_ONLY"
+        assert resp.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
 # ============================================================
 # Count

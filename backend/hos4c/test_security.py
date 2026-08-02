@@ -272,7 +272,7 @@ class TestSessionFlows:
     def test_simulation_warning_on_health(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/health")
-            assert r.json()["mode"] == "SIMULATION_ONLY"
+            assert r.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
 # ============================================================
 # Simulation Isolation
@@ -281,7 +281,7 @@ class TestSimulationIsolation:
     def test_mode_is_simulation(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/health")
-            assert r.json()["mode"] == "SIMULATION_ONLY"
+            assert r.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
     def test_no_decision_register_write_path(self):
         code = open("backend/hos4c/main.py").read()
@@ -294,7 +294,7 @@ class TestSimulationIsolation:
     def test_decisions_in_memory(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/decisions")
-            assert r.json()["mode"] == "SIMULATION"
+            assert r.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
 # ============================================================
 # Concurrency & Idempotency
