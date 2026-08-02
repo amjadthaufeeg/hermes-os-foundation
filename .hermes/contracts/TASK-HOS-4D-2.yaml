@@ -1,0 +1,37 @@
+task_id: TASK-HOS-4D-2
+project: Hermes Product OS
+release: HOS-4D.2
+title: "Production Sessions, Secrets and Deployment Foundation"
+task_type: infrastructure
+risk_level: R3
+
+objective: >
+  Plan production session policy, secrets management, TLS/network
+  architecture, deployment topology, database persistence, service
+  hardening, and staging environment for Hermes authentication
+  services. Planning only — no deployment authorized.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/hos-4/**"
+  - ".hermes/contracts/TASK-HOS-4D*.yaml"
+
+protected_areas: [Commercial logic, decision register, production infrastructure]
+must_not_change: [Frozen HOS-3 baselines, Authoritative decision YAML]
+
+change_budget: {max_files: 8, max_folders: 2, max_lines_changed: 3000}
+
+acceptance_criteria:
+  - "Environment model defined (5 environments)"
+  - "Production session policy specified with recommended values"
+  - "Secrets management architecture complete"
+  - "Deployment topology recommended with comparison"
+  - "Database persistence and migration plan defined"
+  - "Service hardening standard documented"
+  - "Staging environment designed"
+  - "No deployment, no activation"
+
+stop_conditions: ["Production deployed", "Live mutations enabled"]
+
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true

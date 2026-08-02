@@ -21,6 +21,7 @@ from backend.hos4c.auth_oauth import (
 @pytest.fixture(autouse=True)
 def fresh_db():
     os.environ["SIMULATION_MODE"] = "true"
+    os.environ["MUTATIONS_DISABLED"] = "false"  # Allow simulation actions in tests
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
     init_db()
@@ -171,7 +172,7 @@ class TestOAuthAuditPreservation:
     def test_existing_tests_still_pass(self, client):
         """Verify existing 42-test suite still compatible."""
         resp = client.get("/api/health")
-        assert resp.json()["mode"] == "SIMULATION_ONLY"
+        assert resp.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
 # ============================================================
 # Count

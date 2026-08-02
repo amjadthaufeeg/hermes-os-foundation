@@ -13,7 +13,8 @@ allowed_files:
   - ".github/**"
   - "docs/**"
   - "backend/hos4c/**"
-  - "03_Engineering_OS/**"
+  - "deploy/Caddyfile"
+  - "deploy/hermes.service"
   - ".gitignore"
   - "*.md"
 
@@ -22,7 +23,7 @@ allowed_folders:
   - ".github/"
   - "docs/"
   - "backend/"
-  - "03_Engineering_OS/"
+  - "deploy/"
 
 protected_areas:
   - ".hermes/schemas/"

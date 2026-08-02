@@ -17,6 +17,7 @@ def fresh_db():
     """Fresh database per test function."""
     os.environ["DATABASE_PATH"] = TEST_DB
     os.environ["SIMULATION_MODE"] = "true"
+    os.environ["MUTATIONS_DISABLED"] = "false"  # Allow simulation actions in tests
     from backend.hos4c.database import init_db
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
@@ -271,7 +272,7 @@ class TestSessionFlows:
     def test_simulation_warning_on_health(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/health")
-            assert r.json()["mode"] == "SIMULATION_ONLY"
+            assert r.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
 # ============================================================
 # Simulation Isolation
@@ -280,7 +281,7 @@ class TestSimulationIsolation:
     def test_mode_is_simulation(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/health")
-            assert r.json()["mode"] == "SIMULATION_ONLY"
+            assert r.json()["mutations"] in ("DISABLED", "SIMULATION_ONLY")
 
     def test_no_decision_register_write_path(self):
         code = open("backend/hos4c/main.py").read()

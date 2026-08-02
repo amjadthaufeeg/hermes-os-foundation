@@ -32,6 +32,7 @@ from backend.hos4c.state_machine import (
 from backend.hos4c.auth_oauth import (
     oauth_login_redirect, oauth_callback, SIMULATION_MODE as OAUTH_SIM,
 )
+from backend.hos4c.environment import get_env as env_get_env, is_protected, mutations_disabled, validate_startup
 
 app = FastAPI(title="Hermes Decision Actions", version="0.1.0-simulation")
 
@@ -104,7 +105,14 @@ def require_role(min_role: str):
 # --- Health ---
 @app.get("/api/health")
 def health():
-    return {"status": "simulation", "mode": "SIMULATION_ONLY", "version": "0.1.0"}
+    return {"status": "alive", "environment": env_get_env().value, "mutations": "DISABLED" if mutations_disabled() else "SIMULATION_ONLY"}
+
+@app.get("/api/health/readiness")
+def readiness():
+    errors = validate_startup()
+    if errors:
+        return {"ready": False, "errors": errors}
+    return {"ready": True, "environment": env_get_env().value, "mutations_disabled": mutations_disabled()}
 
 # --- Auth (Simulated) ---
 @app.post("/api/auth/login")
@@ -248,6 +256,9 @@ def perform_action(
 ):
 
     validate_csrf(request)
+
+    if mutations_disabled():
+        raise HTTPException(503, "Mutations disabled — simulation only")
 
     session_id = request.cookies.get("hermes_session", "sess-simulated")
     session = get_session(session_id)

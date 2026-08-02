@@ -16,3 +16,4 @@
 # .hermes/ is the foundation directory; all subdirectories are tracked
 # No runtime/cache/tmp/logs/secrets directories exist currently__pycache__/
 .hermes/audit/audit.db
+.env
