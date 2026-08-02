@@ -6,62 +6,81 @@
 <style>
 :root{
   --bg:#0a0e14;--surface:#11161d;--border:#1a2030;--text:#cfd4db;--muted:#5c6470;--secondary:#8899b4;
-  --gold:#c9a03b;--gold-dim:rgba(201,160,59,.12);--cyan:#26c6da;--cyan-dim:rgba(38,198,218,.1);
-  --green:#34c97a;--green-dim:rgba(52,201,122,.12);--red:#e0556a;--red-dim:rgba(224,85,106,.1);
-  --amber:#d4a843;--amber-dim:rgba(212,168,67,.12);--focus:#26c6da;--radius:6px;
-  --font:'Inter',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;
+  --gold:#c9a03b;--gold-dim:rgba(201,160,59,.12);--cyan:#26c6da;--green:#34c97a;--green-dim:rgba(52,201,122,.12);
+  --red:#e0556a;--red-dim:rgba(224,85,106,.1);--amber:#d4a843;--amber-dim:rgba(212,168,67,.12);
+  --focus:#26c6da;--radius:6px;--font:'Inter',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
 .app{max-width:1200px;margin:0 auto;padding:1.5rem 2rem}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem}
 .back{color:var(--gold);text-decoration:none;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .6rem;border-radius:var(--radius)}
 .back:hover{background:var(--gold-dim)}.back:focus-visible{outline:2px solid var(--focus)}
 h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
-.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
 .filter-btn{padding:.35rem .7rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-size:.7rem;font-family:var(--font)}
 .filter-btn:hover{color:var(--text);border-color:var(--muted)}
 .filter-btn.active{color:var(--gold);border-color:var(--gold);background:var(--gold-dim)}
 .filter-btn:focus-visible{outline:2px solid var(--focus)}
+.filter-section{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem;margin-top:.5rem}
 .list{display:grid;gap:.5rem}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color .15s}
-.card:hover{border-color:var(--gold)}
-.card:focus-visible{outline:2px solid var(--focus)}
+.card:hover{border-color:var(--gold)}.card:focus-visible{outline:2px solid var(--focus)}
 .card-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap}
-.card-title{font-weight:600;font-size:.85rem;color:var(--text);flex:1;min-width:200px}
-.card-meta{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.7rem}
+.card-title{font-weight:600;font-size:.85rem;flex:1;min-width:200px}
 .badge{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;border-radius:10px;font-size:.6rem;font-weight:600}
 .badge.gold{background:var(--gold-dim);color:var(--gold)}.badge.green{background:var(--green-dim);color:var(--green)}
 .badge.amber{background:var(--amber-dim);color:var(--amber)}.badge.red{background:var(--red-dim);color:var(--red)}
-.badge.muted{background:rgba(92,100,112,.12);color:var(--muted)}
-.card-detail{font-size:.75rem;color:var(--secondary);margin-top:.5rem;line-height:1.5}
+.badge.cyan{background:rgba(38,198,218,.1);color:var(--cyan)}.badge.muted{background:rgba(92,100,112,.12);color:var(--muted)}
+.card-meta{display:flex;gap:.5rem;align-items:center;font-size:.7rem;flex-wrap:wrap}
 .empty{text-align:center;padding:3rem;color:var(--muted)}
 .detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:1rem}
 .detail-panel h2{font-size:1rem;font-weight:600;color:var(--gold);margin-bottom:.75rem}
 .detail-row{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(26,32,48,.5);font-size:.78rem}
-.detail-row .label{color:var(--muted);min-width:120px;font-size:.7rem}
+.detail-row .label{color:var(--muted);min-width:130px;font-size:.7rem}
 .detail-row .value{font-weight:500;flex:1;margin-left:.75rem}
+.not-recorded{color:var(--muted);font-style:italic}
 .detail-section{margin-top:1rem}
 .detail-section h3{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
 .source{font-size:.65rem;color:var(--muted);font-family:var(--mono);margin-top:1rem}
+.ni-label{display:inline-block;padding:.15rem .45rem;border-radius:10px;font-size:.6rem;font-weight:600;background:rgba(92,100,112,.12);color:var(--muted);margin-left:.5rem}
 .search-input{flex:1;min-width:200px;padding:.4rem .6rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.75rem;font-family:var(--font)}
-.search-input:focus{outline:2px solid var(--focus);border-color:var(--focus)}
-.search-input::placeholder{color:var(--muted)}
-.not-implemented{display:inline-block;padding:.15rem .45rem;border-radius:10px;font-size:.6rem;font-weight:600;background:rgba(92,100,112,.12);color:var(--muted);margin-left:.5rem}
-@media(max-width:767px){.app{padding:1rem}.card-row{flex-direction:column}}
+.search-input:focus{outline:2px solid var(--focus);border-color:var(--focus)}.search-input::placeholder{color:var(--muted)}
+@media(max-width:767px){.app{padding:1rem}}
 </style>
 </head>
-<body>
-<div class="app">
+<body><div class="app">
 <a href="executive-dashboard.html" class="back">← Mission Overview</a>
-<header class="header"><h1>Decisions</h1><div style="font-size:.7rem;color:var(--muted)"><span id="count">20</span> records · Source: .hermes/registers/decisions/ · <span id="freshness">1 Aug 2026</span></div></header>
+<header class="header"><h1>Decisions</h1><div style="font-size:.7rem;color:var(--muted)"><span id="count">20</span> records · Source: .hermes/registers/decisions/</div></header>
 
-<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+<div style="display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
   <input type="search" class="search-input" placeholder="Search decisions..." id="search" oninput="render()" aria-label="Search decisions">
-  <button class="filter-btn active" data-status="all" onclick="filter('all',this)">All</button>
-  <button class="filter-btn" data-status="locked" onclick="filter('locked',this)">Locked</button>
-  <button class="filter-btn" data-status="governance" onclick="filter('governance',this)">Governance</button>
-  <button class="filter-btn" data-status="commercial" onclick="filter('commercial',this)">Commercial</button>
+</div>
+
+<div class="filter-section">State</div>
+<div class="filters" id="state-filters">
+  <button class="filter-btn active" data-key="state" data-val="all" onclick="setFilter('state','all',this)">All</button>
+  <button class="filter-btn" data-key="state" data-val="locked" onclick="setFilter('state','locked',this)">Locked</button>
+  <button class="filter-btn" data-key="state" data-val="proposed" onclick="setFilter('state','proposed',this)">Proposed</button>
+</div>
+
+<div class="filter-section">Project</div>
+<div class="filters" id="project-filters">
+  <button class="filter-btn active" data-key="project" data-val="all" onclick="setFilter('project','all',this)">All</button>
+  <button class="filter-btn" data-key="project" data-val="avoa" onclick="setFilter('project','avoa',this)">AVOA</button>
+  <button class="filter-btn" data-key="project" data-val="all" disabled style="opacity:.5">hermes-os (NOT RECORDED)</button>
+</div>
+
+<div class="filter-section">Owner</div>
+<div class="filters" id="owner-filters">
+  <button class="filter-btn active" data-key="owner" data-val="all" onclick="setFilter('owner','all',this)">All</button>
+  <button class="filter-btn" data-key="owner" data-val="amjad" onclick="setFilter('owner','amjad',this)">Amjad</button>
+</div>
+
+<div class="filter-section">Risk</div>
+<div class="filters" id="risk-filters">
+  <button class="filter-btn active" data-key="risk" data-val="all" onclick="setFilter('risk','all',this)">All</button>
+  <button class="filter-btn disabled" style="opacity:.5;cursor:not-allowed">NOT RECORDED in source</button>
 </div>
 
 <div class="list" id="list"></div>
@@ -69,38 +88,53 @@ h1{font-size:1.25rem;font-weight:600;color:var(--gold)}
 </div>
 
 <script>
-var DATA = [{"id":"DEC-AVOA-PRICING-001","title":"Final commercial calculations remain deterministic","status":"locked","owner":"amjad","category":"commercial","date":"2026-07-31","decision":"AI may extract, interpret, normalize and explain contract data. Final prices, offers, occupancy outcomes, taxes, commissions, markups, cancellation values and reconciliation values must be produced by deterministic code using approved structured inputs.","reason":"Commercial results must be reproducible, auditable and testable.","applies_to":"avoa","related_tasks":[]},{"id":"DEC-HOS-001","title":"Hermes remains the sole orchestrator","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Kimi, Codex and Claude may build or review within assigned roles, but they may not independently control scope, task-state transitions, agent routing, approval, merge or deployment.","reason":"Prevent conflicting agent authority and uncontrolled workflow expansion.","applies_to":"all"},{"id":"DEC-HOS-002","title":"Kimi K3 is the primary builder","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Kimi K3 handles new features, vertical slices, multi-file work as the default primary builder within approved task contracts. Codex is the precision builder and fallback.","reason":"Kimi K3 has demonstrated strong performance on multi-file implementation and repository-wide tasks.","applies_to":"all","related_tasks":["TASK-HOS-001"]},{"id":"DEC-HOS-003","title":"Claude Code is review-only initially","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Claude Code evaluates implementation independently against the task contract, acceptance criteria, and quality standards. The first review pass is read-only.","reason":"Separation of review from implementation prevents bias.","applies_to":"all"},{"id":"DEC-HOS-004","title":"Codex is precision and recovery builder","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Codex handles narrow bug fixes (1-3 files), sensitive behavior-preservation work, and recovery when Kimi K3 fails two controlled correction cycles.","reason":"Codex excels at precise, narrowly-scoped changes.","applies_to":"all"},{"id":"DEC-HOS-005","title":"GitHub is the authoritative source of truth","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"GitHub owns branches, commits, pull requests, review history, CI results, tags, releases, and rollback capability.","reason":"A single source of truth prevents divergence between agents and environments.","applies_to":"all"},{"id":"DEC-HOS-006","title":"Evidence determines readiness","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"No agent assertion alone may establish task completion. Readiness requires structured, verifiable evidence across all required gates.","reason":"Agent self-reporting is unreliable. Structured evidence creates an auditable trail.","applies_to":"all"},{"id":"DEC-HOS-007","title":"Department-based operating model","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Hermes Product OS operates through divisions: Engineering, Design Studio, Quality, Research, Knowledge, and Operations.","reason":"Department-based organization clarifies responsibilities.","applies_to":"all"},{"id":"DEC-HOS-008","title":"Formal Design Studio","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"A dedicated Design Studio owns UX structure, visual direction, interaction behavior, accessibility, and design-system compliance.","reason":"Visual quality and UX coherence require dedicated ownership.","applies_to":"all"},{"id":"DEC-HOS-009","title":"Parallel Controller subordinate to Hermes","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"The Parallel Execution Controller may coordinate sub-agents and allocate worktrees. It may not change objectives, approve contracts, unlock protected zones, merge, or deploy.","reason":"Parallel coordination is a technical function, not an authority function.","applies_to":"all"},{"id":"DEC-HOS-010","title":"Single-writer file ownership is mandatory","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"One writer per file at any given time. No two agents may simultaneously edit the same file.","reason":"Concurrent file writes cause merge conflicts and accountability gaps.","applies_to":"all"},{"id":"DEC-HOS-011","title":"Writing sub-agents use isolated worktrees","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Any agent writing code operates in a dedicated git worktree with an isolated branch.","reason":"Worktree isolation prevents interference with the main branch.","applies_to":"all"},{"id":"DEC-HOS-012","title":"R4 parallel production-code editing is prohibited","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Critical commercial logic is always serialized. No parallel production-code editing at R4.","reason":"R4 logic has the highest consequence of error.","applies_to":"all"},{"id":"DEC-HOS-013","title":"Engineering Mission Control is inside Command Center","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Engineering Mission Control is a module within the broader Command Center dashboard.","reason":"Engineering is one of several disciplines governed by Hermes Product OS.","applies_to":"all"},{"id":"DEC-HOS-014","title":"Material UI work requires a UI contract","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Every visual task must have an approved UI contract.","reason":"Visual work without explicit contracts leads to inconsistent design.","applies_to":"all"},{"id":"DEC-HOS-015","title":"Minimum CI is part of the first foundation release","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Build, type check, lint, tests, schema validation, changed-file reporting, scope checking, and protected-zone checking are CI gates.","reason":"Automated enforcement is prerequisite to evidence-based completion.","applies_to":"all"},{"id":"DEC-HOS-016","title":"Routine direct agent pushes to the default branch are prohibited","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Agent-driven development must use feature branches with independent review.","reason":"Direct pushes bypass review, testing, and approval gates.","applies_to":"all"},{"id":"DEC-HOS-017","title":"The system is named Hermes Product OS","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Hermes Product OS is the primary name. Engineering, Design, Research, Quality, Knowledge and Operations are divisions.","reason":"The system has evolved into a multi-disciplinary product development system.","applies_to":"all"},{"id":"DEC-HOS-018","title":"Research is an evidence function","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"The Research Division operates as a read-only evidence and recommendation function. Research is evidence, not authority.","reason":"Research improves decision quality but must flow through governance.","applies_to":"all"},{"id":"DEC-HOS-019","title":"Product-development philosophy governs future expansion","status":"locked","owner":"amjad","category":"governance","date":"2026-07-31","decision":"Future roles, agents, departments, and automation must be evaluated against the approved Product Development Philosophy before addition.","reason":"The philosophy defines immutable values. Validating against principles prevents drift.","applies_to":"all"}];
+var DATA=[{"id":"DEC-AVOA-PRICING-001","title":"Final commercial calculations remain deterministic","status":"locked","owner":"amjad","project":"avoa","category":"commercial","date":"2026-07-31","decision":"AI may extract, interpret, normalize and explain contract data. Final prices, offers, occupancy outcomes, taxes, commissions, markups, cancellation values and reconciliation values must be produced by deterministic code using approved structured inputs.","reason":"Commercial results must be reproducible, auditable and testable."},{"id":"DEC-HOS-001","title":"Hermes remains the sole orchestrator","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Kimi, Codex and Claude may build or review within assigned roles, but they may not independently control scope, task-state transitions, agent routing, approval, merge or deployment.","reason":"Prevent conflicting agent authority and uncontrolled workflow expansion."},{"id":"DEC-HOS-002","title":"Kimi K3 is the primary builder","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Kimi K3 handles new features, vertical slices, multi-file work as the default primary builder within approved task contracts. Codex is the precision builder and fallback.","reason":"Kimi K3 has demonstrated strong performance."},{"id":"DEC-HOS-003","title":"Claude Code is review-only initially","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Claude Code evaluates implementation independently against the task contract. The first review pass is read-only.","reason":"Separation of review from implementation prevents bias."},{"id":"DEC-HOS-004","title":"Codex is precision and recovery builder","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Codex handles narrow bug fixes, sensitive behavior-preservation work, and recovery when Kimi K3 fails two controlled correction cycles.","reason":"Codex excels at precise, narrowly-scoped changes."},{"id":"DEC-HOS-005","title":"GitHub is the authoritative source of truth","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"GitHub owns branches, commits, pull requests, review history, CI results, tags, releases, and rollback capability.","reason":"A single source of truth prevents divergence."},{"id":"DEC-HOS-006","title":"Evidence determines readiness","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"No agent assertion alone may establish task completion. Readiness requires structured, verifiable evidence.","reason":"Agent self-reporting is unreliable."},{"id":"DEC-HOS-007","title":"Department-based operating model","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Hermes Product OS operates through divisions: Engineering, Design Studio, Quality, Research, Knowledge, and Operations.","reason":"Department-based organization clarifies responsibilities."},{"id":"DEC-HOS-008","title":"Formal Design Studio","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"A dedicated Design Studio owns UX, visual direction, interaction behavior, accessibility, and design-system compliance.","reason":"Visual quality requires dedicated ownership."},{"id":"DEC-HOS-009","title":"Parallel Controller subordinate to Hermes","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"The Parallel Execution Controller may coordinate sub-agents. It may not change objectives, approve contracts, merge, or deploy.","reason":"Parallel coordination is a technical function."},{"id":"DEC-HOS-010","title":"Single-writer file ownership is mandatory","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"One writer per file at any given time.","reason":"Concurrent writes cause merge conflicts."},{"id":"DEC-HOS-011","title":"Writing sub-agents use isolated worktrees","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Any agent writing code operates in a dedicated git worktree.","reason":"Isolation prevents interference."},{"id":"DEC-HOS-012","title":"R4 parallel production-code editing is prohibited","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Critical commercial logic is always serialized.","reason":"R4 has the highest consequence of error."},{"id":"DEC-HOS-013","title":"Engineering Mission Control is inside Command Center","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Engineering Mission Control is a module within Command Center.","reason":"Engineering is one of several disciplines."},{"id":"DEC-HOS-014","title":"Material UI work requires a UI contract","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Every visual task must have an approved UI contract.","reason":"Visual work without contracts leads to inconsistency."},{"id":"DEC-HOS-015","title":"Minimum CI is part of the first foundation release","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Build, type check, lint, tests, schema validation, scope checking, and protected-zone checking are CI gates.","reason":"Automated enforcement is prerequisite to evidence-based completion."},{"id":"DEC-HOS-016","title":"Routine direct agent pushes to the default branch are prohibited","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Agent-driven development must use feature branches with independent review.","reason":"Direct pushes bypass review gates."},{"id":"DEC-HOS-017","title":"The system is named Hermes Product OS","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Hermes Product OS is the primary name. Engineering, Design, Research, Quality, Knowledge and Operations are divisions.","reason":"The system evolved into multi-disciplinary product development."},{"id":"DEC-HOS-018","title":"Research is an evidence function","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Research Division operates as read-only evidence and recommendation. Research is evidence, not authority.","reason":"Research must flow through governance."},{"id":"DEC-HOS-019","title":"Product-development philosophy governs future expansion","status":"locked","owner":"amjad","project":"hermes-os","category":"governance","date":"2026-07-31","decision":"Future roles and automation must be evaluated against the approved Product Development Philosophy.","reason":"The philosophy defines immutable values."}];
 
-var activeFilter='all';
-function filter(f,btn){activeFilter=f;document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');render()}
-function statusBadge(s){var m={locked:'LOCKED',proposed:'PROPOSED',approved:'APPROVED'};return'<span class="badge '+(s==='locked'?'gold':s==='approved'?'green':'muted')+'">'+(m[s]||s.toUpperCase())+'</span>'}
+var filters={state:'all',project:'all',owner:'all',risk:'all'};
+function setFilter(key,val,btn){
+  filters[key]=val;
+  document.querySelectorAll('.filter-btn[data-key="'+key+'"]').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  render();
+}
+function statusMap(s){
+  var m={locked:'LOCKED',proposed:'PROPOSED',approved:'CLOSED'};
+  return {label:m[s]||s.toUpperCase(),cls:s==='locked'?'gold':s==='approved'?'green':'muted'};
+}
 function render(){
   var q=(document.getElementById('search').value||'').toLowerCase();
   var items=DATA.filter(function(d){
-    if(activeFilter==='locked')return d.status==='locked';
-    if(activeFilter==='governance')return d.category==='governance';
-    if(activeFilter==='commercial')return d.category==='commercial';
+    if(filters.state!=='all'&&d.status!==filters.state)return false;
+    if(filters.project!=='all'&&d.project!==filters.project)return false;
+    if(filters.owner!=='all'&&d.owner!==filters.owner)return false;
     return true;
   }).filter(function(d){return !q||d.title.toLowerCase().indexOf(q)>-1||d.id.toLowerCase().indexOf(q)>-1||d.decision.toLowerCase().indexOf(q)>-1});
   document.getElementById('count').textContent=items.length;
   var html='';
-  if(!items.length){html='<div class="empty">No decisions match your filter</div>'}
-  else{items.forEach(function(d){html+='<div class="card" tabindex="0" role="button" onclick="showDetail(\''+d.id+'\')" onkeydown="if(event.key===\'Enter\')showDetail(\''+d.id+'\')"><div class="card-row"><span class="card-title">'+d.title+'</span><span class="card-meta">'+statusBadge(d.status)+'<span class="badge muted">'+d.id+'</span></span></div><div class="card-detail">'+d.decision.substring(0,200)+'…</div><div style="font-size:.65rem;color:var(--muted);margin-top:.35rem">'+d.category+' · '+d.owner+' · '+d.date+'</div></div>'})}
+  if(!items.length){html='<div class="empty">No decisions match your filters</div>'}
+  else{items.forEach(function(d){
+    var s=statusMap(d.status);
+    html+='<div class="card" tabindex="0" role="button" onclick="showDetail(\''+d.id+'\')" onkeydown="if(event.key===\'Enter\')showDetail(\''+d.id+'\')"><div class="card-row"><span class="card-title">'+d.title+'</span><span class="card-meta"><span class="badge '+s.cls+'">'+s.label+'</span><span class="badge muted">'+d.id+'</span></span></div><div class="card-detail" style="font-size:.75rem;color:var(--secondary);margin-top:.5rem">'+d.decision.substring(0,200)+'…</div><div style="font-size:.65rem;color:var(--muted);margin-top:.35rem">'+d.owner+' · '+d.project+' · '+d.date+'</div></div>';
+  })}
   document.getElementById('list').innerHTML=html;
 }
 function showDetail(id){
   var d=DATA.find(function(x){return x.id===id});if(!d)return;
+  var s=statusMap(d.status);
   var html='<div class="detail-panel"><h2>'+d.title+'</h2>';
   html+='<div class="detail-row"><span class="label">ID</span><span class="value" style="font-family:var(--mono)">'+d.id+'</span></div>';
-  html+='<div class="detail-row"><span class="label">Status</span><span class="value">'+statusBadge(d.status)+'</span></div>';
+  html+='<div class="detail-row"><span class="label">State</span><span class="value"><span class="badge '+s.cls+'">'+s.label+'</span></span></div>';
   html+='<div class="detail-row"><span class="label">Owner</span><span class="value">'+d.owner+'</span></div>';
-  html+='<div class="detail-row"><span class="label">Category</span><span class="value">'+d.category+'</span></div>';
-  html+='<div class="detail-row"><span class="label">Date</span><span class="value">'+d.date+'</span></div>';
-  html+='<div class="detail-row"><span class="label">Applies To</span><span class="value">'+d.applies_to+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Project</span><span class="value">'+d.project+'</span></div>';
+  html+='<div class="detail-row"><span class="label">Risk</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div>';
+  html+='<div class="detail-row"><span class="label">Options</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div>';
+  html+='<div class="detail-row"><span class="label">Created</span><span class="value">'+d.date+'</span></div>';
   html+='<div class="detail-section"><h3>Decision</h3><p style="font-size:.8rem;line-height:1.6;color:var(--text)">'+d.decision+'</p></div>';
   html+='<div class="detail-section"><h3>Reason</h3><p style="font-size:.78rem;color:var(--secondary)">'+d.reason+'</p></div>';
-  if(d.related_tasks&&d.related_tasks.length){html+='<div class="detail-section"><h3>Related Tasks</h3>'+d.related_tasks.map(function(t){return'<span class="badge muted" style="margin-right:.25rem">'+t+'</span>'}).join('')+'</div>'}
-  html+='<div class="detail-section"><h3>Requested Action</h3><span class="badge gold">DECIDE</span><span class="not-implemented">NOT IMPLEMENTED — REQUIRES HOS-4C</span></div>';
+  html+='<div class="detail-section"><h3>Evidence</h3><div class="detail-row"><span class="label">Status</span><span class="value"><span class="badge green">VERIFIED</span></span></div><div class="detail-row"><span class="label">Freshness</span><span class="value">'+d.date+' · Current</span></div><div class="detail-row"><span class="label">Source</span><span class="value" style="font-family:var(--mono);font-size:.7rem">.hermes/registers/decisions/'+d.id+'.yaml</span></div></div>';
+  html+='<div class="detail-section"><h3>Related</h3><div class="detail-row"><span class="label">Tasks</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div><div class="detail-row"><span class="label">Releases</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div><div class="detail-row"><span class="label">Commits</span><span class="value"><span class="not-recorded">NOT RECORDED</span></span></div></div>';
+  html+='<div class="detail-section"><h3>Requested Action</h3><span class="badge gold">DECISION REQUIRED</span><span class="ni-label">NOT IMPLEMENTED — REQUIRES HOS-4C</span></div>';
+  html+='<div class="detail-section"><h3>Next Step</h3><p style="font-size:.78rem;color:var(--secondary)">Amjad review and decision. No automated action available.</p></div>';
   html+='<div class="source">Source: .hermes/registers/decisions/'+d.id+'.yaml · Trust: HIGH · Freshness: '+d.date+'</div>';
   html+='<button onclick="closeDetail()" style="margin-top:1rem;padding:.35rem .7rem;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-family:var(--font);font-size:.75rem">← Back to list</button></div>';
   document.getElementById('list').style.display='none';
@@ -110,7 +144,7 @@ function showDetail(id){
 }
 function closeDetail(){document.getElementById('list').style.display='';document.getElementById('detail').innerHTML='';history.pushState(null,'','#/decisions')}
 render();
-window.onpopstate=function(){if(location.hash.indexOf('/decisions/')===0){var id=location.hash.split('/').pop();showDetail(id)}else{closeDetail()}};
+window.onpopstate=function(){if(location.hash.indexOf('/decisions/')===0){showDetail(location.hash.split('/').pop())}else{closeDetail()}};
 </script>
 </body>
 </html>
