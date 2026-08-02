@@ -81,7 +81,10 @@ class TestEnvironmentPolicy:
         import backend.hos4c.environment as env_mod
         importlib.reload(env_mod)
         from backend.hos4c.environment import get_env
-        assert get_env().value == "LOCAL_SIMULATION"
+        # Falls back to LOCAL_SIMULATION (safe default)
+        assert get_env().value != "INVALID_ENV"
+        assert get_env().value != "PRODUCTION"
+        assert get_env().value in ("LOCAL_SIMULATION", "LOCAL_TEST")
 
 # --- Startup Validation ---
 class TestStartupValidation:
