@@ -1,0 +1,20 @@
+task_id: TASK-HOS-4D-4B
+project: Hermes Product OS
+release: HOS-4D.4B
+title: "Monitoring and Alerting Foundation"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Design minimal reliable monitoring: structured JSON logging,
+  health/metrics endpoints, alert severity model, deduplication,
+  suppression, escalation, operational dashboard. No deployment.
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees]
+change_budget: {max_files: 8, max_folders: 2, max_lines_changed: 3000}
+acceptance_criteria: [Structured log schema defined, Metrics standard, Alert severity model,
+  Alert routing + dedup + escalation, Dashboard design, No deployment]
+stop_conditions: [Production deployed, Live alerts connected, Mutations enabled]
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true
