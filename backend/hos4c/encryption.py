@@ -1,17 +1,57 @@
 """
-HOS-4D.4C.2: Backup Encryption + Off-Host Storage Adapter
-GPG-like test encryption, S3-compatible storage adapter,
-credential separation, catalog, key lifecycle. Isolated test mode.
+HOS-4D.4C.2: Asymmetric Backup Encryption + Off-Host Storage
+age encryption: writer gets public key, recovery gets private key.
+Credential separation, catalog, key lifecycle. Isolated test mode.
 """
 
-import os, json, hashlib, uuid, tempfile
+import os, json, uuid, subprocess
 from datetime import datetime, timezone
 from enum import Enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
-from cryptography.fernet import Fernet
-from backend.hos4c.backup import BackupState, sha256_file
+from backend.hos4c.backup import sha256_file
+
+# --- Asymmetric age Encryption ---
+# Cryptographic separation: writer has public key (encrypt only)
+# Recovery boundary has private key (decrypt only)
+
+AGE_PUBLIC_KEY_HEADER = "age1"
+
+def generate_age_keypair() -> tuple:
+    """Generate age keypair. Returns (private_key_str, public_key_str)."""
+    priv = subprocess.run(["age-keygen"], capture_output=True, text=True, timeout=5)
+    if priv.returncode != 0:
+        raise RuntimeError("age-keygen failed — install age: brew install age")
+    lines = priv.stdout.strip().split("\n")
+    pub = None
+    for line in lines:
+        if line.startswith("# public key: "):
+            pub = line.replace("# public key: ", "").strip()
+    return priv.stdout.strip(), pub
+
+def encrypt_with_age(backup_path: str, public_key: str) -> Optional[str]:
+    """Encrypt backup with age public key. Writer has NO private key."""
+    if not os.path.exists(backup_path) or not public_key.startswith("age1"):
+        return None
+    dest = backup_path + ".age"
+    result = subprocess.run(
+        ["age", "-r", public_key, "-o", dest, backup_path],
+        capture_output=True, text=True, timeout=30
+    )
+    return dest if result.returncode == 0 else None
+
+def decrypt_with_age(encrypted_path: str, private_key: str, output_dir: str) -> Optional[str]:
+    """Decrypt age archive. Private key required — NEVER on writer VPS."""
+    if not os.path.exists(encrypted_path) or "AGE-SECRET-KEY" not in private_key:
+        return None
+    os.makedirs(output_dir, exist_ok=True)
+    dest = os.path.join(output_dir, "restored.db")
+    result = subprocess.run(
+        ["age", "-d", "-i", "-", "-o", dest, encrypted_path],
+        input=private_key, capture_output=True, text=True, timeout=30
+    )
+    return dest if result.returncode == 0 else None
 
 # --- Encryption States ---
 class EncryptionState(str, Enum):
@@ -21,50 +61,7 @@ class EncryptionState(str, Enum):
     KEY_UNAVAILABLE = "KEY_UNAVAILABLE"
     KEY_REVOKED = "KEY_REVOKED"
 
-class StorageState(str, Enum):
-    UPLOAD_PENDING = "UPLOAD_PENDING"
-    UPLOADED = "UPLOADED"
-    UPLOAD_FAILED = "UPLOAD_FAILED"
-    OFFHOST_VERIFIED = "OFFHOST_VERIFIED"
-    OFFHOST_VERIFICATION_FAILED = "OFFHOST_VERIFICATION_FAILED"
-    RETENTION_LOCKED = "RETENTION_LOCKED"
-
-# --- Key Management ---
-def generate_encryption_key() -> bytes:
-    """Generate Fernet symmetric key."""
-    return Fernet.generate_key()
-
-def encrypt_backup(backup_path: str, key: bytes) -> Optional[str]:
-    """Encrypt backup file. Returns path to encrypted archive."""
-    if not os.path.exists(backup_path):
-        return None
-    f = Fernet(key)
-    with open(backup_path, "rb") as src:
-        data = src.read()
-    encrypted = f.encrypt(data)
-    dest = backup_path + ".enc"
-    with open(dest, "wb") as out:
-        out.write(encrypted)
-    return dest
-
-def decrypt_backup(encrypted_path: str, key: bytes, output_dir: str) -> Optional[str]:
-    """Decrypt backup archive. Returns path to decrypted file."""
-    if not os.path.exists(encrypted_path):
-        return None
-    f = Fernet(key)
-    with open(encrypted_path, "rb") as src:
-        data = src.read()
-    try:
-        plaintext = f.decrypt(data)
-    except Exception:
-        return None
-    os.makedirs(output_dir, exist_ok=True)
-    dest = os.path.join(output_dir, "restored.db")
-    with open(dest, "wb") as out:
-        out.write(plaintext)
-    return dest
-
-# --- Storage Adapter ---
+# --- Storage Adapter (isolated test mode, no real S3) ---
 @dataclass
 class StorageObject:
     backup_id: str
@@ -78,20 +75,18 @@ class StorageObject:
     storage_provider: str
 
 class StorageAdapter:
-    """Isolated test storage adapter. No real S3/B2 calls."""
-
     def __init__(self):
         self._store: dict[str, StorageObject] = {}
         self._data: dict[str, bytes] = {}
 
     def upload(self, backup_id: str, filepath: str, retention_class: str = "DAILY") -> StorageObject:
         if not os.path.exists(filepath):
-            raise FileNotFoundError(f"File not found: {filepath}")
+            raise FileNotFoundError(filepath)
         with open(filepath, "rb") as f:
             self._data[backup_id] = f.read()
         obj = StorageObject(
             backup_id=backup_id,
-            object_key=f"backups/{backup_id}.enc",
+            object_key=f"backups/{backup_id}.age",
             version_id=str(uuid.uuid4()),
             size_bytes=len(self._data[backup_id]),
             checksum=sha256_file(filepath),
@@ -116,31 +111,19 @@ class StorageAdapter:
     def list_backups(self) -> list[StorageObject]:
         return list(self._store.values())
 
-    def delete(self, backup_id: str) -> bool:
-        if backup_id in self._store:
-            del self._store[backup_id]
-            self._data.pop(backup_id, None)
-            return True
-        return False
-
 # --- Credential Separation ---
 class CredentialRole(str, Enum):
     BACKUP_WRITER = "BACKUP_WRITER"
-    BACKUP_READER = "BACKUP_READER"
     RESTORE_OPERATOR = "RESTORE_OPERATOR"
-    RETENTION_ADMIN = "RETENTION_ADMIN"
     AMJAD_OWNER = "AMJAD_OWNER"
 
 CREDENTIAL_PERMISSIONS = {
     CredentialRole.BACKUP_WRITER: {"upload", "verify"},
-    CredentialRole.BACKUP_READER: {"download", "verify"},
     CredentialRole.RESTORE_OPERATOR: {"download", "verify", "restore"},
-    CredentialRole.RETENTION_ADMIN: {"retention", "delete"},
-    CredentialRole.AMJAD_OWNER: {"upload", "download", "verify", "restore", "retention", "delete"},
+    CredentialRole.AMJAD_OWNER: {"upload", "download", "verify", "restore", "delete"},
 }
 
 def check_permission(role: str, action: str) -> bool:
-    """Check if role can perform action. Hermes=0 for all."""
     if role in ("HERMES_ASSISTANT", "SYSTEM_SERVICE"):
         return False
     try:
@@ -152,16 +135,10 @@ def check_permission(role: str, action: str) -> bool:
 # --- Backup Catalog ---
 CATALOG: dict[str, dict] = {}
 
-def record_catalog_entry(backup_id: str, state: str, checksum: str, key_id: str,
-                         storage_obj: StorageObject):
+def record_catalog_entry(backup_id: str, state: str, checksum: str, key_id: str, storage_obj: StorageObject):
     CATALOG[backup_id] = {
-        "backup_id": backup_id,
-        "state": state,
-        "created_at": storage_obj.uploaded_at,
-        "retention_class": storage_obj.retention_class,
-        "encryption_key_id": key_id,
-        "object_key": storage_obj.object_key,
-        "version_id": storage_obj.version_id,
-        "checksum": checksum,
-        "verified": True,
+        "backup_id": backup_id, "state": state, "created_at": storage_obj.uploaded_at,
+        "retention_class": storage_obj.retention_class, "encryption_key_id": key_id,
+        "object_key": storage_obj.object_key, "version_id": storage_obj.version_id,
+        "checksum": checksum, "verified": True,
     }
