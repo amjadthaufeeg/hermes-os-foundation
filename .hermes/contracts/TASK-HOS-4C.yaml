@@ -1,0 +1,50 @@
+task_id: TASK-HOS-4C
+project: Hermes Product OS
+release: HOS-4C
+title: "Controlled Decision Actions — Security and Mutation Planning"
+task_type: infrastructure
+risk_level: R3
+
+objective: >
+  Design a secure, auditable and human-controlled decision-action system.
+  Planning, architecture, security design, and prototype specification only.
+  No mutation implementation or activation.
+
+allowed_files:
+  - "docs/hermes-os-v3.1/hos-4/**"
+  - ".hermes/contracts/TASK-HOS-4C.yaml"
+
+protected_areas:
+  - "Commercial logic, pricing, offers, occupancy, taxes, commissions"
+  - "Production APIs, databases, authentication, credentials"
+  - "Loop runtime, Capability Manager runtime, deployment automation"
+
+must_not_change:
+  - "Frozen HOS-3 baselines"
+  - "Mission Control production code"
+  - "Decision register source files"
+
+change_budget:
+  max_files: 6
+  max_folders: 2
+  max_lines_changed: 3000
+
+acceptance_criteria:
+  - "Complete state machine with all transitions defined"
+  - "Authentication and authority model with permission matrix"
+  - "Threat model using STRIDE methodology"
+  - "Audit-event schema with immutability specification"
+  - "Backend architecture recommendation with trade-offs"
+  - "Human-gate enforcement plan"
+  - "HOS-4B follow-up disposition"
+  - "No mutations implemented or activated"
+
+stop_conditions:
+  - "Mutation code written"
+  - "Authentication implemented"
+  - "Backend service deployed"
+
+builder: hermes
+reviewer: claude-code
+design_review_required: true
+amjad_approval_required: true
