@@ -1,0 +1,44 @@
+task_id: TASK-HOS-4D-1
+project: Hermes Product OS
+release: HOS-4D.1
+title: "Production Authentication and Verified Identity"
+task_type: infrastructure
+risk_level: R3
+
+objective: >
+  Replace simulated identity with GitHub OAuth + PKCE, immutable provider-ID
+  binding, production-grade server-side sessions. Simulation mode preserved.
+  No authoritative writes. No deployment.
+
+allowed_files:
+  - "backend/hos4c/**"
+  - ".hermes/contracts/TASK-HOS-4D*.yaml"
+  - "docs/hermes-os-v3.1/hos-4/HOS-4D-PROGRAM.md"
+
+protected_areas:
+  - "Commercial logic, decision register, production infrastructure"
+
+must_not_change:
+  - "Frozen HOS-3 baselines"
+  - "Authoritative decision YAML"
+
+change_budget:
+  max_files: 10
+  max_folders: 2
+  max_lines_changed: 2500
+
+acceptance_criteria:
+  - "GitHub OAuth with PKCE implemented"
+  - "Immutable provider-ID identity binding operational"
+  - "Server-side sessions with rotation, expiry, revocation"
+  - "Simulation mode preserved — no authoritative writes"
+  - "All security-critical tests pass"
+
+stop_conditions:
+  - "Production deployed"
+  - "Live mutations activated"
+  - "Hermes gains approval authority"
+
+builder: hermes
+reviewer: claude-code
+amjad_approval_required: true
