@@ -32,6 +32,13 @@ jobs:
       - name: Install validation dependencies
         run: pip install "PyYAML==6.0.2" "jsonschema==4.23.0"
 
+      - name: Install age encryption
+        run: |
+          curl -sL https://github.com/FiloSottile/age/releases/download/v1.2.0/age-v1.2.0-linux-amd64.tar.gz -o /tmp/age.tar.gz
+          mkdir -p /tmp/age-extract && tar -xzf /tmp/age.tar.gz -C /tmp/age-extract
+          sudo cp /tmp/age-extract/age/age /usr/local/bin/
+          sudo cp /tmp/age-extract/age/age-keygen /usr/local/bin/
+
       - name: Set CI environment
         run: |
           echo "TASK_ID=TASK-CI-001" >> $GITHUB_ENV
