@@ -111,10 +111,27 @@ class TestMutationSafety:
     def test_mutations_disabled(self):
         assert confirm_mutations_disabled()
 
+# --- Reconciliation ---
+class TestReconciliation:
+    def test_audit_reconciliation_invoked(self, encrypted_backup):
+        priv, storage = encrypted_backup
+        req = RecoveryRequest("REC-001", "BKP-001", "operator")
+        req.approve("AMJAD_OWNER")
+        evidence = run_recovery(req, storage, priv, tempfile.mkdtemp())
+        assert "audit_reconciliation" in evidence
+        assert evidence["audit_reconciliation"].get("valid") is True
+
+    def test_checkpoint_evidence_recorded(self, encrypted_backup):
+        priv, storage = encrypted_backup
+        req = RecoveryRequest("REC-001", "BKP-001", "operator")
+        req.approve("AMJAD_OWNER")
+        evidence = run_recovery(req, storage, priv, tempfile.mkdtemp())
+        assert "checkpoint_reconciliation" in evidence
+
 # --- Count ---
 def test_restore_count():
     classes = [TestRecoveryAuthority, TestRecoveryPipeline,
-               TestSessionInvalidation, TestMutationSafety]
+               TestSessionInvalidation, TestMutationSafety, TestReconciliation]
     total = sum(1 for cls in classes for name in dir(cls) if name.startswith("test_"))
     print(f"\n=== HOS-4D.4C.3 Recovery Tests: {total} ===\n")
     assert total >= 9
