@@ -142,7 +142,7 @@ def run_recovery(
 
     # Step 18-20: Audit and checkpoint reconciliation
     audit_result = verify_hash_chain(restored_db)
-    if not audit_result.get("valid"):
+    if audit_result.get("integrity") != "INTACT":
         request.state = RecoveryState.RECONCILIATION_FAILED
         evidence["state"] = RecoveryState.RECONCILIATION_FAILED.value
         evidence["audit_reconciliation"] = audit_result

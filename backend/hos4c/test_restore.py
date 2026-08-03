@@ -30,6 +30,7 @@ def source_db():
     d = tempfile.mkdtemp()
     path = os.path.join(d, "test.db")
     conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE IF NOT EXISTS audit_events (event_id TEXT PRIMARY KEY, event_type TEXT, decision_id TEXT, action TEXT, actor_id TEXT, actor_role TEXT, session_id TEXT, previous_state TEXT, resulting_state TEXT, rationale TEXT, reason_code TEXT, created_at TEXT, hash TEXT, previous_hash TEXT)")
     conn.execute("CREATE TABLE decisions (id TEXT PRIMARY KEY, state TEXT)")
     conn.execute("CREATE TABLE sessions (token TEXT PRIMARY KEY, user_id TEXT)")
     conn.execute("INSERT INTO decisions VALUES ('DEC-001', 'AWAITING')")
@@ -119,7 +120,7 @@ class TestReconciliation:
         req.approve("AMJAD_OWNER")
         evidence = run_recovery(req, storage, priv, tempfile.mkdtemp())
         assert "audit_reconciliation" in evidence
-        assert evidence["audit_reconciliation"].get("valid") is True
+        assert evidence["audit_reconciliation"].get("integrity") == "INTACT"
 
     def test_checkpoint_evidence_recorded(self, encrypted_backup):
         priv, storage = encrypted_backup
