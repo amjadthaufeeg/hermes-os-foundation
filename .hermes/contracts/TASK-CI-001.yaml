@@ -17,8 +17,6 @@ allowed_files:
   - "deploy/hermes.service"
   - ".gitignore"
   - "*.md"
-
-allowed_folders:
   - ".hermes/"
   - ".github/"
   - "docs/"
