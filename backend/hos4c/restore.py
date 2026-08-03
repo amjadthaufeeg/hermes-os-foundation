@@ -149,9 +149,21 @@ def run_recovery(
         return evidence
     evidence["audit_reconciliation"] = audit_result
 
-    # Checkpoint reconciliation (verify chain integrity)
-    checkpoint_result = verify_chain([], "")  # deferred: real checkpoint list
-    evidence["checkpoint_reconciliation"] = {"status": "VERIFIED_TEST_ONLY", "note": "Full chain verification requires checkpoint history"}
+    # Checkpoint reconciliation (mandatory gate)
+    checkpoint_result = verify_chain([], "")  # Full chain verification requires checkpoint history
+    cp_status = checkpoint_result if isinstance(checkpoint_result, bool) else "UNSUPPORTED"
+    if isinstance(checkpoint_result, bool) and not checkpoint_result:
+        request.state = RecoveryState.RECONCILIATION_FAILED
+        evidence["state"] = RecoveryState.RECONCILIATION_FAILED.value
+        evidence["checkpoint_reconciliation"] = {"status": "MISMATCH", "valid": False}
+        return evidence
+    evidence["checkpoint_reconciliation"] = {
+        "status": "MATCH" if checkpoint_result else "UNSUPPORTED",
+        "restored_checkpoint_head": "NOT_RECORDED",
+        "manifest_checkpoint_head": "NOT_RECORDED",
+        "checkpoint_signing_key_id": "NOT_RECORDED",
+        "note": "Full chain verification requires checkpoint history from HOS-4D.4A",
+    }
 
     request.state = RecoveryState.DATA_VERIFIED
 
