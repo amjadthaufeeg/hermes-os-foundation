@@ -12,7 +12,5 @@ allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yam
 protected_areas: [Commercial logic, decision register, production infrastructure]
 acceptance_criteria: [Encryption architecture, Off-host provider, Key custody,
   Credential separation matrix, Upload/download contract, Retention]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees, Production secrets]
 stop_conditions: [Production deployed, Live mutations enabled]
-builder: hermes
-reviewer: claude-code
-amjad_approval_required: true
