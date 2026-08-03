@@ -1,0 +1,18 @@
+task_id: TASK-HOS-4D-4D
+project: Hermes Product OS
+release: HOS-4D.4D
+title: "Private Linux Staging and Incident-Response Validation"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Validate Hermes Product OS on a private Linux staging environment:
+  non-root service, systemd unit, Caddy reverse proxy, SQLite WAL,
+  health/readiness, structured logging, metrics, backup scheduling,
+  restore and recovery exercises, incident-response exercises,
+  RPO/RTO measurement. Local/containerized Linux only — no real VPS.
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, deploy/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+acceptance_criteria: [systemd validation, Caddy validation, service startup, health
+  checks, backup/restore exercise, incident exercises, RPO/RTO measurement]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees, Production secrets]
+stop_conditions: [Real VPS contacted, Production deployed, Live mutations enabled]
