@@ -22,7 +22,7 @@ REQUIRED_DIRS = {
 }
 
 PERMISSION_MATRIX = {
-    "app": 0o755,      # read+execute, no write
+    "app": 0o555,      # read+execute only (ReadOnlyPaths enforced)
     "config": 0o750,   # read+execute, group read
     "data": 0o700,     # hermes only
     "backup": 0o700,   # hermes only
