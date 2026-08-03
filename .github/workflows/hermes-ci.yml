@@ -34,10 +34,16 @@ jobs:
 
       - name: Install age encryption
         run: |
-          curl -sL https://github.com/FiloSottile/age/releases/download/v1.2.0/age-v1.2.0-linux-amd64.tar.gz -o /tmp/age.tar.gz
+          AGE_VERSION="v1.2.0"
+          AGE_CHECKSUM="e250bcd4d53ab6b98844fd0aa4a834dd52d17855e1937acabec42c03e4e6a7e3"
+          curl -sL "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-amd64.tar.gz" \
+            -o /tmp/age.tar.gz
+          echo "${AGE_CHECKSUM}  /tmp/age.tar.gz" | sha256sum -c
           tar -xzf /tmp/age.tar.gz -C /tmp
-          sudo mv /tmp/age/age /usr/local/bin/
-          sudo mv /tmp/age/age-keygen /usr/local/bin/
+          ls -la /tmp/age/
+          sudo cp /tmp/age/age /usr/local/bin/
+          sudo cp /tmp/age/age-keygen /usr/local/bin/
+          chmod +x /usr/local/bin/age /usr/local/bin/age-keygen
           age --version
 
       - name: Set CI environment
