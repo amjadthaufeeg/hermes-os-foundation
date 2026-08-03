@@ -1,0 +1,19 @@
+task_id: TASK-HOS-4D-4C-3
+project: Hermes Product OS
+release: HOS-4D.4C.3
+title: "Restore and Recovery Verification"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Design and validate controlled recovery: select recovery point,
+  retrieve encrypted backup, decrypt through separate recovery boundary,
+  restore into clean isolated database, reconcile audit/checkpoint chains,
+  invalidate restored sessions, preserve mutation-disable, measure RPO/RTO.
+  Isolated test mode only — no production restore.
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+acceptance_criteria: [Recovery point selection, Retrieval and decryption, Database
+  restore and validation, Audit/checkpoint reconciliation, Session invalidation,
+  Mutation-disable preservation, RPO/RTO measurement, Recovery evidence]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees, Production secrets]
+stop_conditions: [Production deployed, Live mutations enabled]
