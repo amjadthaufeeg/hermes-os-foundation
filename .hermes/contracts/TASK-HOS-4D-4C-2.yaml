@@ -1,0 +1,16 @@
+task_id: TASK-HOS-4D-4C-2
+project: Hermes Product OS
+release: HOS-4D.4C.2
+title: "Backup Encryption, Off-Host Storage and Production Key Custody"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Design backup encryption, off-host storage, signing-key custody,
+  credential separation, object-lock retention, and upload/download
+  architecture. Planning only — no real keys or uploads.
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/TASK-HOS-4D*.yaml]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+acceptance_criteria: [Encryption architecture, Off-host provider, Key custody,
+  Credential separation matrix, Upload/download contract, Retention]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees, Production secrets]
+stop_conditions: [Production deployed, Live mutations enabled]
