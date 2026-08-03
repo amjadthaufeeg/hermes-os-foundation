@@ -1,29 +1,51 @@
-# systemd service unit for Hermes Mission Control
-# Install: cp hermes.service /etc/systemd/system/ && systemctl daemon-reload
-
 [Unit]
-Description=Hermes Mission Control
+Description=Hermes Product OS — Decision Orchestration Service
+Documentation=https://github.com/amjadthaufeeg/hermes-os-foundation
 After=network.target
 
 [Service]
 Type=simple
 User=hermes
 Group=hermes
-WorkingDirectory=/opt/hermes
-ExecStart=/opt/hermes/venv/bin/uvicorn backend.hos4c.main:app --host 127.0.0.1 --port 8420
+WorkingDirectory=/opt/hermes/app
+EnvironmentFile=/opt/hermes/config/env
+ExecStart=/opt/hermes/.venv/bin/python -m uvicorn backend.hos4c.main:app --host 0.0.0.0 --port 8080
+ExecStop=/bin/kill -TERM $MAINPID
 Restart=on-failure
 RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=120
+TimeoutStartSec=30
+TimeoutStopSec=15
 
-# Environment
-EnvironmentFile=/opt/hermes/.env
+RuntimeDirectory=hermes
+StateDirectory=hermes
+LogsDirectory=hermes
 
 # Hardening
-NoNewPrivileges=yes
-PrivateTmp=yes
+NoNewPrivileges=true
+PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=yes
-ReadWritePaths=/opt/hermes/data /opt/hermes/logs
-UMask=0077
+ProtectHome=true
+ReadWritePaths=/opt/hermes/data /opt/hermes/backup /opt/hermes/runtime /var/log/hermes
+ReadOnlyPaths=/opt/hermes/app /opt/hermes/config
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+UMask=077
+
+# Security
+ProtectProc=invisible
+ProtectHostname=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
 
 [Install]
 WantedBy=multi-user.target
