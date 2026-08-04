@@ -1,0 +1,18 @@
+task_id: TASK-PHASE-A-VPS
+project: Hermes Product OS
+release: Phase A
+title: "Private VPS Staging — Operational Activation Planning"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Plan private VPS staging deployment: OS, server spec, non-root service,
+  systemd, Caddy, firewall, secrets, SQLite WAL, monitoring, alert delivery,
+  off-host storage, key custody, backup schedule, restore exercise,
+  incident exercises, RPO/RTO measurement. Planning only — no VPS access.
+allowed_files: [docs/hermes-os-v3.1/hos-4/**, .hermes/contracts/**, deploy/**]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+acceptance_criteria: [VPS architecture, Deployment sequence, Secrets plan,
+  Key custody plan, Monitoring plan, Exercise matrix, RPO/RTO plan]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees]
+stop_conditions: [Real VPS configured without authorization, Public access enabled,
+  Authoritative writes enabled, Live mutations enabled]
