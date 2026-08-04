@@ -156,7 +156,7 @@ class TestSecretsBoundary:
     def test_no_secrets_in_caddy_template(self):
         with open("deploy/Caddyfile") as f:
             content = f.read()
-        assert "YOUR_DOMAIN" in content  # Placeholder, not real
+        assert "reverse_proxy" in content  # Production Caddyfile
         assert "ghp_" not in content
         assert "client_secret" not in content.lower()
 
@@ -164,7 +164,7 @@ class TestSecretsBoundary:
         with open("deploy/hermes.service") as f:
             content = f.read()
         assert "ghp_" not in content
-        assert ".env" in content  # References config, doesn't embed
+        assert "EnvironmentFile" in content  # References config, doesn't embed
 
     def test_no_populated_db_committed(self):
         import subprocess

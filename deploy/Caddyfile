@@ -1,20 +1,46 @@
-# Caddy configuration for Hermes Mission Control — STAGING
-# Replace YOUR_DOMAIN with actual staging domain.
+# Hermes Product OS — Private Staging Caddy Configuration
+# Reverse proxy: localhost:8080 → loopback only, no public DNS
 
-YOUR_DOMAIN {
-    # Reverse proxy to FastAPI on loopback
-    reverse_proxy 127.0.0.1:8420
+:8081 {
+    bind 127.0.0.1
 
     # Security headers
     header {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
+        Referrer-Policy "no-referrer"
         -Server
     }
-}
 
-# HTTP → HTTPS redirect (production only)
-# :80 {
-#     redir https://{host}{uri} permanent
-# }
+    # Request limits
+    request_body {
+        max_size 1MB
+    }
+
+    # API proxy
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+
+        # Timeouts
+        transport {
+            read_timeout 30s
+            write_timeout 30s
+        }
+    }
+
+    # Health and metrics
+    handle /api/health* {
+        reverse_proxy localhost:8080
+    }
+    handle /api/metrics {
+        reverse_proxy localhost:8080
+    }
+
+    # Logging
+    log {
+        output file /var/log/hermes/caddy-access.log
+        format json
+    }
+}
