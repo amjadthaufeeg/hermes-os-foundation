@@ -125,42 +125,52 @@ def apply_transition(decision_id: str, action: str, expected_state: str,
         if existing:
             return json.loads(existing["result"])
 
-        # Read current state
-        row = db.execute("SELECT * FROM authoritative_decisions WHERE id = ?",
-                        (decision_id,)).fetchone()
-        if not row:
-            raise TransitionError(f"Decision {decision_id} not found", "NOT_FOUND")
-
-        decision = dict(row)
-        if decision["workflow_state"] != expected_state:
-            raise TransitionError(
-                f"Expected {expected_state} but decision is {decision['workflow_state']}",
-                "STATE_MISMATCH")
-        if decision["version"] != expected_version:
-            raise TransitionError(
-                f"Expected version {expected_version} but is {decision['version']}",
-                "VERSION_MISMATCH")
-
-        # Validate transition
-        try:
-            target = validate_transition(decision["workflow_state"], action, actor_role)
-        except ValueError as e:
-            raise TransitionError(str(e), "TRANSITION_FAILED")
-        new_version = expected_version + 1
-        now = datetime.now(timezone.utc).isoformat()
-
-        # Atomic transaction
+        # Begin transaction FIRST — then read, validate, and mutate atomically
         db.execute("BEGIN IMMEDIATE")
         try:
-            # Update decision
+            # Read current state INSIDE transaction
+            row = db.execute("SELECT * FROM authoritative_decisions WHERE id = ?",
+                            (decision_id,)).fetchone()
+            if not row:
+                db.execute("ROLLBACK")
+                raise TransitionError(f"Decision {decision_id} not found", "NOT_FOUND")
+
+            decision = dict(row)
+            if decision["workflow_state"] != expected_state:
+                db.execute("ROLLBACK")
+                raise TransitionError(
+                    f"Expected {expected_state} but decision is {decision['workflow_state']}",
+                    "STATE_MISMATCH")
+            if decision["version"] != expected_version:
+                db.execute("ROLLBACK")
+                raise TransitionError(
+                    f"Expected version {expected_version} but is {decision['version']}",
+                    "VERSION_MISMATCH")
+
+            # Validate transition
+            try:
+                target = validate_transition(decision["workflow_state"], action, actor_role)
+            except ValueError as e:
+                db.execute("ROLLBACK")
+                raise TransitionError(str(e), "TRANSITION_FAILED")
+            new_version = expected_version + 1
+            now = datetime.now(timezone.utc).isoformat()
+
+            # Update with version guard — only succeeds if version unchanged
             db.execute("""
                 UPDATE authoritative_decisions
                 SET workflow_state = ?, version = ?, updated_at = ?,
                     last_action = ?, last_actor_id = ?, rationale = ?,
                     evidence_ids = ?
-                WHERE id = ?
+                WHERE id = ? AND version = ?
             """, (target, new_version, now, action, actor_id, rationale,
-                  json.dumps(evidence_ids or []), decision_id))
+                  json.dumps(evidence_ids or []), decision_id, expected_version))
+
+            if db.total_changes == 0:
+                db.execute("ROLLBACK")
+                raise TransitionError(
+                    f"Version changed during mutation (expected {expected_version})",
+                    "VERSION_MISMATCH")
 
             # Append audit event
             audit_id = str(uuid.uuid4())
