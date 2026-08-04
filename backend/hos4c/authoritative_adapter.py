@@ -204,8 +204,13 @@ def apply_transition(decision_id: str, action: str, expected_state: str,
                     "new_version": new_version, "audit_id": audit_id}), now))
 
             db.execute("COMMIT")
-        except Exception:
-            db.execute("ROLLBACK")
+        except Exception as e:
+            try:
+                db.execute("ROLLBACK")
+            except Exception:
+                pass  # Already rolled back
+            if isinstance(e, TransitionError):
+                raise
             raise TransitionError("Transaction failed — rolled back", "TRANSACTION_FAILED")
 
         return {"result": "success", "new_state": target,
