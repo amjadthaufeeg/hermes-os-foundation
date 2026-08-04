@@ -122,8 +122,8 @@ def validate_transition(from_state: str, to_state: str) -> bool:
 
 # --- Activation Checklist ---
 CHECKLIST: dict[str, dict] = {
-    "code": {"tests_242": "PASS", "ci_green": "PASS", "governance": "PASS"},
-    "security": {"oauth": "PASS", "csrf": "PASS", "toctou": "OPEN", "authority_matrix": "OPEN"},
+    "code": {"tests_260": "PASS", "ci_green": "PASS", "governance": "PASS"},
+    "security": {"oauth": "PASS", "csrf": "PASS", "toctou": "PASS", "authority_matrix": "PASS"},
     "runtime": {"private_vps": "NOT_PROVEN", "systemd": "PASS", "caddy": "PASS"},
     "recovery": {"off_host_backup": "NOT_PROVEN", "restore_exercise": "NOT_PROVEN", "rpo_rto": "NOT_PROVEN"},
     "authority": {"hermes_approval": "PASS", "hermes_recovery": "PASS", "hermes_mutation": "PASS", "amjad_activation": "OPEN"},
