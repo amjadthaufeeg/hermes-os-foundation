@@ -67,10 +67,9 @@ Deploy Hermes Product OS with read-only access to production data sources so tha
 
 ## 9. Production Database Access
 
-- SQLite file opened with `SQLITE_OPEN_READONLY`
-- No WAL or journal writes from read-only connection
-- Separate connection for monitoring queries
-- No schema modifications
+**CRITICAL ARCHITECTURE DECISION: Snapshot/replica only. Direct live mount is REJECTED.**
+
+SQLite in WAL mode requires write access...[truncated]
 
 ## 10. Logging and Audit
 
