@@ -1,0 +1,19 @@
+task_id: TASK-PHASE-B
+project: Hermes Product OS
+release: Phase B
+title: "Production Read-Only Readiness Planning"
+task_type: architecture
+risk_level: R4
+objective: >
+  Plan production read-only deployment: define exactly what read-only means,
+  production data sources, required credentials, network trust boundaries,
+  read-only enforcement controls, proof Hermes cannot mutate, failure modes,
+  blast-radius analysis, kill switch, RPO/RTO validation, and authorization
+  gates. Planning only — no production systems connected.
+allowed_files: [docs/hermes-os-v3.1/**]
+protected_areas: [Commercial logic, decision register, production infrastructure]
+acceptance_criteria: [Definition of read-only, Credential model, Trust boundaries,
+  Read-only enforcement proof, Failure mode analysis, Kill switch, Authorization gates]
+must_not_change: [Frozen HOS-3 baselines, HOS-4C security guarantees, Production secrets]
+stop_conditions: [Production systems connected, Production credentials created,
+  Authoritative writes enabled, Live mutations enabled]
