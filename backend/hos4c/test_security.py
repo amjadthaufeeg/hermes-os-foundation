@@ -5,6 +5,8 @@ Run: python3.11 -m pytest backend/hos4c/test_security.py -v
 
 import pytest, json, os, sqlite3, tempfile
 from starlette.testclient import TestClient
+from unittest.mock import patch
+import backend.hos4c.main as main_mod
 
 # One temp DB for the entire test run
 TEST_DB = tempfile.mktemp(suffix=".db")
@@ -17,7 +19,7 @@ def fresh_db():
     """Fresh database per test function."""
     os.environ["DATABASE_PATH"] = TEST_DB
     os.environ["SIMULATION_MODE"] = "true"
-    os.environ["MUTATIONS_DISABLED"] = "false"  # Allow simulation actions in tests
+    os.environ["MUTATIONS_DISABLED"] = "true"  # TASK-001: policy prohibits
     from backend.hos4c.database import init_db
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
@@ -37,6 +39,7 @@ def fresh_db():
 # Cookie Diagnostic — must pass first
 # ============================================================
 class TestCookieDiagnostic:
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_cookie_persistence(self, fresh_db):
         """Login sets cookie → next request uses it."""
         with TestClient(app) as c:
@@ -46,6 +49,7 @@ class TestCookieDiagnostic:
             r2 = c.get("/api/auth/session")
             assert r2.json()["authenticated"] == True
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_logout_invalidates(self, fresh_db):
         """Login → logout → session gone."""
         with TestClient(app) as c:
@@ -56,6 +60,7 @@ class TestCookieDiagnostic:
             r2 = c.get("/api/auth/session")
             assert r2.json()["authenticated"] == False
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_missing_session_rejected(self, fresh_db):
         """No login → session endpoint says unauthenticated."""
         with TestClient(app) as c:
@@ -66,6 +71,7 @@ class TestCookieDiagnostic:
 # Authentication
 # ============================================================
 class TestAuthentication:
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_simulated_login(self, fresh_db):
         with TestClient(app) as c:
             r = c.post("/api/auth/login")
@@ -131,6 +137,7 @@ class TestCSRF:
         r = c.post("/api/auth/login")
         return r.json()["csrf_token"]
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_valid_csrf_action(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login_and_csrf(c)
@@ -139,6 +146,7 @@ class TestCSRF:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 200
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_invalid_csrf_token(self, fresh_db):
         with TestClient(app) as c:
             self._login_and_csrf(c)
@@ -147,6 +155,7 @@ class TestCSRF:
                       headers={"X-CSRF-Token": "bad-token"})
             assert r.status_code in (401, 403)
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_missing_csrf_token(self, fresh_db):
         with TestClient(app) as c:
             self._login_and_csrf(c)
@@ -154,6 +163,7 @@ class TestCSRF:
                       json={"action": "DEFER", "rationale": "x" * 30})
             assert r.status_code in (401, 403)
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_unauthenticated_csrf(self, fresh_db):
         with TestClient(app) as c:
             r = c.post("/api/decisions/DEC-HOS-001/actions",
@@ -169,6 +179,7 @@ class TestConfirmation:
         r = c.post("/api/auth/login")
         return r.json()["csrf_token"]
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_missing_typed_confirmation(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -177,6 +188,7 @@ class TestConfirmation:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 422
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_correct_confirmation(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -185,6 +197,7 @@ class TestConfirmation:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 200
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_wrong_confirmation(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -193,6 +206,7 @@ class TestConfirmation:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 422
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_wrong_case(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -201,6 +215,7 @@ class TestConfirmation:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 422
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_short_rationale(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -217,6 +232,7 @@ class TestSessionFlows:
         r = c.post("/api/auth/login")
         return r.json()["csrf_token"]
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_login_action_flow(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -225,6 +241,7 @@ class TestSessionFlows:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 200
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_login_action_logout_flow(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -238,6 +255,7 @@ class TestSessionFlows:
                        headers={"X-CSRF-Token": csrf})
             assert r2.status_code in (401, 403)
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_login_action_resume_flow(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -250,6 +268,7 @@ class TestSessionFlows:
                        headers={"X-CSRF-Token": csrf})
             assert r2.status_code == 200
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_approve_with_confirmation(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -261,6 +280,7 @@ class TestSessionFlows:
             assert d["mode"] == "SIMULATION"
             assert "NO AUTHORITATIVE" in d.get("warning", "")
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_reject_with_confirmation(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -303,6 +323,7 @@ class TestConcurrency:
     def _login(self, c):
         return c.post("/api/auth/login").json()["csrf_token"]
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_state_transition_persists(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -311,6 +332,7 @@ class TestConcurrency:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code == 200
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_hold_resume_cycle(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -323,6 +345,7 @@ class TestConcurrency:
                        headers={"X-CSRF-Token": csrf})
             assert r2.status_code == 200
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_audit_event_produced(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -359,6 +382,7 @@ class TestSecurityInput:
     def _login(self, c):
         return c.post("/api/auth/login").json()["csrf_token"]
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_xss_in_rationale(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)
@@ -367,11 +391,13 @@ class TestSecurityInput:
                       headers={"X-CSRF-Token": csrf})
             assert r.status_code in (200, 422)
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_sql_injection_safe(self, fresh_db):
         with TestClient(app) as c:
             r = c.get("/api/decisions/DEC-HOS-001' OR '1'='1")
             assert r.status_code == 404
 
+    @patch.object(main_mod, "mutations_disabled", return_value=False)
     def test_large_payload(self, fresh_db):
         with TestClient(app) as c:
             csrf = self._login(c)

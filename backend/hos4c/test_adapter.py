@@ -7,13 +7,15 @@ Run: python3.11 -m pytest backend/hos4c/test_adapter.py -v
 
 import pytest, os, tempfile, json, uuid
 from starlette.testclient import TestClient
+from unittest.mock import patch
+import backend.hos4c.authoritative_adapter as adapter_mod
 
 TEST_AUTH_DB = tempfile.mktemp(suffix=".db")
 TEST_RT_DB = tempfile.mktemp(suffix=".db")
 os.environ["AUTH_DB_PATH"] = TEST_AUTH_DB
 os.environ["DATABASE_PATH"] = TEST_RT_DB
 os.environ["SIMULATION_MODE"] = "true"
-os.environ["MUTATIONS_DISABLED"] = "false"
+os.environ["MUTATIONS_DISABLED"] = "true"  # TASK-001
 
 from backend.hos4c.authoritative_adapter import (
     init_auth_db, get_decision, list_decisions,
@@ -29,7 +31,7 @@ def fresh_auth_db():
     TEST_RT_DB = tempfile.mktemp(suffix=".db")
     os.environ["AUTH_DB_PATH"] = TEST_AUTH_DB
     os.environ["DATABASE_PATH"] = TEST_RT_DB
-    os.environ["MUTATIONS_DISABLED"] = "false"
+    os.environ["MUTATIONS_DISABLED"] = "true"  # TASK-001
 
     from backend.hos4c.authoritative_adapter import init_auth_db, get_auth_db
     init_auth_db()
@@ -68,7 +70,8 @@ class TestAdapterReads:
 
 # --- Transition Authorization ---
 class TestTransitionAuth:
-    def test_valid_transition(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_valid_transition(self, _mock):
         result = apply_transition(
             "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
             "amjad", "AMJAD_OWNER", "Testing deferral.",
@@ -77,21 +80,24 @@ class TestTransitionAuth:
         assert result["new_version"] == 2
         assert result["new_state"] == "DEFERRED"
 
-    def test_wrong_role_denied(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_wrong_role_denied(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
             apply_transition(
                 "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
                 "reviewer-1", "REVIEWER", "I shouldn't defer.",
                 str(uuid.uuid4()))
 
-    def test_hermes_denied(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_hermes_denied(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
             apply_transition(
                 "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
                 "hermes", "HERMES_ASSISTANT", "Hermes cannot approve.",
                 str(uuid.uuid4()))
 
-    def test_system_service_denied(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_system_service_denied(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
             apply_transition(
                 "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
@@ -100,7 +106,8 @@ class TestTransitionAuth:
 
 # --- State and Version Validation ---
 class TestStateVersion:
-    def test_invalid_transition_rejected(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_invalid_transition_rejected(self, _mock):
         """RESUME from AWAITING_AMJAD is invalid — only valid from HOLD."""
         with pytest.raises(TransitionError, match="TRANSITION_FAILED"):
             apply_transition(
@@ -108,14 +115,16 @@ class TestStateVersion:
                 "amjad", "AMJAD_OWNER", "Can't resume from AWAITING_AMJAD.",
                 str(uuid.uuid4()))
 
-    def test_stale_version_rejected(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_stale_version_rejected(self, _mock):
         with pytest.raises(TransitionError, match="VERSION_MISMATCH"):
             apply_transition(
                 "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 99,
                 "amjad", "AMJAD_OWNER", "Wrong version.",
                 str(uuid.uuid4()))
 
-    def test_state_mismatch_rejected(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_state_mismatch_rejected(self, _mock):
         with pytest.raises(TransitionError, match="STATE_MISMATCH"):
             apply_transition(
                 "DEC-TEST-001", "RESUME", "HOLD", 1,
@@ -124,7 +133,8 @@ class TestStateVersion:
 
 # --- Idempotency ---
 class TestIdempotency:
-    def test_duplicate_key_returns_original(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_duplicate_key_returns_original(self, _mock):
         key = str(uuid.uuid4())
         r1 = apply_transition(
             "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
@@ -134,7 +144,8 @@ class TestIdempotency:
             "amjad", "AMJAD_OWNER", "Duplicate.", key)
         assert r1["new_version"] == r2["new_version"]
 
-    def test_reused_key_changed_payload_rejected(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_reused_key_changed_payload_rejected(self, _mock):
         key = str(uuid.uuid4())
         apply_transition(
             "DEC-TEST-001", "PLACE_ON_HOLD", "AWAITING_AMJAD", 1,
@@ -148,7 +159,8 @@ class TestSQLSecurity:
         d = get_decision("DEC-TEST-001' OR '1'='1")
         assert d is None
 
-    def test_sql_injection_in_rationale(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_sql_injection_in_rationale(self, _mock):
         result = apply_transition(
             "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
             "amjad", "AMJAD_OWNER",
@@ -237,7 +249,8 @@ class TestRealSourceIsolation:
             after = len(os.listdir(reg_dir))
             assert before == after
 
-    def test_hermes_authority_zero(self):
+    @patch.object(adapter_mod, "mutations_disabled", return_value=False)
+    def test_hermes_authority_zero(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
             apply_transition(
                 "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,

@@ -1,5 +1,6 @@
 """HOS-4C: FastAPI Backend — Simulation Mode Only"""
 
+import sys
 import uuid, time, json, secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, HTTPException, Depends, Body
@@ -32,10 +33,17 @@ from backend.hos4c.state_machine import (
 from backend.hos4c.auth_oauth import (
     oauth_login_redirect, oauth_callback, SIMULATION_MODE as OAUTH_SIM,
 )
-from backend.hos4c.environment import get_env as env_get_env, is_protected, mutations_disabled, validate_startup
+from backend.hos4c.environment import get_env as env_get_env, is_protected, mutations_disabled, validate_startup, startup_policy_check
 from backend.hos4c.observability import logger, metrics, set_observability_state
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Hermes Decision Actions", version="0.1.0-simulation")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: enforce policy before serving. Shutdown: no-op."""
+    startup_policy_check()
+    yield
+
+app = FastAPI(title="Hermes Decision Actions", version="0.1.0-simulation", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

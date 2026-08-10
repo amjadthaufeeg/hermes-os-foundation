@@ -14,7 +14,7 @@ TEST_DB = tempfile.mktemp(suffix=".db")
 def setup():
     os.environ["DATABASE_PATH"] = TEST_DB
     os.environ["SIMULATION_MODE"] = "true"
-    os.environ["MUTATIONS_DISABLED"] = "false"
+    os.environ["MUTATIONS_DISABLED"] = "true"
     os.environ["HERMES_ENVIRONMENT"] = "LOCAL_SIMULATION"
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
@@ -57,12 +57,14 @@ class TestEnvironmentPolicy:
         from backend.hos4c.environment import get_env
         assert get_env().value in ("LOCAL_SIMULATION", "LOCAL_TEST")
 
-    def test_invalid_env_falls_back(self, monkeypatch):
+    def test_invalid_env_raises(self, monkeypatch):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "INVALID_ENV")
         from backend.hos4c.environment import get_env
-        assert get_env().value != "INVALID_ENV"
-        assert get_env().value != "PRODUCTION"
-        assert get_env().value in ("LOCAL_SIMULATION", "LOCAL_TEST")
+        env_val = os.environ.get("HERMES_ENVIRONMENT", "")
+        # Module-level ENV already cached LOCAL_SIMULATION from autouse fixture
+        # But get_env() re-reads env var — should raise for invalid
+        with pytest.raises(ValueError):
+            get_env()
 
 # --- Startup Validation ---
 class TestStartupValidation:
@@ -94,10 +96,12 @@ class TestMutationDisable:
         from backend.hos4c.environment import mutations_disabled
         assert mutations_disabled() == True
 
-    def test_explicit_false(self, monkeypatch):
+    def test_explicit_false_overridden_by_policy(self, monkeypatch):
         monkeypatch.setenv("MUTATIONS_DISABLED", "false")
         from backend.hos4c.environment import mutations_disabled
-        assert mutations_disabled() == False
+        # TASK-001: policy is authoritative — environment prohibits mutations
+        # even if MUTATIONS_DISABLED=false
+        assert mutations_disabled() == True
 
     def test_malformed_defaults_disabled(self, monkeypatch):
         monkeypatch.setenv("MUTATIONS_DISABLED", "garbage")

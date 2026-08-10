@@ -16,7 +16,7 @@ from backend.hos4c.main import app
 @pytest.fixture(autouse=True)
 def setup():
     os.environ["HERMES_ENVIRONMENT"] = "LOCAL_SIMULATION"
-    os.environ["MUTATIONS_DISABLED"] = "false"
+    os.environ["MUTATIONS_DISABLED"] = "true"
 
 @pytest.fixture
 def client():
