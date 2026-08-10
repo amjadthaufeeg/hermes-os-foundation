@@ -122,16 +122,30 @@ class TestLifespanRejectsFatalConfig:
         monkeypatch.setenv("MUTATIONS_DISABLED", "false")
         monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
         monkeypatch.setenv("SIMULATION_MODE", "true")
+        from backend.hos4c.database import init_db
+        init_db()
+
+        # Test the actual FastAPI lifespan via TestClient
+        from starlette.testclient import TestClient
+        from backend.hos4c.main import app
         with pytest.raises(RuntimeError, match="fatal configuration"):
-            startup_policy_check()
+            with TestClient(app, raise_server_exceptions=True):
+                pass
 
     def test_t12_lifespan_with_true_starts_ok(self, monkeypatch, tmp_path):
         monkeypatch.setenv("HERMES_ENVIRONMENT", "LOCAL_TEST")
         monkeypatch.setenv("MUTATIONS_DISABLED", "true")
         monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
         monkeypatch.setenv("SIMULATION_MODE", "true")
-        # Should not raise
-        startup_policy_check()
+        from backend.hos4c.database import init_db
+        init_db()
+
+        # Test the actual FastAPI lifespan via TestClient
+        from starlette.testclient import TestClient
+        from backend.hos4c.main import app
+        with TestClient(app, raise_server_exceptions=False) as c:
+            r = c.get("/api/health")
+            assert r.status_code == 200
 
 
 # ---------------------------------------------------------------------------
