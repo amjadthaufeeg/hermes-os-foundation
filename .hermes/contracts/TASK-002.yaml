@@ -1,0 +1,27 @@
+task_id: TASK-002
+project: Hermes Product OS
+phase: Phase B
+title: "Snapshot Refresh Orchestrator — Stub Implementation"
+task_type: infrastructure
+risk_level: R2
+objective: >
+  Build a root-controlled snapshot refresh mechanism that periodically creates,
+  validates, and atomically publishes a read-only SQLite snapshot. The source
+  adapter uses a Test-B stub source until production credentials exist (B3).
+  Hermes never touches the live source. Mutations remain disabled.
+allowed_files: [deploy/snapshot-timer/, backend/hos4c/snapshot/]
+protected_areas: [Production DB paths, production credentials]
+acceptance_criteria:
+  - Timer/scheduler invokes snapshot refresh every 15 min
+  - SQLite .backup creates consistent snapshot from stub source
+  - Integrity check runs before publish
+  - Atomic .tmp rename prevents partial reads
+  - chown root:10010, chmod 440 on published snapshot
+  - Old snapshot remains untouched on refresh failure
+  - Concurrent run protection (lock file or flock)
+  - Structured JSON log output
+  - Hermes container reads published snapshot, mutations stay DISABLED
+stop_conditions:
+  - Production DB path appears in source adapter config
+  - Production credentials consumed
+  - Hermes gains write access to live source
