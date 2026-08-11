@@ -5,6 +5,12 @@ P3 — Production Database Initialization (One-Shot)
 Creates production.db with approved schema matching backend/hos4c/database.py.
 Idempotent — validates full schema on re-run. No simulation data.
 Exits 0 if DB already initialized and valid, 2 on error.
+
+Privilege model:
+  - Volume directory must be root-owned before initialization.
+  - Initializer runs as root (no DAC_OVERRIDE needed).
+  - After successful schema creation and WAL checkpoint, ownership
+    is handed to 10010:10010 for the production API container.
 """
 import os
 import sys
@@ -26,66 +32,60 @@ EXPECTED_INDEXES = {
 
 def verify_existing(conn):
     """Verify existing database has expected schema and integrity."""
-    # Integrity
     integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
     if integrity != "ok":
         print(f"ERROR: integrity_check failed: {integrity}")
         return False
 
-    # Tables
     actual = {r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table'")}
     if not EXPECTED_TABLES.issubset(actual):
-        missing = EXPECTED_TABLES - actual
-        print(f"ERROR: missing tables: {missing}")
+        print(f"ERROR: missing tables: {EXPECTED_TABLES - actual}")
         return False
 
-    # Indexes
     idx_actual = {r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='index'")}
     if not EXPECTED_INDEXES.issubset(idx_actual):
-        missing = EXPECTED_INDEXES - idx_actual
-        print(f"ERROR: missing indexes: {missing}")
+        print(f"ERROR: missing indexes: {EXPECTED_INDEXES - idx_actual}")
         return False
 
-    # Schema version
     row = conn.execute(
         "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
     ).fetchone()
     if not row:
         print("ERROR: schema_version table has no rows")
         return False
-    version = row[0]
-    if version != SCHEMA_VERSION:
-        print(f"ERROR: expected version {SCHEMA_VERSION}, got {version}")
+    if row[0] != SCHEMA_VERSION:
+        print(f"ERROR: expected version {SCHEMA_VERSION}, got {row[0]}")
         return False
 
     return True
 
 
-def setup_ownership():
-    """Set ownership for production container (UID 10010, GID 10010).
-    Docker named volumes are initially root-owned. The production
-    API runs as UID 10010 and needs read/write access to create
-    WAL/SHM files and manage the database."""
-    # Directory: 10010 needs to create -wal/-shm files
+def hand_over_ownership():
+    """Transfer ownership to production API container (UID 10010).
+    Called after schema creation and WAL checkpoint. From this point,
+    root no longer needs write access to the data directory."""
     os.chown(DATA_DIR, 10010, 10010)
     os.chmod(DATA_DIR, 0o750)
-
-    # Database file
     os.chown(DB_PATH, 10010, 10010)
     os.chmod(DB_PATH, 0o640)
-
-    # WAL/SHM if present (may not exist after clean checkpoint close)
-    wal = DB_PATH + "-wal"
-    shm = DB_PATH + "-shm"
-    for f in (wal, shm):
+    # WAL/SHM should not exist after wal_checkpoint(TRUNCATE)
+    for ext in ("-wal", "-shm"):
+        f = DB_PATH + ext
         if os.path.exists(f):
             os.chown(f, 10010, 10010)
             os.chmod(f, 0o640)
 
 
 def main():
+    # Verify directory is root-writable
+    if not os.access(DATA_DIR, os.W_OK):
+        print(f"ERROR: data directory not writable: {DATA_DIR}")
+        print(f"  owner={os.stat(DATA_DIR).st_uid}, mode={oct(os.stat(DATA_DIR).st_mode)}")
+        print(f"  Run chown root:root {DATA_DIR} before initialization.")
+        sys.exit(2)
+
     if os.path.exists(DB_PATH):
         try:
             conn = sqlite3.connect(DB_PATH)
@@ -105,7 +105,6 @@ def main():
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
 
-    # Schema from backend/hos4c/database.py — exact match
     conn.executescript("""
         CREATE TABLE decisions (
             id TEXT PRIMARY KEY,
@@ -181,12 +180,11 @@ def main():
         VALUES (1, datetime('now'));
     """)
 
-    # Checkpoint WAL to clean up sidecar files
     conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     conn.commit()
     conn.close()
 
-    setup_ownership()
+    hand_over_ownership()
 
     print(f"Database initialized at version {SCHEMA_VERSION}: {DB_PATH}")
     return 0
