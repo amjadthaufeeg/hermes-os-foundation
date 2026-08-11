@@ -253,14 +253,24 @@ def revoke_all_sessions(request: Request):
 # --- Decisions ---
 @app.get("/api/decisions")
 def list_decisions():
-    return {"decisions": SIM_DECISIONS, "count": len(SIM_DECISIONS), "mode": "SIMULATION"}
+    if SIMULATION_MODE:
+        return {"decisions": SIM_DECISIONS, "count": len(SIM_DECISIONS), "mode": "SIMULATION"}
+    with get_db() as db:
+        rows = db.execute("SELECT * FROM decisions ORDER BY id").fetchall()
+        return {"decisions": [dict(r) for r in rows], "count": len(rows), "mode": "PRODUCTION"}
 
 @app.get("/api/decisions/{decision_id}")
 def get_decision(decision_id: str):
-    for d in SIM_DECISIONS:
-        if d["id"] == decision_id:
-            return {**d, "mode": "SIMULATION"}
-    raise HTTPException(404, "Decision not found")
+    if SIMULATION_MODE:
+        for d in SIM_DECISIONS:
+            if d["id"] == decision_id:
+                return {**d, "mode": "SIMULATION"}
+        raise HTTPException(404, "Decision not found")
+    with get_db() as db:
+        row = db.execute("SELECT * FROM decisions WHERE id = ?", (decision_id,)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Decision not found")
+        return {**dict(row), "mode": "PRODUCTION"}
 
 # --- Controlled Action ---
 @app.post("/api/decisions/{decision_id}/actions")
@@ -270,10 +280,10 @@ def perform_action(
     body: ActionRequest,
 ):
 
-    validate_csrf(request)
-
     if mutations_disabled():
         raise HTTPException(503, "Mutations disabled — simulation only")
+
+    validate_csrf(request)
 
     session_id = request.cookies.get("hermes_session", "sess-simulated")
     session = get_session(session_id)
