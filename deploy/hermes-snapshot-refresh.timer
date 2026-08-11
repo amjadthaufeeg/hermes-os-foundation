@@ -1,0 +1,12 @@
+[Unit]
+Description=Hermes Snapshot Refresh Timer
+Requires=hermes-snapshot-refresh.service
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=900
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

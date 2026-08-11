@@ -1,0 +1,23 @@
+[Unit]
+Description=Hermes Snapshot Refresh
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/hermes-snapshot.conf
+ExecStart=/usr/local/bin/hermes-snapshot-refresh
+StandardOutput=journal
+StandardError=journal
+TimeoutSec=120
+Restart=no
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/hermes/snapshots /var/lock
+ReadOnlyPaths=/var/lib/hermes
+UMask=077

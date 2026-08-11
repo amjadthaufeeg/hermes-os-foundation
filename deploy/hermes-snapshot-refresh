@@ -1,0 +1,121 @@
+#!/bin/bash
+# Hermes Product OS — Snapshot Refresh (B2a)
+# Root-controlled. Hermes never touches the source database.
+# Exits: 0=published, 10=skipped (lock), 2=failed (old snapshot preserved)
+set -uo pipefail
+
+# === Configuration ===
+LOCK_FILE="${LOCK_FILE:-/var/lock/hermes-snapshot.lock}"
+SNAPSHOT_DIR="${SNAPSHOT_DIR:-/var/lib/hermes/snapshots}"
+PUBLISHED="${SNAPSHOT_DIR}/snapshot.db"
+SNAPSHOT_TMP="${SNAPSHOT_DIR}/snapshot.db.tmp"
+METADATA="${SNAPSHOT_DIR}/snapshot.meta.json"
+METADATA_TMP="${SNAPSHOT_DIR}/snapshot.meta.json.tmp"
+SOURCE_DB="${SOURCE_DB:-/var/lib/hermes/source-test.db}"
+
+now_utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+log()    { echo "$(now_utc) $*" >&2; }
+
+# === Locking (mkdir + PID — portable, with stale-lock recovery) ===
+LOCK_PID_FILE="$LOCK_FILE/pid"
+if ! mkdir "$LOCK_FILE" 2>/dev/null; then
+    # Lock directory exists — check for stale lock
+    if [ -f "$LOCK_PID_FILE" ]; then
+        old_pid=$(cat "$LOCK_PID_FILE" 2>/dev/null)
+        if [ -n "$old_pid" ] && ! kill -0 "$old_pid" 2>/dev/null; then
+            log "STALE_LOCK_DETECTED: pid $old_pid is dead, removing stale lock"
+            rm -rf "$LOCK_FILE"
+            mkdir "$LOCK_FILE" || { log "SKIPPED_LOCKED: cannot acquire lock"; exit 10; }
+        else
+            log "SKIPPED_LOCKED: refresh already in progress (pid $old_pid)"
+            exit 10
+        fi
+    else
+        log "SKIPPED_LOCKED: refresh already in progress"
+        exit 10
+    fi
+fi
+echo $$ > "$LOCK_PID_FILE"
+trap 'rm -rf "$LOCK_FILE" 2>/dev/null' EXIT
+
+start_ts=$(date +%s)
+
+# === Verify source ===
+if [ ! -r "$SOURCE_DB" ]; then
+    log "FAILED: source not readable: $SOURCE_DB"
+    exit 2
+fi
+
+# === Prepare directories ===
+mkdir -p "$SNAPSHOT_DIR"
+
+# === Create candidate ===
+sqlite3 "$SOURCE_DB" ".backup $SNAPSHOT_TMP" 2>/tmp/hermes-snapshot-backup-err.log
+
+# === Integrity check ===
+integrity_result=$(sqlite3 "$SNAPSHOT_TMP" "PRAGMA integrity_check;" 2>&1)
+if [ "$integrity_result" != "ok" ]; then
+    log "FAILED: integrity_check returned: $integrity_result"
+    rm -f "$SNAPSHOT_TMP"
+    exit 2
+fi
+
+# === Basic schema validation ===
+decisions_count=$(sqlite3 "$SNAPSHOT_TMP" "SELECT COUNT(*) FROM decisions;" 2>/dev/null || echo "0")
+if [ "$decisions_count" = "0" ]; then
+    # Could be empty source or corrupted backup
+    log "WARNING: candidate has 0 decisions — checking schema"
+    table_check=$(sqlite3 "$SNAPSHOT_TMP" "SELECT name FROM sqlite_master WHERE type='table' AND name='decisions';" 2>/dev/null || echo "")
+    if [ "$table_check" != "decisions" ]; then
+        log "FAILED: decisions table missing in candidate"
+        rm -f "$SNAPSHOT_TMP"
+        exit 2
+    fi
+fi
+log "candidate valid: integrity=ok decisions_count=$decisions_count"
+
+# === Ownership and permissions ===
+if [ "$(id -u)" = "0" ]; then
+    chown root:10010 "$SNAPSHOT_TMP"
+else
+    log "WARNING: not running as root — skipping chown (test environment)"
+fi
+chmod 440 "$SNAPSHOT_TMP" 2>/dev/null || chmod 644 "$SNAPSHOT_TMP"  # fallback for non-root
+
+# === Atomic snapshot publish ===
+mv "$SNAPSHOT_TMP" "$PUBLISHED"
+
+# === SHA-256 ===
+sha256=$(sha256sum "$PUBLISHED" | cut -d' ' -f1)
+
+# === Duration ===
+end_ts=$(date +%s)
+duration_s=$((end_ts - start_ts))
+
+# === Metadata candidate ===
+cat > "$METADATA_TMP" <<METAEOF
+{
+  "result": "published",
+  "created_at_utc": "$(now_utc)",
+  "source_id": "$SOURCE_DB",
+  "sha256": "$sha256",
+  "duration_s": $duration_s,
+  "validation": {
+    "integrity_check": "ok",
+    "decisions_count": $decisions_count
+  }
+}
+METAEOF
+
+chown root:10010 "$METADATA_TMP" 2>/dev/null || true
+chmod 440 "$METADATA_TMP" 2>/dev/null || true
+
+# === Atomic metadata publish ===
+if mv "$METADATA_TMP" "$METADATA"; then
+    log "SUCCESS: snapshot published ($decisions_count decisions, ${duration_s}s)"
+else
+    log "FAILED: snapshot published but metadata mv failed — metadata not updated"
+    exit 2
+fi
+
+exit 0
