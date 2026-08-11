@@ -19,6 +19,6 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/hermes/snapshots /var/lock
+ReadWritePaths=/var/lib/hermes/snapshots /var/lock /var/lib/hermes/b2a-test
 ReadOnlyPaths=/var/lib/hermes
 UMask=077

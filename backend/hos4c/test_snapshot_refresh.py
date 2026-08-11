@@ -224,6 +224,19 @@ class TestConcurrency:
         finally:
             os.rmdir(lock)
 
+
+    @pytest.mark.skipif(not FLOCK_AVAILABLE, reason="flock not available")
+    def test_t9b_lock_open_failure_exits_2(self, tmp_path):
+        source = str(tmp_path / "source.db")
+        snap_dir = str(tmp_path / "snapshots")
+        lock = str(tmp_path / "nonexistent_dir")  # parent dir doesn't exist
+        _create_source_db(source, decisions=1)
+        os.makedirs(snap_dir)
+
+        code, stdout, stderr = _run_refresh(source, snap_dir, lock)
+        assert code == 2
+        assert "not writable" in stderr
+
     def test_t10_no_second_candidate_under_lock(self, tmp_path):
         source = str(tmp_path / "source.db")
         snap_dir = str(tmp_path / "snapshots")
