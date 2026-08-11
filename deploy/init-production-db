@@ -6,11 +6,12 @@ Creates production.db with approved schema matching backend/hos4c/database.py.
 Idempotent — validates full schema on re-run. No simulation data.
 Exits 0 if DB already initialized and valid, 2 on error.
 
-Privilege model:
-  - Volume directory must be root-owned before initialization.
-  - Initializer runs as root (no DAC_OVERRIDE needed).
-  - After successful schema creation and WAL checkpoint, ownership
-    is handed to 10010:10010 for the production API container.
+Privilege model (Option C):
+  - Runs as UID 10010 (Hermes runtime identity).
+  - Volume directory must be pre-prepared: 10010:10010, mode 750.
+  - No root. No CHOWN. No DAC_OVERRIDE. No cap_add.
+  - Creates DB as 10010, chmods to 640.
+  - Handoff not needed — same identity as production API.
 """
 import os
 import sys
@@ -62,28 +63,12 @@ def verify_existing(conn):
     return True
 
 
-def hand_over_ownership():
-    """Transfer ownership to production API container (UID 10010).
-    Called after schema creation and WAL checkpoint. From this point,
-    root no longer needs write access to the data directory."""
-    os.chown(DATA_DIR, 10010, 10010)
-    os.chmod(DATA_DIR, 0o750)
-    os.chown(DB_PATH, 10010, 10010)
-    os.chmod(DB_PATH, 0o640)
-    # WAL/SHM should not exist after wal_checkpoint(TRUNCATE)
-    for ext in ("-wal", "-shm"):
-        f = DB_PATH + ext
-        if os.path.exists(f):
-            os.chown(f, 10010, 10010)
-            os.chmod(f, 0o640)
-
-
 def main():
-    # Verify directory is root-writable
+    # Verify directory is writable
     if not os.access(DATA_DIR, os.W_OK):
         print(f"ERROR: data directory not writable: {DATA_DIR}")
-        print(f"  owner={os.stat(DATA_DIR).st_uid}, mode={oct(os.stat(DATA_DIR).st_mode)}")
-        print(f"  Run chown root:root {DATA_DIR} before initialization.")
+        print(f"  uid={os.getuid()}, dir_uid={os.stat(DATA_DIR).st_uid}")
+        print(f"  Prepare: chown 10010:10010 {DATA_DIR} && chmod 750 {DATA_DIR}")
         sys.exit(2)
 
     if os.path.exists(DB_PATH):
@@ -100,8 +85,8 @@ def main():
             print(f"ERROR: {DB_PATH} exists but cannot be opened: {e}")
             sys.exit(2)
 
-    # Create fresh database
-    conn = sqlite3.connect(DB_PATH)
+    # Create fresh database — file naturally owned by current UID
+    conn = sqlite3.connect(f"file:{DB_PATH}?mode=rwc")
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
 
@@ -184,7 +169,9 @@ def main():
     conn.commit()
     conn.close()
 
-    hand_over_ownership()
+    # Lock down permissions — same UID, no chown needed
+    os.chmod(DATA_DIR, 0o750)
+    os.chmod(DB_PATH, 0o640)
 
     print(f"Database initialized at version {SCHEMA_VERSION}: {DB_PATH}")
     return 0
