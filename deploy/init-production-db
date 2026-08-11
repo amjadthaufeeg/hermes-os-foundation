@@ -2,10 +2,9 @@
 """
 P3 — Production Database Initialization (One-Shot)
 
-Creates production.db with approved schema.
-Idempotent — safe to run multiple times.
-Does not seed SIM_DECISIONS.
-Exits 0 if DB already initialized, 2 on error.
+Creates production.db with approved schema matching backend/hos4c/database.py.
+Idempotent — safe to run multiple times. No simulation data.
+Exits 0 if DB already initialized and valid, 2 on error.
 """
 import os
 import sys
@@ -18,17 +17,41 @@ SCHEMA_VERSION = 1
 
 def main():
     if os.path.exists(DB_PATH):
+        # Verify existing DB is valid and has expected schema
         try:
             conn = sqlite3.connect(DB_PATH)
+            # Check integrity first
+            integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+            if integrity != "ok":
+                print(f"ERROR: {DB_PATH} exists but integrity_check failed: {integrity}")
+                sys.exit(2)
+
+            # Check schema_version table exists
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "schema_version" not in tables:
+                print(f"ERROR: {DB_PATH} exists without schema_version table")
+                sys.exit(2)
+
             row = conn.execute(
                 "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
             ).fetchone()
             conn.close()
+
             if row:
-                print(f"Database already initialized at version {row[0]}")
-                sys.exit(0)
+                version = row[0]
+                if version == SCHEMA_VERSION:
+                    print(f"Database already initialized at version {version}")
+                    sys.exit(0)
+                elif version < SCHEMA_VERSION:
+                    print(f"ERROR: DB version {version} < expected {SCHEMA_VERSION}. "
+                          f"Migration not implemented.")
+                    sys.exit(2)
+                else:
+                    print(f"ERROR: DB version {version} > expected {SCHEMA_VERSION}. "
+                          f"Downgrade not supported.")
+                    sys.exit(2)
             else:
-                print(f"ERROR: {DB_PATH} exists without schema_version table")
+                print(f"ERROR: schema_version table exists but no version row")
                 sys.exit(2)
         except sqlite3.OperationalError:
             print(f"ERROR: {DB_PATH} exists but is not a valid SQLite database")
@@ -39,6 +62,7 @@ def main():
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
 
+    # Schema from backend/hos4c/database.py — exact match
     conn.executescript("""
         CREATE TABLE decisions (
             id TEXT PRIMARY KEY,
@@ -49,8 +73,8 @@ def main():
             project TEXT NOT NULL DEFAULT 'hermes-os',
             decision_text TEXT,
             reason TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
         );
 
         CREATE TABLE audit_events (
@@ -77,7 +101,7 @@ def main():
             client_context TEXT,
             previous_event_hash TEXT NOT NULL,
             event_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            created_at TEXT NOT NULL,
             FOREIGN KEY (decision_id) REFERENCES decisions(id)
         );
 
@@ -90,25 +114,28 @@ def main():
             actor_id TEXT NOT NULL,
             actor_role TEXT NOT NULL DEFAULT 'AMJAD_OWNER',
             csrf_token TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            created_at TEXT NOT NULL,
             expires_at TEXT NOT NULL,
-            last_activity TEXT NOT NULL DEFAULT (datetime('now')),
+            last_activity TEXT NOT NULL,
             is_revoked INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE idempotency_records (
             idempotency_key TEXT PRIMARY KEY,
             decision_id TEXT NOT NULL,
-            original_result TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            action TEXT NOT NULL,
+            result TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL
         );
 
         CREATE TABLE schema_version (
             version INTEGER PRIMARY KEY,
-            applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+            applied_at TEXT NOT NULL
         );
 
-        INSERT INTO schema_version (version) VALUES (1);
+        INSERT INTO schema_version (version, applied_at)
+        VALUES (1, datetime('now'));
     """)
 
     conn.commit()
