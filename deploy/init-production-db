@@ -3,7 +3,7 @@
 P3 — Production Database Initialization (One-Shot)
 
 Creates production.db with approved schema matching backend/hos4c/database.py.
-Idempotent — safe to run multiple times. No simulation data.
+Idempotent — validates full schema on re-run. No simulation data.
 Exits 0 if DB already initialized and valid, 2 on error.
 """
 import os
@@ -12,49 +12,92 @@ import sqlite3
 
 
 DB_PATH = os.environ.get("DATABASE_PATH", "/opt/hermes/data/production.db")
+DATA_DIR = os.path.dirname(DB_PATH)
 SCHEMA_VERSION = 1
+
+EXPECTED_TABLES = {
+    "decisions", "audit_events", "sessions",
+    "idempotency_records", "schema_version",
+}
+EXPECTED_INDEXES = {
+    "idx_audit_decision", "idx_audit_idempotency", "idx_audit_hash",
+}
+
+
+def verify_existing(conn):
+    """Verify existing database has expected schema and integrity."""
+    # Integrity
+    integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+    if integrity != "ok":
+        print(f"ERROR: integrity_check failed: {integrity}")
+        return False
+
+    # Tables
+    actual = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")}
+    if not EXPECTED_TABLES.issubset(actual):
+        missing = EXPECTED_TABLES - actual
+        print(f"ERROR: missing tables: {missing}")
+        return False
+
+    # Indexes
+    idx_actual = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='index'")}
+    if not EXPECTED_INDEXES.issubset(idx_actual):
+        missing = EXPECTED_INDEXES - idx_actual
+        print(f"ERROR: missing indexes: {missing}")
+        return False
+
+    # Schema version
+    row = conn.execute(
+        "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
+    ).fetchone()
+    if not row:
+        print("ERROR: schema_version table has no rows")
+        return False
+    version = row[0]
+    if version != SCHEMA_VERSION:
+        print(f"ERROR: expected version {SCHEMA_VERSION}, got {version}")
+        return False
+
+    return True
+
+
+def setup_ownership():
+    """Set ownership for production container (UID 10010, GID 10010).
+    Docker named volumes are initially root-owned. The production
+    API runs as UID 10010 and needs read/write access to create
+    WAL/SHM files and manage the database."""
+    # Directory: 10010 needs to create -wal/-shm files
+    os.chown(DATA_DIR, 10010, 10010)
+    os.chmod(DATA_DIR, 0o750)
+
+    # Database file
+    os.chown(DB_PATH, 10010, 10010)
+    os.chmod(DB_PATH, 0o640)
+
+    # WAL/SHM if present (may not exist after clean checkpoint close)
+    wal = DB_PATH + "-wal"
+    shm = DB_PATH + "-shm"
+    for f in (wal, shm):
+        if os.path.exists(f):
+            os.chown(f, 10010, 10010)
+            os.chmod(f, 0o640)
 
 
 def main():
     if os.path.exists(DB_PATH):
-        # Verify existing DB is valid and has expected schema
         try:
             conn = sqlite3.connect(DB_PATH)
-            # Check integrity first
-            integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
-            if integrity != "ok":
-                print(f"ERROR: {DB_PATH} exists but integrity_check failed: {integrity}")
-                sys.exit(2)
-
-            # Check schema_version table exists
-            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            if "schema_version" not in tables:
-                print(f"ERROR: {DB_PATH} exists without schema_version table")
-                sys.exit(2)
-
-            row = conn.execute(
-                "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
-            ).fetchone()
+            ok = verify_existing(conn)
             conn.close()
-
-            if row:
-                version = row[0]
-                if version == SCHEMA_VERSION:
-                    print(f"Database already initialized at version {version}")
-                    sys.exit(0)
-                elif version < SCHEMA_VERSION:
-                    print(f"ERROR: DB version {version} < expected {SCHEMA_VERSION}. "
-                          f"Migration not implemented.")
-                    sys.exit(2)
-                else:
-                    print(f"ERROR: DB version {version} > expected {SCHEMA_VERSION}. "
-                          f"Downgrade not supported.")
-                    sys.exit(2)
+            if ok:
+                print(f"Database already initialized at version {SCHEMA_VERSION}")
+                sys.exit(0)
             else:
-                print(f"ERROR: schema_version table exists but no version row")
                 sys.exit(2)
-        except sqlite3.OperationalError:
-            print(f"ERROR: {DB_PATH} exists but is not a valid SQLite database")
+        except sqlite3.OperationalError as e:
+            print(f"ERROR: {DB_PATH} exists but cannot be opened: {e}")
             sys.exit(2)
 
     # Create fresh database
@@ -138,12 +181,12 @@ def main():
         VALUES (1, datetime('now'));
     """)
 
+    # Checkpoint WAL to clean up sidecar files
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     conn.commit()
     conn.close()
 
-    # Set ownership for production container (UID 10010, GID 10010)
-    os.chown(DB_PATH, 10010, 10010)
-    os.chmod(DB_PATH, 0o640)
+    setup_ownership()
 
     print(f"Database initialized at version {SCHEMA_VERSION}: {DB_PATH}")
     return 0
