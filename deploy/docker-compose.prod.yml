@@ -1,14 +1,14 @@
 # /docker/hermes-product-os-prod/docker-compose.yml
 # Production Hermes — Phase B read-only foundation
-# Source: deploy/docker-compose.prod.yml in repo
-# P2: Compose + volume definition. Container not started until P4.
+# P4: Production API startup. UID 10010 (same as DB owner).
 
 name: hermes-product-os-prod
 
 services:
   hpos:
     container_name: hermes-product-os-prod
-    image: hermes-product-os-hpos:prod-a7f9764
+    image: hermes-product-os-hpos:prod-0c6ba97
+    user: "10010:10010"
     restart: unless-stopped
     read_only: true
     security_opt:
