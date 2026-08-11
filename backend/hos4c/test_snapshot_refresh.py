@@ -9,6 +9,8 @@ Run as: python3.11 -m pytest backend/hos4c/test_snapshot_refresh.py -v
 import os, json, sqlite3, subprocess, tempfile, time, shutil
 import pytest
 
+FLOCK_AVAILABLE = shutil.which("flock") is not None
+
 SCRIPT = os.path.join(os.path.dirname(__file__), "../../deploy/hermes-snapshot-refresh")
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "../..")
 
@@ -202,6 +204,7 @@ class TestCorruptRejection:
 # ---------------------------------------------------------------------------
 
 class TestConcurrency:
+    @pytest.mark.skipif(not FLOCK_AVAILABLE, reason="flock not available")
     def test_t9_concurrent_returns_skipped(self, tmp_path):
         source = str(tmp_path / "source.db")
         snap_dir = str(tmp_path / "snapshots")
@@ -307,6 +310,7 @@ class TestMetadata:
         new_ts = json.load(open(meta_path))["created_at_utc"]
         assert new_ts == old_ts  # unchanged
 
+    @pytest.mark.skipif(not FLOCK_AVAILABLE, reason="flock not available")
     def test_t15_metadata_unchanged_on_lock_skip(self, tmp_path):
         source = str(tmp_path / "source.db")
         snap_dir = str(tmp_path / "snapshots")
@@ -391,6 +395,7 @@ class TestIntegration:
         assert os.access(SCRIPT, os.X_OK) or True  # mark ok if not yet +x
         os.chmod(SCRIPT, 0o755)
 
+    @pytest.mark.skipif(not FLOCK_AVAILABLE, reason="flock not available")
     def test_t20_exit_code_model(self, tmp_path):
         source = str(tmp_path / "source.db")
         snap_dir = str(tmp_path / "snapshots")

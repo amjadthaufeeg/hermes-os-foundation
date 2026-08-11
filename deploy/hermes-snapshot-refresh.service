@@ -12,6 +12,7 @@ StandardOutput=journal
 StandardError=journal
 TimeoutSec=120
 Restart=no
+SuccessExitStatus=10
 
 # Security hardening
 NoNewPrivileges=yes

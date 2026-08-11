@@ -16,27 +16,16 @@ SOURCE_DB="${SOURCE_DB:-/var/lib/hermes/source-test.db}"
 now_utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 log()    { echo "$(now_utc) $*" >&2; }
 
-# === Locking (mkdir + PID — portable, with stale-lock recovery) ===
-LOCK_PID_FILE="$LOCK_FILE/pid"
-if ! mkdir "$LOCK_FILE" 2>/dev/null; then
-    # Lock directory exists — check for stale lock
-    if [ -f "$LOCK_PID_FILE" ]; then
-        old_pid=$(cat "$LOCK_PID_FILE" 2>/dev/null)
-        if [ -n "$old_pid" ] && ! kill -0 "$old_pid" 2>/dev/null; then
-            log "STALE_LOCK_DETECTED: pid $old_pid is dead, removing stale lock"
-            rm -rf "$LOCK_FILE"
-            mkdir "$LOCK_FILE" || { log "SKIPPED_LOCKED: cannot acquire lock"; exit 10; }
-        else
-            log "SKIPPED_LOCKED: refresh already in progress (pid $old_pid)"
-            exit 10
-        fi
-    else
+# === Locking (flock — kernel-released on exit, no PID reuse risk) ===
+if command -v flock >/dev/null 2>&1; then
+    exec 200>"$LOCK_FILE"
+    if ! flock -n 200; then
         log "SKIPPED_LOCKED: refresh already in progress"
         exit 10
     fi
+else
+    log "WARNING: flock not available — running without lock (test environment)"
 fi
-echo $$ > "$LOCK_PID_FILE"
-trap 'rm -rf "$LOCK_FILE" 2>/dev/null' EXIT
 
 start_ts=$(date +%s)
 
