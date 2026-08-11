@@ -1,0 +1,59 @@
+# /docker/hermes-product-os-prod/docker-compose.yml
+# Production Hermes — Phase B read-only foundation
+# P2: Compose + volume definition. Container not started until P4.
+
+name: hermes-product-os-prod
+
+services:
+  hpos:
+    container_name: hermes-product-os-prod
+    image: hermes-product-os-hpos:prod-31d7842
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - DAC_OVERRIDE
+    no_new_privileges: true
+    environment:
+      - HERMES_ENVIRONMENT=PRODUCTION
+      - MUTATIONS_DISABLED=true
+      - DATABASE_PATH=/opt/hermes/data/production.db
+      - SIMULATION_MODE=false
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hpos-prod-data:/opt/hermes/data:rw
+      - hpos-prod-logs:/opt/hermes/logs:rw
+      # No secrets mounted — no B2 credentials
+      # No snapshot mount — snapshot added later via bind mount
+      # No backup volume — not needed for read-only mode
+    networks:
+      - prod-net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # No ports — internal network only
+    # No Traefik labels — added at B7
+
+volumes:
+  hpos-prod-data:
+    # Persistent authoritative database
+    name: hermes-product-os-prod_hpos-prod-data
+  hpos-prod-logs:
+    name: hermes-product-os-prod_hpos-prod-logs
+
+networks:
+  prod-net:
+    name: hermes-product-os-prod_prod-net
+    internal: true
