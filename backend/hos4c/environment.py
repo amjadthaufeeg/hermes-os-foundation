@@ -130,6 +130,17 @@ def validate_startup() -> list:
                 "Mutations remain disabled. Fix configuration." % env.value
             )
 
+    # --- PRODUCTION simulation-mode enforcement ---
+    if env == Environment.PRODUCTION:
+        sim_raw = os.environ.get("SIMULATION_MODE", "")
+        sim_normalized = sim_raw.strip().lower()
+        if sim_normalized != "false":
+            errors.append(
+                "FATAL: PRODUCTION requires SIMULATION_MODE=false. "
+                "Got '%s'. Production must never serve simulation data. "
+                "Set SIMULATION_MODE=false." % sim_raw.strip()
+            )
+
     # --- OAuth configuration required in AUTH_REVIEW, STAGING, PRODUCTION ---
     if policy("oauth"):
         if not os.environ.get("GITHUB_CLIENT_ID"):

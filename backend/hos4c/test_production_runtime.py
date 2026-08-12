@@ -70,7 +70,8 @@ def test_compose_datbase_path_correct():
 
 @pytest.fixture
 def production_app(monkeypatch, tmp_path):
-    """FastAPI app configured for production. Uses importlib for clean state."""
+    """FastAPI app configured for production. Uses is_simulation_mode()
+    which reads from os.environ at call time — no module reload needed."""
     monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
     monkeypatch.setenv("MUTATIONS_DISABLED", "true")
     monkeypatch.setenv("SIMULATION_MODE", "false")
@@ -79,10 +80,7 @@ def production_app(monkeypatch, tmp_path):
     from backend.hos4c.database import init_db
     init_db(db_path)
 
-    import importlib
-    import backend.hos4c.main as main_mod
-    importlib.reload(main_mod)
-    app = main_mod.app
+    from backend.hos4c.main import app
     yield app, db_path
     monkeypatch.delenv("SIMULATION_MODE", raising=False)
 
@@ -188,5 +186,53 @@ def test_production_gap001_fails_closed(monkeypatch, tmp_path):
 
     # Lifespan must raise RuntimeError
     from backend.hos4c.environment import startup_policy_check
+    with pytest.raises(RuntimeError, match="fatal configuration"):
+        startup_policy_check()
+
+# --- PRODUCTION SIMULATION_MODE startup enforcement ---
+
+def test_production_simulation_mode_false_starts(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "false")
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    from backend.hos4c.database import init_db
+    init_db()
+    from backend.hos4c.environment import startup_policy_check
+    startup_policy_check()  # must not raise
+
+def test_production_simulation_mode_true_fails(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "true")
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    from backend.hos4c.database import init_db
+    init_db()
+    from backend.hos4c.environment import startup_policy_check
+    import pytest
+    with pytest.raises(RuntimeError, match="fatal configuration"):
+        startup_policy_check()
+
+def test_production_simulation_mode_missing_fails(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.delenv("SIMULATION_MODE", raising=False)
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    from backend.hos4c.database import init_db
+    init_db()
+    from backend.hos4c.environment import startup_policy_check
+    import pytest
+    with pytest.raises(RuntimeError, match="fatal configuration"):
+        startup_policy_check()
+
+def test_production_simulation_mode_malformed_fails(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "yes")
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    from backend.hos4c.database import init_db
+    init_db()
+    from backend.hos4c.environment import startup_policy_check
+    import pytest
     with pytest.raises(RuntimeError, match="fatal configuration"):
         startup_policy_check()

@@ -24,6 +24,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.hos4c.config import *
+from backend.hos4c.config import is_simulation_mode
 from backend.hos4c.database import init_db, get_db
 from backend.hos4c.audit import record_audit_event, verify_hash_chain
 from backend.hos4c.state_machine import (
@@ -31,7 +32,7 @@ from backend.hos4c.state_machine import (
     requires_rationale, min_rationale_length, ROLE_PERMISSIONS,
 )
 from backend.hos4c.auth_oauth import (
-    oauth_login_redirect, oauth_callback, SIMULATION_MODE as OAUTH_SIM,
+    oauth_login_redirect, oauth_callback,
 )
 from backend.hos4c.environment import get_env as env_get_env, is_protected, mutations_disabled, validate_startup, startup_policy_check
 from backend.hos4c.observability import logger, metrics, set_observability_state
@@ -159,7 +160,7 @@ def current_session(request: Request):
 @app.get("/auth/github/login")
 def github_login():
     """Initiate GitHub OAuth login. Redirects to GitHub."""
-    if SIMULATION_MODE:
+    if is_simulation_mode():
         raise HTTPException(400, "OAuth unavailable in simulation mode — use /api/auth/login")
     result = oauth_login_redirect()
     if not result:
@@ -169,7 +170,7 @@ def github_login():
 @app.get("/auth/github/callback")
 def github_callback(code: str, state: str, request: Request):
     """Handle GitHub OAuth callback. Creates authenticated session."""
-    if SIMULATION_MODE:
+    if is_simulation_mode():
         raise HTTPException(400, "OAuth unavailable in simulation mode")
     try:
         user = oauth_callback(code, state)
@@ -253,7 +254,7 @@ def revoke_all_sessions(request: Request):
 # --- Decisions ---
 @app.get("/api/decisions")
 def list_decisions():
-    if SIMULATION_MODE:
+    if is_simulation_mode():
         return {"decisions": SIM_DECISIONS, "count": len(SIM_DECISIONS), "mode": "SIMULATION"}
     with get_db() as db:
         rows = db.execute("SELECT * FROM decisions ORDER BY id").fetchall()
@@ -261,7 +262,7 @@ def list_decisions():
 
 @app.get("/api/decisions/{decision_id}")
 def get_decision(decision_id: str):
-    if SIMULATION_MODE:
+    if is_simulation_mode():
         for d in SIM_DECISIONS:
             if d["id"] == decision_id:
                 return {**d, "mode": "SIMULATION"}
