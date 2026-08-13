@@ -1,0 +1,13 @@
+[Unit]
+Description=HOS-AUTO-01 Privileged Broker Socket
+
+[Socket]
+ListenStream=/run/hermes-auto/broker.sock
+SocketUser=root
+SocketGroup=hermes-auto
+SocketMode=0660
+Accept=yes
+MaxConnections=64
+
+[Install]
+WantedBy=sockets.target

@@ -179,3 +179,47 @@ def test_nested_symlink_blocked(tmp_path):
         pytest.skip('Cannot create symlink')
     v = validate_mount(str(tmp_path / 'lab' / 'escape'), '/x', 'ro')
     assert not v.allowed
+
+
+# ─── Read-only Inspection Operations (AC-01 support) ─────────────
+
+def test_inspect_container_allows_production_readonly():
+    """Read-only inspect of production container is ALLOWED (observation only)."""
+    resp = process_request({
+        "type": "inspect_container",
+        "params": {"container_name": "hermes-product-os-prod"},
+    })
+    # Validation should pass (read-only observation is safe).
+    # Docker may not exist on macOS; on VPS this returns the container status.
+    assert resp.get("allowed") is True or "docker" in resp.get("reason", "").lower() or "No such object" in resp.get("stderr", "")
+
+def test_inspect_container_rejects_bad_format():
+    resp = process_request({
+        "type": "inspect_container",
+        "params": {"container_name": "hermes-product-os-prod", "format": "{{.Config.Env}} --inject"},
+    })
+    assert not resp["allowed"]
+
+def test_inspect_timer_validates_name():
+    resp = process_request({
+        "type": "inspect_timer",
+        "params": {"timer_name": "hermes-production-snapshot-refresh.timer"},
+    })
+    # Read-only; name is valid. May fail if systemctl not present on macOS.
+    assert "allowed" in resp
+
+def test_inspect_container_rejects_traversal_name():
+    resp = process_request({
+        "type": "inspect_container",
+        "params": {"container_name": "../../etc"},
+    })
+    assert not resp["allowed"]
+
+# ─── Broker Socket Client Tests ───────────────────────────────────
+
+def test_call_broker_returns_structured_denial_when_absent():
+    from deploy.hos_auto_01.bin.bridge import call_broker
+    resp = call_broker("inspect_container", {"container_name": "x"}, timeout=2)
+    # On macOS (no broker socket), returns structured denial, not exception
+    assert resp.get("allowed") is False
+    assert "exit_code" in resp

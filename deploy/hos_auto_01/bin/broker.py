@@ -207,6 +207,42 @@ def handle_inspect(params: dict) -> dict:
     return _docker(["inspect", name, "--format", fmt])
 
 
+def _validate_readonly_target(name: str) -> ValidationResult:
+    """Read-only observation target — any valid container name/timer allowed."""
+    if not NAME_RE.match(name):
+        return ValidationResult(False, f"Invalid target name: {name}")
+    return ValidationResult(True, "OK")
+
+
+def handle_inspect_container(params: dict) -> dict:
+    """Read-only docker inspect of ANY container (including production, for observation)."""
+    name = params["container_name"]
+    fmt = params.get("format", "{{.Names}} {{.Status}}")
+    v = _validate_readonly_target(name)
+    if not v.allowed:
+        return {"allowed": False, "reason": v.reason}
+    if fmt not in ALLOWED_INSPECT_FORMATS:
+        return {"allowed": False, "reason": f"Format string not in allowlist: {fmt}"}
+    return _docker(["inspect", name, "--format", fmt])
+
+
+def handle_inspect_timer(params: dict) -> dict:
+    """Read-only systemctl list-timers for any timer name."""
+    name = params["timer_name"]
+    if not NAME_RE.match(name):
+        return {"allowed": False, "reason": f"Invalid timer name: {name}"}
+    try:
+        result = subprocess.run(
+            ["systemctl", "list-timers", name, "--no-pager"],
+            capture_output=True, text=True, timeout=15,
+            env={"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+        )
+        return {"allowed": True, "exit_code": result.returncode,
+                "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    except Exception as e:
+        return {"allowed": False, "reason": str(e), "exit_code": 1}
+
+
 def handle_create(params: dict) -> dict:
     name = params["container_name"]
     image = params["image"]
@@ -280,6 +316,8 @@ def handle_remove_network(params: dict) -> dict:
 
 HANDLERS = {
     "inspect_disposable_container": handle_inspect,
+    "inspect_container": handle_inspect_container,
+    "inspect_timer": handle_inspect_timer,
     "create_disposable_container": handle_create,
     "start_disposable_container": handle_start,
     "stop_disposable_container": handle_stop,

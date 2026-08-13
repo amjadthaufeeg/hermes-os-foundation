@@ -6,6 +6,7 @@ dispatch to typed executor → assertion evaluation → receipt generation.
 import hashlib
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -61,6 +62,44 @@ class ExecutionReceipt:
         return hashlib.sha256(raw.encode()).hexdigest()
 
 
+# ─── Broker Client (Unix Socket) ──────────────────────────────────
+
+BROKER_SOCKET_PATH = "/run/hermes-auto/broker.sock"
+
+
+def call_broker(operation_type: str, params: dict, timeout: int = 60) -> dict:
+    """Send a typed request to the privileged broker over Unix socket.
+
+    Returns the broker's JSON response. On any failure, returns a
+    structured denial (never falls back to direct privileged execution).
+    """
+    request = json.dumps({"type": operation_type, "params": params})
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            s.connect(BROKER_SOCKET_PATH)
+            s.sendall(request.encode())
+            s.shutdown(socket.SHUT_WR)  # signal EOF so broker's stdin.read() returns
+            chunks = []
+            while True:
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        response = b"".join(chunks).decode()
+        if not response.strip():
+            return {"allowed": False, "reason": "Empty broker response", "exit_code": 1}
+        return json.loads(response)
+    except FileNotFoundError:
+        return {"allowed": False, "reason": "Broker socket unavailable", "exit_code": 127}
+    except socket.timeout:
+        return {"allowed": False, "reason": f"Broker timeout after {timeout}s", "exit_code": 124}
+    except json.JSONDecodeError as e:
+        return {"allowed": False, "reason": f"Invalid broker response: {e}", "exit_code": 1}
+    except Exception as e:
+        return {"allowed": False, "reason": str(e), "exit_code": 1}
+
+
 # ─── Executor Dispatch (Typed Operations) ────────────────────────
 
 def execute_operation(op, workdir: str, evidence_dir: Path) -> tuple[int, str, str]:
@@ -68,6 +107,16 @@ def execute_operation(op, workdir: str, evidence_dir: Path) -> tuple[int, str, s
     op_type = op.type
     params = op.params
     timeout = op.timeout_seconds
+
+    # Privileged operations route through the broker socket (never direct).
+    if op_type == OperationType.INSPECT_CONTAINER:
+        resp = call_broker("inspect_container", params, timeout)
+        return (resp.get("exit_code", 1), resp.get("stdout", ""),
+                resp.get("stderr", "") or resp.get("reason", ""))
+    if op_type == OperationType.INSPECT_TIMER:
+        resp = call_broker("inspect_timer", params, timeout)
+        return (resp.get("exit_code", 1), resp.get("stdout", ""),
+                resp.get("stderr", "") or resp.get("reason", ""))
 
     if op_type == OperationType.RUN_PYTEST:
         path = params.get("path", ".")
@@ -80,13 +129,6 @@ def execute_operation(op, workdir: str, evidence_dir: Path) -> tuple[int, str, s
     elif op_type == OperationType.GIT_LOG:
         n = str(params.get("n", 5))
         cmd = ["git", "-C", workdir, "log", "--oneline", f"-{n}"]
-    elif op_type == OperationType.INSPECT_CONTAINER:
-        name = params["container_name"]
-        fmt = params.get("format", "{{.Names}} {{.Status}}")
-        cmd = ["docker", "ps", "--filter", f"name={name}", "--format", fmt]
-    elif op_type == OperationType.INSPECT_TIMER:
-        name = params["timer_name"]
-        cmd = ["systemctl", "list-timers", name, "--no-pager"]
     elif op_type == OperationType.COLLECT_LOGS:
         unit = params["unit"]
         since = params.get("since", "1h")
