@@ -218,8 +218,11 @@ def test_inspect_container_rejects_traversal_name():
 # ─── Broker Socket Client Tests ───────────────────────────────────
 
 def test_call_broker_returns_structured_denial_when_absent():
+    import os
     from deploy.hos_auto_01.bin.bridge import call_broker
+    if os.path.exists("/run/hermes-auto/broker.sock"):
+        pytest.skip("Broker socket present — absent scenario not applicable on this host")
     resp = call_broker("inspect_container", {"container_name": "x"}, timeout=2)
-    # On macOS (no broker socket), returns structured denial, not exception
+    # On hosts without a broker socket, returns structured denial, not exception
     assert resp.get("allowed") is False
     assert "exit_code" in resp
