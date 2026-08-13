@@ -106,16 +106,16 @@ def test_ttl_none():
 def test_failure_stop_after_3():
     tid = "test-fail"
     reset_failures(tid)
-    assert not record_failure(tid)  # 1
-    assert not record_failure(tid)  # 2
-    assert record_failure(tid)      # 3 → STOP
+    assert not record_failure(tid)
+    assert not record_failure(tid)
+    assert record_failure(tid)
 
 def test_continuations_max():
     parent = "test-parent"
     assert not record_continuation(parent)
     assert not record_continuation(parent)
     assert not record_continuation(parent)
-    assert record_continuation(parent)  # 4th → STOP
+    assert record_continuation(parent)
 
 def test_rate_limit():
     from deploy.hos_auto_02.loop_guard import _timestamps, RATE_LIMIT_MAX
@@ -181,22 +181,19 @@ def test_classify_depth_exceeded():
     )
     assert classify_authority(task) == AuthorityClass.FORBIDDEN
 
+
 # ─── Catch-up Tests (ChatGPT review findings) ─────────────────────
 
 def test_watcher_no_ssh_in_bridge_invocation():
-    """run_local_bridge must not invoke ssh."""
     from deploy.hos_auto_02.watcher import run_local_bridge
     import inspect
     source = inspect.getsource(run_local_bridge)
-    assert 'subprocess.run(["ssh"' not in source.replace(" ", ""), "SSH invocation found in run_local_bridge"
-    assert "root@141.136.44.66" not in source, "root@VPS found in run_local_bridge"
-    assert "ssh " not in source.split("\n")[0], "ssh not in docstring"  # weak check
+    assert 'subprocess.run(["ssh"' not in source.replace(" ", "")
+    assert "root@141.136.44.66" not in source
 
 def test_persistent_nonce_survives_call(monkeypatch, tmp_path):
-    """Persistent nonce check survives repeat calls."""
     state_file = tmp_path / "r2-state.json"
     monkeypatch.setenv("R2_STATE_FILE", str(state_file))
-    # Re-import to pick up new state file path
     import importlib
     from deploy.hos_auto_02 import watcher
     importlib.reload(watcher)
@@ -227,34 +224,126 @@ def test_result_hash_binds_security_fields():
                    authority_class="AUTO", evidence_receipts=["r1"],
                    completed_at="2026-01-01T00:00:00Z")
     h2 = r2.compute_hash()
-    assert h1 != h2  # Different task_commit_sha → different hash
+    assert h1 != h2
 
-
-# ─── Restart Replay Test ───────────────────────────────────────────
 
 def test_replay_blocked_after_restart(monkeypatch, tmp_path):
-    """Persistent state survives simulated restart."""
     state_file = tmp_path / "r2-state.json"
     monkeypatch.setenv("R2_STATE_FILE", str(state_file))
     import importlib
     from deploy.hos_auto_02 import watcher
     importlib.reload(watcher)
-
     test_nonce = "replay-test-" + str(id(dict()))
     assert not watcher.persistent_is_duplicate_nonce(test_nonce)
     assert watcher.persistent_is_duplicate_nonce(test_nonce)
-
-    # Simulate restart: clear in-memory, reload state from file
     importlib.reload(watcher)
-    # Nonce was saved to file at first call, should still be duplicate
     assert watcher.persistent_is_duplicate_nonce(test_nonce)
 
 
-# ─── Credential Leakage Test ───────────────────────────────────────
-
 def test_transport_no_credential_in_source():
-    """Deploy key path usage must not expose credential content."""
-    from deploy.hos_auto_02.transport import DEPLOY_KEY
-    # DEPLOY_KEY is a PATH, not a credential value
-    assert "/opt/hermes-auto/creds/" in DEPLOY_KEY, "Deploy key path should point to creds dir"
-    assert "BEGIN" not in DEPLOY_KEY, "Deploy key path must not contain key material"
+    from deploy.hos_auto_02.transport import DEPLOY_KEY, ISSUES_TOKEN_FILE
+    assert "/opt/hermes-auto/creds/" in DEPLOY_KEY
+    assert "BEGIN" not in DEPLOY_KEY
+    assert ISSUES_TOKEN_FILE.startswith("/opt/hermes-auto/creds/")
+    assert "token=" not in ISSUES_TOKEN_FILE.lower()
+
+
+# ─── GitHub Issue Ingress Tests ────────────────────────────────────
+
+def _issue_task_json(task_id="T-ISSUE-001", nonce="nonce-issue-001"):
+    contract = {
+        "objective": "Inspect timer",
+        "working_directory": "/tmp/hos-auto-01-src",
+        "source_git_sha": "source",
+        "operations": [{
+            "type": "inspect_timer",
+            "params": {"timer_name": "hermes-production-snapshot-refresh.timer"},
+            "timeout_seconds": 60,
+        }],
+        "expected_assertions": [],
+        "timeout_seconds": 120,
+    }
+    task = R2Task(
+        task_id=task_id,
+        created_at="2026-08-14T00:00:00+00:00",
+        expires_at="2099-01-01T00:00:00+00:00",
+        nonce=nonce,
+        contract=contract,
+        objective="Inspect timer",
+    )
+    return json.dumps({
+        "task_id": task.task_id,
+        "schema_version": task.schema_version,
+        "source": "chatgpt",
+        "created_at": task.created_at,
+        "expires_at": task.expires_at,
+        "nonce": task.nonce,
+        "depth": 0,
+        "authority_suggestion": "AUTO",
+        "objective": task.objective,
+        "contract": contract,
+        "contract_sha256": task.compute_contract_hash(),
+    })
+
+
+def test_list_issue_tasks_filters_prefix_and_author(monkeypatch):
+    from deploy.hos_auto_02 import transport
+    monkeypatch.setattr(transport, "_github_api_json", lambda path: [
+        {"number": 2, "title": "R2-TASK T-2", "body": "{}", "user": {"login": "amjadthaufeeg"}, "updated_at": "u"},
+        {"number": 3, "title": "Other", "body": "{}", "user": {"login": "amjadthaufeeg"}, "updated_at": "u"},
+        {"number": 4, "title": "R2-TASK EVIL", "body": "{}", "user": {"login": "other"}, "updated_at": "u"},
+        {"number": 5, "title": "R2-TASK PR", "body": "{}", "user": {"login": "amjadthaufeeg"}, "updated_at": "u", "pull_request": {}},
+    ])
+    items = transport.list_issue_tasks()
+    assert [i["number"] for i in items] == [2]
+
+
+def test_read_issue_task_binds_body_hash(monkeypatch):
+    import hashlib
+    from deploy.hos_auto_02 import transport
+    body = _issue_task_json()
+    monkeypatch.setattr(transport, "_github_api_json", lambda path: {
+        "number": 8,
+        "title": "R2-TASK T-ISSUE-001",
+        "body": body,
+        "user": {"login": "amjadthaufeeg"},
+        "updated_at": "2026-08-14T00:00:00Z",
+    })
+    item = transport.read_issue_task(8)
+    expected = hashlib.sha256(body.encode()).hexdigest()
+    assert item["body_sha256"] == expected
+    assert item["source_version"] == f"issue:8:{expected}"
+
+
+def test_issue_processing_rechecks_source_version(monkeypatch, tmp_path):
+    state_file = tmp_path / "state.json"
+    monkeypatch.setenv("R2_STATE_FILE", str(state_file))
+    import importlib
+    from deploy.hos_auto_02 import watcher
+    importlib.reload(watcher)
+    first = {"number": 7, "body": _issue_task_json(), "source_version": "issue:7:a", "body_sha256": "a", "author": "amjadthaufeeg", "updated_at": "1", "title": "R2-TASK T"}
+    second = dict(first, source_version="issue:7:b", body_sha256="b")
+    seq = iter([first, second])
+    monkeypatch.setattr(watcher, "read_issue_task", lambda n: next(seq))
+    result = watcher.process_issue_task(7)
+    assert result.verdict == "SOURCE_CHANGED"
+    assert result.status == "STOPPED"
+
+
+def test_issue_task_auto_executes_through_local_bridge(monkeypatch, tmp_path):
+    state_file = tmp_path / "state.json"
+    monkeypatch.setenv("R2_STATE_FILE", str(state_file))
+    import importlib
+    from deploy.hos_auto_02 import watcher
+    importlib.reload(watcher)
+    body = _issue_task_json(task_id="T-ISSUE-OK", nonce="nonce-issue-ok")
+    envelope = {"number": 9, "body": body, "source_version": "issue:9:abc", "body_sha256": "abc", "author": "amjadthaufeeg", "updated_at": "1", "title": "R2-TASK T-ISSUE-OK"}
+    monkeypatch.setattr(watcher, "read_issue_task", lambda n: envelope)
+    monkeypatch.setattr(watcher, "attempt_claim", lambda task_id, source_version: (True, "claimed"))
+    monkeypatch.setattr(watcher, "run_local_bridge", lambda task, source_version: {"status": "COMPLETED", "verdict": "PASS", "summary": "ok", "evidence_receipts": ["r"]})
+    monkeypatch.setattr(watcher, "check_rate_limit", lambda: True)
+    result = watcher.process_issue_task(9)
+    assert result.status == "COMPLETED"
+    assert result.verdict == "PASS"
+    assert result.authority_class == "AUTO"
+    assert result.task_commit_sha == "issue:9:abc"
