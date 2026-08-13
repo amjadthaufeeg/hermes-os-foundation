@@ -199,7 +199,7 @@ def _docker(args: list[str], timeout: int = 30) -> dict:
 
 def handle_inspect(params: dict) -> dict:
     name = params["container_name"]
-    fmt = params.get("format", "{{.Names}} {{.Status}}")
+    fmt = params.get("format", "{{.Name}}")
     v = validate_container_name(name)
     if not v.allowed:
         return {"allowed": False, "reason": v.reason}
