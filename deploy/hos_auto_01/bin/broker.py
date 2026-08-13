@@ -64,14 +64,16 @@ BLOCKED_CAPS = frozenset({"ALL", "SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE"})
 
 # Whitelist of allowed docker inspect format templates (no caller-controlled format)
 ALLOWED_INSPECT_FORMATS = frozenset({
-    "{{.Names}} {{.Status}}",
+    "{{.Name}} {{.State.Status}}",
     "{{.Name}}",
     "{{.State.Status}}",
     "{{.Image}}",
 })
 
-# Container name charset: lowercase, digits, hyphen only
+# Container name charset for DISPOSABLE containers: strict (we control names)
+# For read-only inspection targets: lenient (existing names may have .-)
 NAME_RE = re.compile(r"^[a-z0-9-]+$")
+READONLY_TARGET_RE = re.compile(r"^[a-zA-Z0-9_.-]+$")
 
 
 @dataclass
@@ -209,7 +211,7 @@ def handle_inspect(params: dict) -> dict:
 
 def _validate_readonly_target(name: str) -> ValidationResult:
     """Read-only observation target — any valid container name/timer allowed."""
-    if not NAME_RE.match(name):
+    if not READONLY_TARGET_RE.match(name):
         return ValidationResult(False, f"Invalid target name: {name}")
     return ValidationResult(True, "OK")
 
@@ -217,7 +219,7 @@ def _validate_readonly_target(name: str) -> ValidationResult:
 def handle_inspect_container(params: dict) -> dict:
     """Read-only docker inspect of ANY container (including production, for observation)."""
     name = params["container_name"]
-    fmt = params.get("format", "{{.Names}} {{.Status}}")
+    fmt = params.get("format", "{{.Name}}")
     v = _validate_readonly_target(name)
     if not v.allowed:
         return {"allowed": False, "reason": v.reason}
@@ -229,7 +231,7 @@ def handle_inspect_container(params: dict) -> dict:
 def handle_inspect_timer(params: dict) -> dict:
     """Read-only systemctl list-timers for any timer name."""
     name = params["timer_name"]
-    if not NAME_RE.match(name):
+    if not READONLY_TARGET_RE.match(name):
         return {"allowed": False, "reason": f"Invalid timer name: {name}"}
     try:
         result = subprocess.run(
