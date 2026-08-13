@@ -4,7 +4,7 @@ Requires=hermes-broker.socket
 
 [Service]
 Type=oneshot
-ExecStart=/opt/hermes-auto/bin/broker.py
+ExecStart=/usr/bin/python3 /opt/hermes-auto/bin/broker.py
 StandardInput=socket
 StandardOutput=socket
 StandardError=journal
@@ -13,6 +13,3 @@ Group=root
 # NoNewPrivileges intentionally NOT set (broker must run Docker as root)
 # The broker is the narrow privileged boundary; the bridge is unprivileged.
 TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target

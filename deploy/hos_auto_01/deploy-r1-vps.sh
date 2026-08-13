@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # HOS-AUTO-01 R1 VPS Deployment
-# Source commit: 88b1de3c5c86423a51d06a7c8739393278e29382
+# Source commit: 357a706cb9ba48285f5403df6898fdebc360d8f3
 # Run as root on 141.136.44.66
 # This script is GATED — requires explicit Amjad authorization to run.
 set -euo pipefail
 
-SRC_COMMIT="88b1de3c5c86423a51d06a7c8739393278e29382"
+SRC_COMMIT="357a706cb9ba48285f5403df6898fdebc360d8f3"
 INSTALL_ROOT="/opt/hermes-auto"
 SRC_DIR="/tmp/hos-auto-01-src"
 
