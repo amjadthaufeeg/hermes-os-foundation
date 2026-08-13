@@ -15,8 +15,12 @@ def test_validate_valid_container_name():
     assert validate_container_name("hermes-b5-lab-fc05").allowed
 
 def test_validate_valid_image():
-    assert validate_image("hermes-product-os-hpos:prod-p4-release").allowed
     assert validate_image("disposable-test").allowed
+    assert validate_image("disposable-b5-fc05").allowed
+
+# Production image must NOT be usable in disposable lab
+def test_reject_production_image():
+    assert not validate_image("hermes-product-os-hpos:prod-p4-release").allowed
 
 def test_validate_mount_tmp():
     assert validate_mount("/tmp/hermes-b5-lab/data", "/data", "ro").allowed
@@ -100,7 +104,7 @@ def test_broker_rejects_arbitrary_mount():
         "type": "create_disposable_container",
         "params": {
             "container_name": "hermes-b5-lab-test",
-            "image": "hermes-product-os-hpos:prod-p4-release",
+            "image": "disposable-test",
             "mounts": [{"source": "/etc/passwd", "destination": "/passwd", "mode": "ro"}],
         },
     })
@@ -138,3 +142,40 @@ def test_broker_stdin_forbidden():
     )
     resp = json.loads(proc.stdout)
     assert not resp["allowed"]
+
+# ─── Symlink / Canonicalization Tests ──────────────────────────────
+
+def test_symlink_escape_blocked(tmp_path):
+    """A symlink inside the disposable root pointing to /etc must be rejected."""
+    import os
+    os.makedirs(str(tmp_path / 'lab'), exist_ok=True)
+    # Create a symlink inside lab -> /etc
+    try:
+        os.symlink('/etc', str(tmp_path / 'lab' / 'evil'))
+    except OSError:
+        pytest.skip('Cannot create symlink')
+    v = validate_mount(str(tmp_path / 'lab' / 'evil'), '/etc', 'ro')
+    # Canonicalized source resolves to /etc → blocked
+    assert not v.allowed
+
+def test_symlink_escape_to_production(tmp_path):
+    """Symlink to production snapshot path must be blocked."""
+    import os
+    os.makedirs(str(tmp_path / 'lab'), exist_ok=True)
+    try:
+        os.symlink('/var/lib/hermes/snapshots/production', str(tmp_path / 'lab' / 'prod'))
+    except OSError:
+        pytest.skip('Cannot create symlink')
+    v = validate_mount(str(tmp_path / 'lab' / 'prod'), '/snap', 'ro')
+    assert not v.allowed
+
+def test_nested_symlink_blocked(tmp_path):
+    """Nested symlink traversal must be caught by canonicalization."""
+    import os
+    os.makedirs(str(tmp_path / 'lab' / 'a' / 'b'), exist_ok=True)
+    try:
+        os.symlink(str(tmp_path / 'lab' / 'a' / 'b' / '..' / '..' / '..' / '..' / 'etc'), str(tmp_path / 'lab' / 'escape'))
+    except OSError:
+        pytest.skip('Cannot create symlink')
+    v = validate_mount(str(tmp_path / 'lab' / 'escape'), '/x', 'ro')
+    assert not v.allowed

@@ -1,4 +1,4 @@
-"""HOS-AUTO-01 R1b — Privileged Docker Broker.
+"""HOS-AUTO-01 R1b — Privileged Docker Broker (hardened).
 
 Root-owned, independently validating proxy for Docker operations.
 Accepts typed operation requests via JSON stdin. Bridge is unprivileged.
@@ -6,18 +6,23 @@ No Docker socket exposed to Bridge. No arbitrary CLI forwarding.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from typing import Optional
 
 
-# ─── Disposable Namespace ──────────────────────────────────────────
+# ─── Disposable Namespace (hardened) ───────────────────────────────
 
 DISPOSABLE_PREFIX = "hermes-b5-lab-"
-ALLOWED_IMAGE_PREFIXES = ("hermes-product-os-hpos:", "disposable-")
+# Image policy: disposable images ONLY. Production image (prod-*) is NOT allowed
+# for disposable lab containers. Local-only images built from this repo.
+ALLOWED_IMAGE_PREFIXES = ("disposable-",)
 ALLOWED_HOST_ROOT = "/tmp/hermes-b5-lab"
 ALLOWED_NETWORKS = ("none", "hermes-b5-lab-net")
+# Absolute Docker binary path — do NOT trust caller-controlled PATH
+DOCKER_BIN = "/usr/bin/docker"
+MAX_REQUEST_BYTES = 65536  # 64KB
 
 # ─── Hard-blocked Production Resources ────────────────────────────
 
@@ -57,19 +62,16 @@ BLOCKED_ENV_VARS = frozenset({
 
 BLOCKED_CAPS = frozenset({"ALL", "SYS_ADMIN", "NET_ADMIN", "SYS_PTRACE"})
 
-
-# ─── Typed Operation Definitions ───────────────────────────────────
-
-ALLOWED_OPERATIONS = frozenset({
-    "create_disposable_container",
-    "start_disposable_container",
-    "stop_disposable_container",
-    "remove_disposable_container",
-    "inspect_disposable_container",
-    "build_disposable_image",
-    "create_disposable_network",
-    "remove_disposable_network",
+# Whitelist of allowed docker inspect format templates (no caller-controlled format)
+ALLOWED_INSPECT_FORMATS = frozenset({
+    "{{.Names}} {{.Status}}",
+    "{{.Name}}",
+    "{{.State.Status}}",
+    "{{.Image}}",
 })
+
+# Container name charset: lowercase, digits, hyphen only
+NAME_RE = re.compile(r"^[a-z0-9-]+$")
 
 
 @dataclass
@@ -79,38 +81,57 @@ class ValidationResult:
     warnings: list = field(default_factory=list)
 
 
+def _canonicalize(path: str) -> str:
+    """Resolve symlinks + collapse traversal. Returns canonical path or raw."""
+    try:
+        return os.path.realpath(path)
+    except OSError:
+        return os.path.abspath(path)
+
+
+def _is_within(path: str, root: str) -> bool:
+    """True if path is within root, after canonicalization."""
+    canon_path = _canonicalize(path)
+    canon_root = _canonicalize(root)
+    return canon_path == canon_root or canon_path.startswith(canon_root + os.sep)
+
+
 def validate_container_name(name: str) -> ValidationResult:
     if not name.startswith(DISPOSABLE_PREFIX):
         return ValidationResult(False, f"Container name must start with '{DISPOSABLE_PREFIX}', got: {name}")
     if name in BLOCKED_CONTAINER_NAMES:
         return ValidationResult(False, f"Container name '{name}' is blocked (production resource)")
-    if "/" in name or ".." in name:
+    if not NAME_RE.match(name):
         return ValidationResult(False, f"Container name contains illegal characters: {name}")
     return ValidationResult(True, "OK")
 
 
 def validate_image(image: str) -> ValidationResult:
+    # Disposable images only. Reject production image (prod-*).
     if not any(image.startswith(p) for p in ALLOWED_IMAGE_PREFIXES):
-        return ValidationResult(False, f"Image '{image}' not in allowlist. Must be disposable")
+        return ValidationResult(False, f"Image '{image}' not in disposable allowlist")
     if image in BLOCKED_CONTAINER_NAMES:
-        return ValidationResult(False, f"Image name '{image}' is blocked")
+        return ValidationResult(False, f"Image '{image}' is blocked")
+    if any(c in image for c in (";", "|", "&", ">", "<", "`", "$", " ")):
+        return ValidationResult(False, f"Image '{image}' contains shell metacharacters")
     return ValidationResult(True, "OK")
 
 
 def validate_mount(source: str, destination: str, mode: str) -> ValidationResult:
-    # Block production paths
+    # Canonicalize source to defeat symlink/path-traversal attacks
+    canon_source = _canonicalize(source)
+
+    # Block production paths (check both raw and canonical)
     for blocked in BLOCKED_VOLUME_SOURCES:
-        if source.startswith(blocked):
+        if canon_source.startswith(blocked) or source.startswith(blocked):
             return ValidationResult(False, f"Mount source '{source}' matches blocked production path: {blocked}")
     for blocked in BLOCKED_PATH_PREFIXES:
-        if source.startswith(blocked) and not source.startswith(ALLOWED_HOST_ROOT):
+        if canon_source.startswith(blocked):
             return ValidationResult(False, f"Mount source '{source}' blocked by prefix: {blocked}")
 
-    if not source.startswith(ALLOWED_HOST_ROOT) and not source.startswith("/tmp/"):
-        return ValidationResult(False, f"Mount source '{source}' outside allowed roots")
-
-    if source in ("/", "/etc", "/var", "/opt", "/home"):
-        return ValidationResult(False, f"Root-level mount blocked: {source}")
+    # Source must be strictly within the disposable host root (canonicalized)
+    if not _is_within(source, ALLOWED_HOST_ROOT):
+        return ValidationResult(False, f"Mount source '{source}' outside disposable root '{ALLOWED_HOST_ROOT}'")
 
     if ".." in source or ".." in destination:
         return ValidationResult(False, "Path traversal detected in mount")
@@ -129,9 +150,11 @@ def validate_network(net: str) -> ValidationResult:
 
 def validate_env(env: list[str]) -> ValidationResult:
     for var in env:
-        name = var.split("=")[0] if "=" in var else var
+        name = var.split("=", 1)[0].strip() if "=" in var else var.strip()
         if name in BLOCKED_ENV_VARS:
             return ValidationResult(False, f"Environment variable '{name}' is blocked")
+        if any(c in name for c in (";", "|", "&", "`", "$", " ")):
+            return ValidationResult(False, f"Environment variable name contains illegal characters: {name}")
     return ValidationResult(True, "OK")
 
 
@@ -143,39 +166,45 @@ def validate_caps(caps: list[str]) -> ValidationResult:
 
 
 def validate_host_path(path: str) -> ValidationResult:
-    try:
-        resolved = os.path.realpath(path)
-    except OSError:
-        resolved = path
-    # Check both raw and resolved against blocked sources
-    candidates = {path, resolved}
+    canon = _canonicalize(path)
+    candidates = {path, canon}
     for blocked in BLOCKED_VOLUME_SOURCES:
         if any(c.startswith(blocked) for c in candidates):
             return ValidationResult(False, f"Path '{path}' matches blocked production path: {blocked}")
     for blocked in BLOCKED_PATH_PREFIXES:
-        if any(c.startswith(blocked) for c in candidates) and not any(c.startswith(ALLOWED_HOST_ROOT) for c in candidates):
+        if any(c.startswith(blocked) for c in candidates):
             return ValidationResult(False, f"Path '{path}' blocked by prefix: {blocked}")
     return ValidationResult(True, "OK")
 
 
 # ─── Operation Handlers ────────────────────────────────────────────
 
+def _docker(args: list[str], timeout: int = 30) -> dict:
+    """Run a Docker command with absolute path, fixed env, no shell."""
+    env = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
+    try:
+        result = subprocess.run(
+            [DOCKER_BIN] + args, capture_output=True, text=True,
+            timeout=timeout, env=env,
+        )
+        return {"allowed": True, "exit_code": result.returncode,
+                "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    except subprocess.TimeoutExpired:
+        return {"allowed": False, "reason": f"Timeout after {timeout}s", "exit_code": 124}
+    except Exception as e:
+        return {"allowed": False, "reason": str(e), "exit_code": 1}
+
+
 def handle_inspect(params: dict) -> dict:
     name = params["container_name"]
+    fmt = params.get("format", "{{.Names}} {{.Status}}")
     v = validate_container_name(name)
     if not v.allowed:
         return {"allowed": False, "reason": v.reason}
-
-    result = subprocess.run(
-        ["docker", "inspect", name, "--format", params.get("format", "{{.Names}} {{.Status}}")],
-        capture_output=True, text=True, timeout=30,
-    )
-    return {
-        "allowed": True,
-        "exit_code": result.returncode,
-        "stdout": result.stdout.strip(),
-        "stderr": result.stderr.strip(),
-    }
+    # Reject caller-controlled format strings — allowlist only
+    if fmt not in ALLOWED_INSPECT_FORMATS:
+        return {"allowed": False, "reason": f"Format string not in allowlist: {fmt}"}
+    return _docker(["inspect", name, "--format", fmt])
 
 
 def handle_create(params: dict) -> dict:
@@ -186,13 +215,18 @@ def handle_create(params: dict) -> dict:
     v = validate_image(image)
     if not v.allowed: return {"allowed": False, "reason": v.reason}
 
+    # Fixed hardened flags — caller cannot override these
     cmd = [
-        "docker", "create",
+        "create",
         "--name", name,
         "--network", params.get("network", "none"),
         "--read-only",
         "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges:true",
+        "--user", params.get("user", "10010:10010"),
+        "--pids-limit", "128",
+        "--memory", "256m",
+        "--cpus", "1.0",
     ]
 
     for mount in params.get("mounts", []):
@@ -206,49 +240,42 @@ def handle_create(params: dict) -> dict:
         cmd += ["-e", env_var]
 
     cmd.append(image)
-
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    return {"allowed": True, "exit_code": result.returncode, "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    return _docker(cmd, timeout=120)
 
 
 def handle_start(params: dict) -> dict:
     name = params["container_name"]
     v = validate_container_name(name)
     if not v.allowed: return {"allowed": False, "reason": v.reason}
-    result = subprocess.run(["docker", "start", name], capture_output=True, text=True, timeout=30)
-    return {"allowed": True, "exit_code": result.returncode, "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    return _docker(["start", name])
 
 
 def handle_stop(params: dict) -> dict:
     name = params["container_name"]
     v = validate_container_name(name)
     if not v.allowed: return {"allowed": False, "reason": v.reason}
-    result = subprocess.run(["docker", "stop", name], capture_output=True, text=True, timeout=30)
-    return {"allowed": True, "exit_code": result.returncode, "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    return _docker(["stop", name])
 
 
 def handle_remove(params: dict) -> dict:
     name = params["container_name"]
     v = validate_container_name(name)
     if not v.allowed: return {"allowed": False, "reason": v.reason}
-    result = subprocess.run(["docker", "rm", name], capture_output=True, text=True, timeout=30)
-    return {"allowed": True, "exit_code": result.returncode, "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    return _docker(["rm", "-f", name])
 
 
 def handle_create_network(params: dict) -> dict:
     name = params["network_name"]
     if not name.startswith("hermes-b5-lab-"):
         return {"allowed": False, "reason": f"Network name must start with 'hermes-b5-lab-', got: {name}"}
-    result = subprocess.run(["docker", "network", "create", name, "--internal"], capture_output=True, text=True, timeout=30)
-    return {"allowed": True, "exit_code": result.returncode, "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    return _docker(["network", "create", name, "--internal"])
 
 
 def handle_remove_network(params: dict) -> dict:
     name = params["network_name"]
     if not name.startswith("hermes-b5-lab-"):
         return {"allowed": False, "reason": f"Network name must start with 'hermes-b5-lab-', got: {name}"}
-    result = subprocess.run(["docker", "network", "rm", name], capture_output=True, text=True, timeout=30)
-    return {"allowed": True, "exit_code": result.returncode, "stdout": result.stdout.strip(), "stderr": result.stderr.strip()}
+    return _docker(["network", "rm", name])
 
 
 HANDLERS = {
@@ -260,6 +287,8 @@ HANDLERS = {
     "create_disposable_network": handle_create_network,
     "remove_disposable_network": handle_remove_network,
 }
+
+ALLOWED_OPERATIONS = frozenset(HANDLERS.keys())
 
 
 # ─── Broker Main ───────────────────────────────────────────────────
@@ -280,7 +309,10 @@ def process_request(request: dict) -> dict:
 
 def main():
     try:
-        raw = sys.stdin.read()
+        raw = sys.stdin.read(MAX_REQUEST_BYTES + 1)
+        if len(raw) > MAX_REQUEST_BYTES:
+            print(json.dumps({"allowed": False, "reason": "Request exceeds size limit"}))
+            sys.exit(1)
         request = json.loads(raw)
         response = process_request(request)
         print(json.dumps(response))
