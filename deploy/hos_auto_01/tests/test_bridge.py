@@ -61,21 +61,24 @@ def test_bridge_rejects_invalid_contract():
 
 def test_bridge_auto_end_to_end():
     with tempfile.TemporaryDirectory() as tmp:
+        orig_cwd = os.getcwd()
         os.chdir(tmp)
-        os.system("git init -q && git add -A && git commit --allow-empty -m init -q >/dev/null 2>&1")
-        sha = os.popen("git rev-parse HEAD").read().strip()
+        try:
+            os.system("git init -q && git add -A && git commit --allow-empty -m init -q >/dev/null 2>&1")
+            sha = os.popen("git rev-parse HEAD").read().strip()
 
-        c = TaskContract(
-            task_id="E2E-001", objective="End-to-end", authority_class=AuthorityClass.AUTO,
-            working_directory=tmp, source_git_sha=sha,
-            operations=[Operation(type=OperationType.GIT_STATUS, timeout_seconds=30)],
-            expected_assertions=[Assertion(id="A1", check="exit_code", expect="0")],
-        )
-        receipt = run_bridge(c, evidence_root=f"{tmp}/evidence")
-        assert receipt.verdict == "PASS"
-        assert receipt.receipt_sha256 and len(receipt.receipt_sha256) == 64
-        ev_dir = f"{tmp}/evidence/{receipt.execution_id}"
-        assert os.path.isfile(f"{ev_dir}/receipt.json")
+            c = TaskContract(
+                task_id="E2E-001", objective="End-to-end", authority_class=AuthorityClass.AUTO,
+                working_directory=tmp, source_git_sha=sha,
+                operations=[Operation(type=OperationType.GIT_STATUS, timeout_seconds=30)],
+                expected_assertions=[Assertion(id="A1", check="exit_code", expect="0")],
+            )
+            receipt = run_bridge(c, evidence_root=f"{tmp}/evidence")
+            assert receipt.verdict == "PASS"
+            assert receipt.receipt_sha256 and len(receipt.receipt_sha256) == 64
+            assert os.path.isfile(f"{tmp}/evidence/{receipt.execution_id}/receipt.json")
+        finally:
+            os.chdir(orig_cwd)
 
 def test_receipt_chain_integrity():
     import hashlib
@@ -87,14 +90,17 @@ def test_receipt_chain_integrity():
 
 def test_preflight_runs_in_bridge():
     """Bridge runs preflight before executing."""
-    # Use a real path but bogus SHA → preflight FAILS → TEST_ENVIRONMENT_INVALID
     with tempfile.TemporaryDirectory() as tmp:
+        orig_cwd = os.getcwd()
         os.chdir(tmp)
-        os.system("git init -q && git add -A && git commit --allow-empty -m init -q >/dev/null 2>&1")
-        c = TaskContract(
-            task_id="PF-TEST", objective="test", authority_class=AuthorityClass.AUTO,
-            working_directory=tmp, source_git_sha="bogus-sha-12345",
-            operations=[Operation(type=OperationType.GIT_STATUS)],
-        )
-        receipt = run_bridge(c, evidence_root=f"{tmp}/evidence")
-        assert receipt.verdict == "TEST_ENVIRONMENT_INVALID"
+        try:
+            os.system("git init -q && git add -A && git commit --allow-empty -m init -q >/dev/null 2>&1")
+            c = TaskContract(
+                task_id="PF-TEST", objective="test", authority_class=AuthorityClass.AUTO,
+                working_directory=tmp, source_git_sha="bogus-sha-12345",
+                operations=[Operation(type=OperationType.GIT_STATUS)],
+            )
+            receipt = run_bridge(c, evidence_root=f"{tmp}/evidence")
+            assert receipt.verdict == "TEST_ENVIRONMENT_INVALID"
+        finally:
+            os.chdir(orig_cwd)

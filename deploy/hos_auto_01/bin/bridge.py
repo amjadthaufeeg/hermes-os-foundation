@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from deploy.hos_auto_01.policy.authority import (
-    TaskContract, Assertion, OperationType,
+    TaskContract, Assertion, OperationType, Operation, AuthorityClass,
     validate_authority, classify_contract,
 )
 from deploy.hos_auto_01.bin.preflight import run as run_preflight
@@ -202,28 +202,31 @@ def run_bridge(contract: TaskContract, evidence_root: str = "evidence") -> Execu
         (evidence_dir / f"op-{op.type.value}-stdout.log").write_text(stdout)
         (evidence_dir / f"op-{op.type.value}-stderr.log").write_text(stderr)
 
-        # Evaluate assertions for this operation
-        for assertion in contract.expected_assertions:
-            if assertion.check == "exit_code":
-                assertion.actual = str(exit_code)
-                assertion.passed = str(exit_code) == assertion.expect
-            elif assertion.check == "stdout_contains":
-                assertion.actual = "FOUND" if assertion.expect in stdout else "NOT_FOUND"
-                assertion.passed = assertion.expect in stdout
-            elif assertion.check == "http_status":
-                assertion.actual = str(stdout)
-                assertion.passed = str(stdout) == str(assertion.expect)
-            else:
-                assertion.passed = None
+        # Evaluate assertions after all operations complete
+    for assertion in contract.expected_assertions:
+        op_result = receipt.operations_executed[0] if receipt.operations_executed else {}
+        exit_code = op_result.get("exit_code", -1)
+        stdout = op_result.get("stdout_preview", "")
 
-            all_assertions.append({
-                "id": assertion.id, "check": assertion.check,
-                "expect": assertion.expect, "actual": assertion.actual,
-                "passed": assertion.passed,
-            })
+        if assertion.check == "exit_code":
+            assertion.actual = str(exit_code)
+            assertion.passed = str(exit_code) == assertion.expect
+        elif assertion.check == "stdout_contains":
+            assertion.actual = "FOUND" if assertion.expect in stdout else "NOT_FOUND"
+            assertion.passed = assertion.expect in stdout
+        elif assertion.check == "http_status":
+            assertion.actual = str(stdout)
+            assertion.passed = str(stdout) == str(assertion.expect)
+        else:
+            assertion.passed = None
 
-            if assertion.passed is False:
-                all_passed = False
+        all_assertions.append({
+            "id": assertion.id, "check": assertion.check,
+            "expect": assertion.expect, "actual": assertion.actual,
+            "passed": assertion.passed,
+        })
+        if assertion.passed is False:
+            all_passed = False
 
     duration = time.time() - start
     receipt.duration_seconds = round(duration, 3)
