@@ -1,0 +1,2 @@
+# HOS-AUTO-01 — ensure /run/hermes-auto exists for the broker socket
+d /run/hermes-auto 0750 root hermes-auto
