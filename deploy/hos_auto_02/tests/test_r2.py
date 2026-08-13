@@ -180,3 +180,51 @@ def test_classify_depth_exceeded():
         contract={"operations": []},
     )
     assert classify_authority(task) == AuthorityClass.FORBIDDEN
+
+# ─── Catch-up Tests (ChatGPT review findings) ─────────────────────
+
+def test_watcher_no_ssh_in_bridge_invocation():
+    """run_local_bridge must not invoke ssh."""
+    from deploy.hos_auto_02.watcher import run_local_bridge
+    import inspect
+    source = inspect.getsource(run_local_bridge)
+    assert 'subprocess.run(["ssh"' not in source.replace(" ", ""), "SSH invocation found in run_local_bridge"
+    assert "root@141.136.44.66" not in source, "root@VPS found in run_local_bridge"
+    assert "ssh " not in source.split("\n")[0], "ssh not in docstring"  # weak check
+
+def test_persistent_nonce_survives_call(monkeypatch, tmp_path):
+    """Persistent nonce check survives repeat calls."""
+    state_file = tmp_path / "r2-state.json"
+    monkeypatch.setenv("R2_STATE_FILE", str(state_file))
+    # Re-import to pick up new state file path
+    import importlib
+    from deploy.hos_auto_02 import watcher
+    importlib.reload(watcher)
+    test_nonce = "test-persist-" + str(id(dict()))
+    assert not watcher.persistent_is_duplicate_nonce(test_nonce)
+    assert watcher.persistent_is_duplicate_nonce(test_nonce)
+
+def test_persistent_task_dedup(monkeypatch, tmp_path):
+    state_file = tmp_path / "r2-state.json"
+    monkeypatch.setenv("R2_STATE_FILE", str(state_file))
+    import importlib
+    from deploy.hos_auto_02 import watcher
+    importlib.reload(watcher)
+    tid = "test-dedup-" + str(id(dict()))
+    assert not watcher.persistent_is_duplicate_task(tid)
+    watcher.persistent_mark_completed(tid)
+    assert watcher.persistent_is_duplicate_task(tid)
+
+def test_result_hash_binds_security_fields():
+    from deploy.hos_auto_02.schema import R2Result
+    r = R2Result(task_id="T", result_id="R", task_commit_sha="abc",
+                  contract_sha256="def", status="COMPLETED", verdict="PASS",
+                  authority_class="AUTO", evidence_receipts=["r1"],
+                  completed_at="2026-01-01T00:00:00Z")
+    h1 = r.compute_hash()
+    r2 = R2Result(task_id="T", result_id="R", task_commit_sha="DIFFERENT",
+                   contract_sha256="def", status="COMPLETED", verdict="PASS",
+                   authority_class="AUTO", evidence_receipts=["r1"],
+                   completed_at="2026-01-01T00:00:00Z")
+    h2 = r2.compute_hash()
+    assert h1 != h2  # Different task_commit_sha → different hash

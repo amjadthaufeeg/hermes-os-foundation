@@ -1,0 +1,31 @@
+[Unit]
+Description=HOS-AUTO-02 R2 Task Watcher
+After=network-online.target hermes-broker.socket
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hermes-auto
+Group=hermes-auto
+WorkingDirectory=/opt/hermes-auto
+Environment=PYTHONPATH=/opt/hermes-auto
+ExecStart=/opt/hermes-auto/venv/bin/python3 -m deploy.hos_auto_02.watcher
+Restart=on-failure
+RestartSec=30
+StartLimitBurst=5
+StartLimitIntervalSec=300
+NoNewPrivileges=yes
+ReadOnlyPaths=/
+ReadWritePaths=/opt/hermes-auto/evidence /opt/hermes-auto/logs /opt/hermes-auto/state /opt/hermes-auto/contracts
+ReadWritePaths=/home/hermes-auto/.gitconfig /home/hermes-auto/.hermes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+MemoryMax=128M
+CPUQuota=50%
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hermes-r2-watcher
+
+[Install]
+WantedBy=multi-user.target
