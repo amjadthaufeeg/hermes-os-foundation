@@ -117,6 +117,22 @@ def execute_operation(op, workdir: str, evidence_dir: Path) -> tuple[int, str, s
         resp = call_broker("inspect_timer", params, timeout)
         return (resp.get("exit_code", 1), resp.get("stdout", ""),
                 resp.get("stderr", "") or resp.get("reason", ""))
+    if op_type == OperationType.CREATE_DISPOSABLE_CONTAINER:
+        resp = call_broker("create_disposable_container", params, timeout)
+        return (resp.get("exit_code", 1), resp.get("stdout", ""),
+                resp.get("stderr", "") or resp.get("reason", ""))
+    if op_type == OperationType.START_DISPOSABLE_CONTAINER:
+        resp = call_broker("start_disposable_container", params, timeout)
+        return (resp.get("exit_code", 1), resp.get("stdout", ""),
+                resp.get("stderr", "") or resp.get("reason", ""))
+    if op_type == OperationType.STOP_DISPOSABLE_CONTAINER:
+        resp = call_broker("stop_disposable_container", params, timeout)
+        return (resp.get("exit_code", 1), resp.get("stdout", ""),
+                resp.get("stderr", "") or resp.get("reason", ""))
+    if op_type == OperationType.REMOVE_DISPOSABLE_CONTAINER:
+        resp = call_broker("remove_disposable_container", params, timeout)
+        return (resp.get("exit_code", 1), resp.get("stdout", ""),
+                resp.get("stderr", "") or resp.get("reason", ""))
 
     if op_type == OperationType.RUN_PYTEST:
         path = params.get("path", ".")

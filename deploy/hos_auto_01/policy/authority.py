@@ -27,8 +27,10 @@ class OperationType(str, Enum):
     INSPECT_TIMER = "inspect_timer"
     COLLECT_LOGS = "collect_logs"
     BUILD_DISPOSABLE_IMAGE = "build_disposable_image"
+    CREATE_DISPOSABLE_CONTAINER = "create_disposable_container"
     START_DISPOSABLE_CONTAINER = "start_disposable_container"
     STOP_DISPOSABLE_CONTAINER = "stop_disposable_container"
+    REMOVE_DISPOSABLE_CONTAINER = "remove_disposable_container"
     HASH_FILES = "hash_files"
     ASSERT_HTTP_RESPONSE = "assert_http_response"
     STAT_FILE = "stat_file"
@@ -61,8 +63,10 @@ AUTHORITY_MATRIX: dict[OperationType, AuthorityClass] = {
     OperationType.INSPECT_TIMER: AuthorityClass.AUTO,
     OperationType.COLLECT_LOGS: AuthorityClass.AUTO,
     OperationType.BUILD_DISPOSABLE_IMAGE: AuthorityClass.AUTO,
+    OperationType.CREATE_DISPOSABLE_CONTAINER: AuthorityClass.AUTO,
     OperationType.START_DISPOSABLE_CONTAINER: AuthorityClass.AUTO,
     OperationType.STOP_DISPOSABLE_CONTAINER: AuthorityClass.AUTO,
+    OperationType.REMOVE_DISPOSABLE_CONTAINER: AuthorityClass.AUTO,
     OperationType.HASH_FILES: AuthorityClass.AUTO,
     OperationType.ASSERT_HTTP_RESPONSE: AuthorityClass.AUTO,
     OperationType.STAT_FILE: AuthorityClass.AUTO,
