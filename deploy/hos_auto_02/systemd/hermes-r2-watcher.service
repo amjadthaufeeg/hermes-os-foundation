@@ -9,23 +9,43 @@ User=hermes-auto
 Group=hermes-auto
 WorkingDirectory=/opt/hermes-auto
 Environment=PYTHONPATH=/opt/hermes-auto
+Environment=R2_CONTROL_DIR=/var/lib/hermes-auto/hermes-control
+Environment=R2_DEPLOY_KEY=/opt/hermes-auto/creds/deploy-key
 ExecStart=/opt/hermes-auto/venv/bin/python3 -m deploy.hos_auto_02.watcher
 Restart=on-failure
 RestartSec=30
 StartLimitBurst=5
 StartLimitIntervalSec=300
+
+# Hardening
 NoNewPrivileges=yes
-ReadOnlyPaths=/
-ReadWritePaths=/opt/hermes-auto/evidence /opt/hermes-auto/logs /opt/hermes-auto/state /opt/hermes-auto/contracts
-ReadWritePaths=/home/hermes-auto/.gitconfig /home/hermes-auto/.hermes
-PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Write access: writable runtime state ONLY (not source code)
+ReadOnlyPaths=/opt/hermes-auto /etc/ssh
+ReadWritePaths=/var/lib/hermes-auto /opt/hermes-auto/evidence /opt/hermes-auto/logs
+ReadWritePaths=/home/hermes-auto/.ssh
+
 MemoryMax=128M
 CPUQuota=50%
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=hermes-r2-watcher
+
+# No Docker, no sudo, no root SSH
+# hermes-auto has no docker group membership
+# Bridge/broker provide the only privileged execution path
 
 [Install]
 WantedBy=multi-user.target

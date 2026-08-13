@@ -228,3 +228,33 @@ def test_result_hash_binds_security_fields():
                    completed_at="2026-01-01T00:00:00Z")
     h2 = r2.compute_hash()
     assert h1 != h2  # Different task_commit_sha → different hash
+
+
+# ─── Restart Replay Test ───────────────────────────────────────────
+
+def test_replay_blocked_after_restart(monkeypatch, tmp_path):
+    """Persistent state survives simulated restart."""
+    state_file = tmp_path / "r2-state.json"
+    monkeypatch.setenv("R2_STATE_FILE", str(state_file))
+    import importlib
+    from deploy.hos_auto_02 import watcher
+    importlib.reload(watcher)
+
+    test_nonce = "replay-test-" + str(id(dict()))
+    assert not watcher.persistent_is_duplicate_nonce(test_nonce)
+    assert watcher.persistent_is_duplicate_nonce(test_nonce)
+
+    # Simulate restart: clear in-memory, reload state from file
+    importlib.reload(watcher)
+    # Nonce was saved to file at first call, should still be duplicate
+    assert watcher.persistent_is_duplicate_nonce(test_nonce)
+
+
+# ─── Credential Leakage Test ───────────────────────────────────────
+
+def test_transport_no_credential_in_source():
+    """Deploy key path usage must not expose credential content."""
+    from deploy.hos_auto_02.transport import DEPLOY_KEY
+    # DEPLOY_KEY is a PATH, not a credential value
+    assert "/opt/hermes-auto/creds/" in DEPLOY_KEY, "Deploy key path should point to creds dir"
+    assert "BEGIN" not in DEPLOY_KEY, "Deploy key path must not contain key material"

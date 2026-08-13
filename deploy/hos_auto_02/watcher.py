@@ -39,8 +39,8 @@ POLL_INTERVAL = 30
 BRIDGE_PATH = "/opt/hermes-auto/bin/bridge.py"
 BRIDGE_PYTHON = "/opt/hermes-auto/venv/bin/python3"
 EVIDENCE_ROOT = "/opt/hermes-auto/evidence"
-CONTRACT_DIR = "/opt/hermes-auto/contracts"
-STATE_FILE = os.environ.get("R2_STATE_FILE", "/opt/hermes-auto/state/r2-state.json")
+CONTRACT_DIR = "/var/lib/hermes-auto/contracts"
+STATE_FILE = os.environ.get("R2_STATE_FILE", "/var/lib/hermes-auto/state/r2-state.json")
 
 # ─── Persistent State ──────────────────────────────────────────────
 
