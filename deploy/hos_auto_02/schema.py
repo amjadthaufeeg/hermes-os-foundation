@@ -47,7 +47,7 @@ class R2Task:
     objective: str = ""
 
     def compute_contract_hash(self) -> str:
-        raw = json.dumps(self.contract, sort_keys=True)
+        raw = json.dumps(self.contract, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(raw.encode()).hexdigest()
 
     @classmethod
@@ -71,20 +71,29 @@ class R2Task:
 
     def validate(self) -> list[str]:
         errors = []
-        if not self.task_id: errors.append("task_id required")
-        if not self.created_at: errors.append("created_at required")
-        if not self.nonce: errors.append("nonce required")
-        if not self.contract: errors.append("contract required")
-        if not self.contract_sha256: errors.append("contract_sha256 required")
+        if not self.task_id:
+            errors.append("task_id required")
+        if not self.created_at:
+            errors.append("created_at required")
+        if not self.nonce:
+            errors.append("nonce required")
+        if not self.contract:
+            errors.append("contract required")
+        if not self.contract_sha256:
+            errors.append("contract_sha256 required")
         if self.schema_version != SCHEMA_VERSION:
             errors.append(f"schema_version {self.schema_version} != {SCHEMA_VERSION}")
         computed = self.compute_contract_hash()
         if self.contract_sha256 and computed != self.contract_sha256:
-            errors.append(f"contract_sha256 mismatch: computed={computed[:12]} expected={self.contract_sha256[:12]}")
-        if self.depth > 3:
-            errors.append(f"max depth exceeded: {self.depth}")
+            errors.append(
+                f"contract_sha256 mismatch: computed={computed[:12]} expected={self.contract_sha256[:12]}"
+            )
+        if not isinstance(self.depth, int) or self.depth < 0 or self.depth > 3:
+            errors.append(f"invalid depth: {self.depth}")
         if self.source not in ("chatgpt", "hermes", "amjad"):
             errors.append(f"unknown source: {self.source}")
+        if self.authority_suggestion not in ("AUTO", "GATED", "FORBIDDEN"):
+            errors.append(f"invalid authority_suggestion: {self.authority_suggestion}")
         return errors
 
     def is_valid(self) -> bool:
@@ -128,19 +137,27 @@ class R2Result:
     warnings: list = field(default_factory=list)
 
     def compute_hash(self) -> str:
+        """Bind all security-relevant result fields into a deterministic hash."""
         raw = json.dumps({
-            "task_id": self.task_id, "result_id": self.result_id,
+            "task_id": self.task_id,
+            "result_id": self.result_id,
             "task_commit_sha": self.task_commit_sha,
             "contract_sha256": self.contract_sha256,
-            "status": self.status, "verdict": self.verdict,
+            "status": self.status,
+            "verdict": self.verdict,
+            "authority_class": self.authority_class,
             "evidence_receipts": self.evidence_receipts,
+            "artifact_refs": self.artifact_refs,
             "completed_at": self.completed_at,
-        }, sort_keys=True)
+            "requires_human_decision": self.requires_human_decision,
+            "next_action": self.next_action,
+            "warnings": self.warnings,
+        }, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def validate_transport(repo: str, branch: str, path: str) -> tuple[bool, str]:
-    """Validate that the task originates from the approved transport."""
+    """Validate that the task originates from the approved file transport."""
     if repo != TRANSPORT_REPO:
         return False, f"Rejected: wrong repo '{repo}', expected '{TRANSPORT_REPO}'"
     if branch != TRANSPORT_BRANCH:
