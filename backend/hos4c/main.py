@@ -27,6 +27,8 @@ from backend.hos4c.config import *
 from backend.hos4c.config import is_simulation_mode
 from backend.hos4c.database import init_db, get_db
 from backend.hos4c.audit import record_audit_event, verify_hash_chain
+from backend.hos4c.environment import get_env as env_get_env, mutations_disabled, validate_startup, policy
+from backend.hos4c.snapshot_freshness import freshness_enforced, snapshot_freshness, snapshot_read_allowed, MAX_AGE_SECONDS
 from backend.hos4c.state_machine import (
     validate_transition, is_high_risk, requires_typed_confirmation,
     requires_rationale, min_rationale_length, ROLE_PERMISSIONS,
@@ -115,7 +117,17 @@ def require_role(min_role: str):
 # --- Health ---
 @app.get("/api/health")
 def health():
-    return {"status": "alive", "environment": env_get_env().value, "mutations": "DISABLED" if mutations_disabled() else "SIMULATION_ONLY"}
+    result = {
+        "status": "alive",
+        "environment": env_get_env().value,
+        "mutations": "DISABLED" if mutations_disabled() else "SIMULATION_ONLY",
+    }
+    if freshness_enforced():
+        db_path = os.environ.get("DATABASE_PATH", "")
+        snapshot_dir = os.path.dirname(db_path) if db_path else "/snapshot"
+        evidence = snapshot_freshness(snapshot_dir)
+        result["snapshot"] = evidence
+    return result
 
 @app.get("/api/health/readiness")
 def readiness():
@@ -256,6 +268,13 @@ def revoke_all_sessions(request: Request):
 def list_decisions():
     if is_simulation_mode():
         return {"decisions": SIM_DECISIONS, "count": len(SIM_DECISIONS), "mode": "SIMULATION"}
+    # Snapshot freshness gate — refuse reads if snapshot is not FRESH
+    if freshness_enforced():
+        db_path = os.environ.get("DATABASE_PATH", "")
+        snapshot_dir = os.path.dirname(db_path) if db_path else "/snapshot"
+        allowed, evidence = snapshot_read_allowed(snapshot_dir)
+        if not allowed:
+            raise HTTPException(503, f"Snapshot not fresh: {evidence['status']}")
     with get_db() as db:
         rows = db.execute("SELECT * FROM decisions ORDER BY id").fetchall()
         return {"decisions": [dict(r) for r in rows], "count": len(rows), "mode": "PRODUCTION"}
@@ -267,6 +286,12 @@ def get_decision(decision_id: str):
             if d["id"] == decision_id:
                 return {**d, "mode": "SIMULATION"}
         raise HTTPException(404, "Decision not found")
+    if freshness_enforced():
+        db_path = os.environ.get("DATABASE_PATH", "")
+        snapshot_dir = os.path.dirname(db_path) if db_path else "/snapshot"
+        allowed, evidence = snapshot_read_allowed(snapshot_dir)
+        if not allowed:
+            raise HTTPException(503, f"Snapshot not fresh: {evidence['status']}")
     with get_db() as db:
         row = db.execute("SELECT * FROM decisions WHERE id = ?", (decision_id,)).fetchone()
         if row is None:

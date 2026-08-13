@@ -141,6 +141,16 @@ def validate_startup() -> list:
                 "Set SIMULATION_MODE=false." % sim_raw.strip()
             )
 
+    # --- Snapshot consumer freshness enforcement (FC-05) ---
+    if os.environ.get("SNAPSHOT_CONSUMER", "").strip().lower() == "true":
+        freshness_val = os.environ.get("SNAPSHOT_FRESHNESS_ENFORCED", "").strip().lower()
+        if freshness_val != "true":
+            errors.append(
+                "FATAL: Snapshot consumer requires SNAPSHOT_FRESHNESS_ENFORCED=true. "
+                "Got '%s'. A snapshot consumer must enforce freshness. "
+                "Set SNAPSHOT_FRESHNESS_ENFORCED=true." % freshness_val
+            )
+
     # --- OAuth configuration required in AUTH_REVIEW, STAGING, PRODUCTION ---
     if policy("oauth"):
         if not os.environ.get("GITHUB_CLIENT_ID"):
