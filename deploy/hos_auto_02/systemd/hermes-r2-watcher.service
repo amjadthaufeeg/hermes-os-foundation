@@ -2,6 +2,8 @@
 Description=HOS-AUTO-02 R2 Task Watcher
 After=network-online.target hermes-broker.socket
 Wants=network-online.target
+StartLimitBurst=5
+StartLimitIntervalSec=300
 
 [Service]
 Type=simple
@@ -11,11 +13,10 @@ WorkingDirectory=/opt/hermes-auto
 Environment=PYTHONPATH=/opt/hermes-auto
 Environment=R2_CONTROL_DIR=/var/lib/hermes-auto/hermes-control
 Environment=R2_DEPLOY_KEY=/opt/hermes-auto/creds/deploy-key
-ExecStart=/opt/hermes-auto/venv/bin/python3 -m deploy.hos_auto_02.watcher
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/hermes-auto/venv/bin/python3 -u -m deploy.hos_auto_02.watcher
 Restart=on-failure
 RestartSec=30
-StartLimitBurst=5
-StartLimitIntervalSec=300
 
 # Hardening
 NoNewPrivileges=yes
