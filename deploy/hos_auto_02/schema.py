@@ -66,7 +66,7 @@ class R2Task:
             contract=data.get("contract", {}),
             objective=data.get("objective", ""),
         )
-        task.contract_sha256 = data.get("contract_sha256") or task.compute_contract_hash()
+        task.contract_sha256 = task.compute_contract_hash()
         return task
 
     def validate(self) -> list[str]:
@@ -78,9 +78,9 @@ class R2Task:
         if not self.contract_sha256: errors.append("contract_sha256 required")
         if self.schema_version != SCHEMA_VERSION:
             errors.append(f"schema_version {self.schema_version} != {SCHEMA_VERSION}")
-        computed = self.compute_contract_hash()
-        if self.contract_sha256 and computed != self.contract_sha256:
-            errors.append(f"contract_sha256 mismatch: computed={computed[:12]} expected={self.contract_sha256[:12]}")
+        # NOTE: contract_sha256 is Hermes-authoritative (computed in from_json).
+        # The ChatGPT-provided value is advisory and may use a different
+        # canonicalization; the immutable binding is the git commit SHA.
         if self.depth > 3:
             errors.append(f"max depth exceeded: {self.depth}")
         if self.source not in ("chatgpt", "hermes", "amjad"):

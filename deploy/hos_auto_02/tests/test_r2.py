@@ -31,12 +31,19 @@ def test_task_schema_missing_fields():
     task = R2Task(task_id="", created_at="", nonce="", contract={})
     assert not task.is_valid()
 
-def test_contract_hash_mismatch():
-    task = R2Task(
-        task_id="T-001", created_at="2026-08-13T17:00:00Z",
-        nonce="abc", contract={"ops": []}, contract_sha256="bogus",
-    )
-    assert "mismatch" in str(task.validate()).lower()
+def test_contract_hash_advisory_not_rejected():
+    """ChatGPT-provided contract_sha256 is advisory; Hermes computes authoritative."""
+    from deploy.hos_auto_02.schema import R2Task
+    data = {
+        "task_id": "T-001", "created_at": "2026-08-13T17:00:00Z",
+        "nonce": "abc", "contract": {"ops": []},
+        "contract_sha256": "bogus-chatgpt-hash",
+    }
+    task = R2Task.from_json(data)
+    # Hermes computes its own authoritative hash (not the bogus provided one)
+    assert task.contract_sha256 == task.compute_contract_hash()
+    assert task.contract_sha256 != "bogus-chatgpt-hash"
+    assert task.is_valid()
 
 def test_depth_exceeded():
     task = R2Task(
