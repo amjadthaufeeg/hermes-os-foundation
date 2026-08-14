@@ -36,8 +36,12 @@ GITHUB_API = "https://api.github.com"
 
 def _ssh_env() -> dict:
     env = os.environ.copy()
+    # Use a known_hosts file under writable runtime state (ProtectHome=yes
+    # blocks ~/.ssh for the systemd service).
+    known_hosts = "/var/lib/hermes-auto/known_hosts"
     env["GIT_SSH_COMMAND"] = (
-        f"ssh -i {DEPLOY_KEY} -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes"
+        f"ssh -i {DEPLOY_KEY} -o StrictHostKeyChecking=accept-new "
+        f"-o IdentitiesOnly=yes -o UserKnownHostsFile={known_hosts}"
     )
     return env
 
