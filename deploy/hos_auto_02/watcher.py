@@ -224,6 +224,7 @@ def run_local_bridge(task: R2Task, source_version: str) -> dict:
             text=True,
             timeout=min(int(contract.timeout_seconds), 600),
             env=env,
+            cwd=contract.working_directory,
         )
 
         receipt_sha = None
