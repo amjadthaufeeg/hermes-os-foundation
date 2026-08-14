@@ -405,9 +405,10 @@ def process_issue_task(issue_number: int) -> R2Result:
         first["source_version"],
         f"issues/{issue_number}",
     )
-    # Record terminal states only; GATED/SOURCE_CHANGED may need future action.
-    if result.status in {"COMPLETED", "REJECTED", "EXPIRED", "SKIPPED"}:
-        persistent_mark_issue_processed(issue_number, first["source_version"])
+    # Carry issue identity for deferred marker in watch_loop.
+    result._issue_number = issue_number
+    result._source_version = first["source_version"]
+    # Marker deferred to watch_loop after successful publish_result.
     return result
 
 
@@ -442,6 +443,7 @@ def publish_result(result: R2Result):
         print(f"Published: {result.task_id} (sha:{sha[:12]})")
     else:
         print(f"Publish failed: {msg}")
+    return ok
 
 
 # ─── Watch Loop ────────────────────────────────────────────────────
@@ -455,7 +457,11 @@ def watch_loop():
             for filename in list_inbox_tasks():
                 print(f"Processing file task: {filename}")
                 result = process_file_task(filename)
-                publish_result(result)
+                published = publish_result(result)
+                if published and hasattr(result, "_source_version"):
+                    persistent_mark_issue_processed(
+                        result._issue_number, result._source_version
+                    )
                 print(f"  → {result.status} {result.verdict}: {result.summary[:80]}")
 
             try:
@@ -469,7 +475,11 @@ def watch_loop():
                 print(f"Processing issue task: #{number}")
                 result = process_issue_task(number)
                 if result.verdict != "DUPLICATE":
-                    publish_result(result)
+                    published = publish_result(result)
+                    if published and hasattr(result, "_issue_number"):
+                        persistent_mark_issue_processed(
+                            result._issue_number, result._source_version
+                        )
                 print(f"  → {result.status} {result.verdict}: {result.summary[:80]}")
 
         except KeyboardInterrupt:

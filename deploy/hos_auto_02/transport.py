@@ -83,8 +83,13 @@ def git_commit_and_push(files: list[tuple[str, str]], message: str) -> tuple[boo
             full_path.write_text(content)
         subprocess.run(["git", "-C", str(local), "add", "-A"],
                       check=True, capture_output=True, timeout=10)
-        subprocess.run(["git", "-C", str(local), "commit", "-m", message],
-                      check=True, capture_output=True, timeout=10)
+        # Explicit author — hermes-auto has no global git identity.
+        subprocess.run([
+            "git", "-C", str(local),
+            "-c", "user.name=Hermes R2 Watcher",
+            "-c", "user.email=hermes-r2@localhost",
+            "commit", "-m", message,
+        ], check=True, capture_output=True, timeout=10)
         sha = subprocess.run(["git", "-C", str(local), "rev-parse", "HEAD"],
                             capture_output=True, text=True, timeout=5).stdout.strip()
         subprocess.run(["git", "-C", str(local), "push", "origin", TRANSPORT_BRANCH],
