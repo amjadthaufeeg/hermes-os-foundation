@@ -79,7 +79,7 @@ def call_broker(operation_type: str, params: dict, timeout: int = 60) -> dict:
             s.settimeout(timeout)
             s.connect(BROKER_SOCKET_PATH)
             s.sendall(request.encode())
-            s.shutdown(socket.SHUT_WR)  # signal EOF so broker's stdin.read() returns
+            s.shutdown(socket.SHUT_WR)
             chunks = []
             while True:
                 chunk = s.recv(65536)
@@ -108,7 +108,6 @@ def execute_operation(op, workdir: str, evidence_dir: Path) -> tuple[int, str, s
     params = op.params
     timeout = op.timeout_seconds
 
-    # Privileged operations route through the broker socket (never direct).
     if op_type == OperationType.INSPECT_CONTAINER:
         resp = call_broker("inspect_container", params, timeout)
         return (resp.get("exit_code", 1), resp.get("stdout", ""),
@@ -213,7 +212,6 @@ def run_bridge(contract: TaskContract, evidence_root: str = "evidence") -> Execu
         started_at=now_utc(),
     )
 
-    # Validate contract
     errors = contract.validate()
     if errors:
         receipt.verdict = "STOP"
@@ -222,7 +220,6 @@ def run_bridge(contract: TaskContract, evidence_root: str = "evidence") -> Execu
         receipt.receipt_sha256 = receipt.compute_self_hash()
         return receipt
 
-    # Validate authority
     auth_ok, auth_msg = validate_authority(contract)
     if not auth_ok:
         receipt.verdict = "STOP"
@@ -231,20 +228,19 @@ def run_bridge(contract: TaskContract, evidence_root: str = "evidence") -> Execu
         receipt.receipt_sha256 = receipt.compute_self_hash()
         return receipt
 
-    # Preflight
     pf = run_preflight(contract.source_git_sha)
     receipt.environment_fingerprint = pf.fingerprint or "unknown"
     if not pf.passed:
+        failed = [msg for ok, msg in pf.checks if not ok]
+        receipt.assertions = [{"id": "PREFLIGHT", "passed": False, "error": failed}]
         receipt.verdict = "TEST_ENVIRONMENT_INVALID"
         receipt.finished_at = now_utc()
         receipt.receipt_sha256 = receipt.compute_self_hash()
         return receipt
 
-    # Evidence directory
     evidence_dir = Path(evidence_root) / receipt.execution_id
     evidence_dir.mkdir(parents=True, exist_ok=True)
 
-    # Execute operations
     all_assertions = []
     all_passed = True
     start = time.time()
@@ -255,12 +251,9 @@ def run_bridge(contract: TaskContract, evidence_root: str = "evidence") -> Execu
             "type": op.type.value, "exit_code": exit_code,
             "stdout_preview": stdout[:500], "stderr_preview": stderr[:500],
         })
-
-        # Write artifacts
         (evidence_dir / f"op-{op.type.value}-stdout.log").write_text(stdout)
         (evidence_dir / f"op-{op.type.value}-stderr.log").write_text(stderr)
 
-        # Evaluate assertions after all operations complete
     for assertion in contract.expected_assertions:
         op_result = receipt.operations_executed[0] if receipt.operations_executed else {}
         exit_code = op_result.get("exit_code", -1)
@@ -289,22 +282,33 @@ def run_bridge(contract: TaskContract, evidence_root: str = "evidence") -> Execu
     duration = time.time() - start
     receipt.duration_seconds = round(duration, 3)
     receipt.assertions = all_assertions
-
-    if all_passed:
-        receipt.verdict = "PASS"
-    else:
-        receipt.verdict = "FAIL"
-
+    receipt.verdict = "PASS" if all_passed else "FAIL"
     receipt.finished_at = now_utc()
     receipt.receipt_sha256 = receipt.compute_self_hash()
 
-    # Write receipt
     receipt_path = evidence_dir / "receipt.json"
     receipt_path.write_text(json.dumps({
         k: v for k, v in receipt.__dict__.items()
     }, indent=2, default=str))
 
     return receipt
+
+
+def compact_detail(receipt: ExecutionReceipt) -> str:
+    """Return an R2-tail-safe single-line failure diagnostic."""
+    if receipt.operations_executed:
+        op = receipt.operations_executed[-1]
+        text = op.get("stderr_preview") or op.get("stdout_preview") or ""
+        text = " ".join(str(text).split())[-96:]
+        return (
+            f"DETAIL|id={receipt.execution_id}|op={op.get('type','?')}|"
+            f"exit={op.get('exit_code','?')}|tail={text}"
+        )
+    if receipt.assertions:
+        err = receipt.assertions[-1].get("error", "")
+        text = " ".join(str(err).split())[-120:]
+        return f"DETAIL|id={receipt.execution_id}|stage=preflight|tail={text}"
+    return f"DETAIL|id={receipt.execution_id}|verdict={receipt.verdict}"
 
 
 # ─── CLI ──────────────────────────────────────────────────────────
@@ -342,6 +346,8 @@ def main():
 
     print(f"VERDICT: {receipt.verdict}")
     print(f"Receipt: {receipt.receipt_sha256}")
+    if receipt.verdict != "PASS":
+        print(compact_detail(receipt))
 
     sys.exit(0 if receipt.verdict == "PASS" else 1)
 
