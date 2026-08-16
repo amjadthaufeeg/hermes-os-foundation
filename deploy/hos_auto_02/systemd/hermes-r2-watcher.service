@@ -18,7 +18,7 @@ Environment=PYTHONUNBUFFERED=1
 # Pytest's default fd capture needs a writable tempfile directory, so point
 # standard Python tempfile resolution at the already-writable HOS state area.
 Environment=TMPDIR=/var/lib/hermes-auto
-ExecStart=/opt/hermes-auto/venv/bin/python3 -u -m deploy.hos_auto_02.watcher
+ExecStart=/opt/hermes-auto/venv/bin/python3 -u -m deploy.hos_auto_02.watcher_entry
 Restart=on-failure
 RestartSec=30
 
