@@ -155,7 +155,13 @@ def classify_authority(task: R2Task) -> AuthorityClass:
 # ─── Local Bridge Invocation (no SSH) ──────────────────────────────
 
 def run_local_bridge(task: R2Task, source_version: str) -> dict:
-    """Invoke the locally installed HOS-AUTO-01 bridge. No SSH, no root."""
+    """Invoke the locally installed HOS-AUTO-01 bridge. No SSH, no root.
+
+    ``source_version`` identifies the immutable transport object used for the
+    R2 claim/result (for example ``issue:4:<body_sha>``). It must never be used
+    as the Git checkout SHA expected by HOS-AUTO-01 preflight. The execution
+    source SHA is carried independently inside the validated task contract.
+    """
     try:
         ops = [
             Operation(
@@ -178,7 +184,7 @@ def run_local_bridge(task: R2Task, source_version: str) -> dict:
         objective=task.objective,
         authority_class=classify_authority(task),
         working_directory=task.contract.get("working_directory", "/tmp/hos-auto-01-src"),
-        source_git_sha=source_version,
+        source_git_sha=task.contract.get("source_git_sha", ""),
         operations=ops,
         expected_assertions=assertions,
         timeout_seconds=task.contract.get("timeout_seconds", 600),
@@ -299,7 +305,6 @@ def process_task_content(content: str, source_version: str, transport_path: str)
         result.verdict = "RATE_LIMITED"
         return result
 
-    # File tasks retain strict repo/branch/path transport validation.
     if transport_path.startswith("tasks/inbox/"):
         ok, msg = validate_transport("amjadthaufeeg/hermes-control", "main", transport_path)
         if not ok:
@@ -390,7 +395,6 @@ def process_issue_task(issue_number: int) -> R2Result:
             summary="Issue version already processed",
         )
 
-    # Fetch twice before claim to ensure task body is stable across validation boundary.
     second = read_issue_task(issue_number)
     if not second or second["source_version"] != first["source_version"]:
         return R2Result(
@@ -406,10 +410,8 @@ def process_issue_task(issue_number: int) -> R2Result:
         first["source_version"],
         f"issues/{issue_number}",
     )
-    # Carry issue identity for deferred marker in watch_loop.
     result._issue_number = issue_number
     result._source_version = first["source_version"]
-    # Marker deferred to watch_loop after successful publish_result.
     return result
 
 
