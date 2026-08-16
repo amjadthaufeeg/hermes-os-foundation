@@ -48,7 +48,6 @@ def fresh_auth_db():
         if os.path.exists(path):
             os.remove(path)
 
-# --- Adapter Reads ---
 class TestAdapterReads:
     def test_get_valid_decision(self):
         d = get_decision("DEC-TEST-001")
@@ -68,14 +67,11 @@ class TestAdapterReads:
         assert len(decisions) >= 1
         assert all(d["workflow_state"] == "AWAITING_AMJAD" for d in decisions)
 
-# --- Transition Authorization ---
 class TestTransitionAuth:
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_valid_transition(self, _mock):
-        result = apply_transition(
-            "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
-            "amjad", "AMJAD_OWNER", "Testing deferral.",
-            str(uuid.uuid4()))
+        result = apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+            "amjad", "AMJAD_OWNER", "Testing deferral.", str(uuid.uuid4()))
         assert result["result"] == "success"
         assert result["new_version"] == 2
         assert result["new_state"] == "DEFERRED"
@@ -83,130 +79,91 @@ class TestTransitionAuth:
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_wrong_role_denied(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
-            apply_transition(
-                "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
-                "reviewer-1", "REVIEWER", "I shouldn't defer.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+                "reviewer-1", "REVIEWER", "I shouldn't defer.", str(uuid.uuid4()))
 
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_hermes_denied(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
-            apply_transition(
-                "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
-                "hermes", "HERMES_ASSISTANT", "Hermes cannot approve.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+                "hermes", "HERMES_ASSISTANT", "Hermes cannot approve.", str(uuid.uuid4()))
 
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_system_service_denied(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
-            apply_transition(
-                "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
-                "system", "SYSTEM_SERVICE", "System cannot approve.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+                "system", "SYSTEM_SERVICE", "System cannot approve.", str(uuid.uuid4()))
 
-# --- State and Version Validation ---
 class TestStateVersion:
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_invalid_transition_rejected(self, _mock):
-        """RESUME from AWAITING_AMJAD is invalid — only valid from HOLD."""
         with pytest.raises(TransitionError, match="TRANSITION_FAILED"):
-            apply_transition(
-                "DEC-TEST-001", "RESUME", "AWAITING_AMJAD", 1,
-                "amjad", "AMJAD_OWNER", "Can't resume from AWAITING_AMJAD.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "RESUME", "AWAITING_AMJAD", 1,
+                "amjad", "AMJAD_OWNER", "Can't resume from AWAITING_AMJAD.", str(uuid.uuid4()))
 
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_stale_version_rejected(self, _mock):
         with pytest.raises(TransitionError, match="VERSION_MISMATCH"):
-            apply_transition(
-                "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 99,
-                "amjad", "AMJAD_OWNER", "Wrong version.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 99,
+                "amjad", "AMJAD_OWNER", "Wrong version.", str(uuid.uuid4()))
 
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_state_mismatch_rejected(self, _mock):
         with pytest.raises(TransitionError, match="STATE_MISMATCH"):
-            apply_transition(
-                "DEC-TEST-001", "RESUME", "HOLD", 1,
-                "amjad", "AMJAD_OWNER", "Wrong state assumption.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "RESUME", "HOLD", 1,
+                "amjad", "AMJAD_OWNER", "Wrong state assumption.", str(uuid.uuid4()))
 
-# --- Idempotency ---
 class TestIdempotency:
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_duplicate_key_returns_original(self, _mock):
         key = str(uuid.uuid4())
-        r1 = apply_transition(
-            "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+        r1 = apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
             "amjad", "AMJAD_OWNER", "Defer.", key)
-        r2 = apply_transition(
-            "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+        r2 = apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
             "amjad", "AMJAD_OWNER", "Duplicate.", key)
         assert r1["new_version"] == r2["new_version"]
 
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_reused_key_changed_payload_rejected(self, _mock):
         key = str(uuid.uuid4())
-        apply_transition(
-            "DEC-TEST-001", "PLACE_ON_HOLD", "AWAITING_AMJAD", 1,
+        apply_transition("DEC-TEST-001", "PLACE_ON_HOLD", "AWAITING_AMJAD", 1,
             "amjad", "AMJAD_OWNER", "First hold.", key)
-        r = apply_transition(
-            "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+        r = apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
             "amjad", "AMJAD_OWNER", "Different action after hold.", key)
         assert r["result"] == "success"
+
 class TestSQLSecurity:
     def test_sql_injection_in_decision_id(self):
-        d = get_decision("DEC-TEST-001' OR '1'='1")
-        assert d is None
+        assert get_decision("DEC-TEST-001' OR '1'='1") is None
 
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_sql_injection_in_rationale(self, _mock):
-        result = apply_transition(
-            "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
-            "amjad", "AMJAD_OWNER",
-            "Rationale with ' DROP TABLE -- safely parameterized",
-            str(uuid.uuid4()))
+        result = apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+            "amjad", "AMJAD_OWNER", "Rationale with ' DROP TABLE -- safely parameterized", str(uuid.uuid4()))
         assert result["result"] == "success"
-        # Verify data still intact after injection attempt
-        d = get_decision("DEC-TEST-001")
-        assert d is not None
+        assert get_decision("DEC-TEST-001") is not None
 
-# --- Migration Dry-Run ---
 class TestMigrationDryRun:
     def test_dry_run_empty_dir(self):
         tmpdir = tempfile.mkdtemp()
-        stats = dry_run_import(tmpdir)
-        assert stats["discovered"] == 0
+        assert dry_run_import(tmpdir)["discovered"] == 0
 
     def test_dry_run_with_fixture(self, tmp_path):
         fixture = tmp_path / "DEC-001.yaml"
-        fixture.write_text("""
-decision_id: DEC-001
-title: "First Decision"
-project: hermes-os
-status: locked
-owner: amjad
-decision: "The decision text."
-""")
+        fixture.write_text("decision_id: DEC-001\ntitle: First Decision\nproject: hermes-os\nstatus: locked\nowner: amjad\ndecision: The decision text.\n")
         stats = dry_run_import(str(tmp_path))
         assert stats["discovered"] >= 1
         assert stats["valid"] >= 1
 
     def test_dry_run_invalid_record(self, tmp_path):
-        fixture = tmp_path / "bad.yaml"
-        fixture.write_text("not: valid: yaml: header: - missing fields")
-        stats = dry_run_import(str(tmp_path))
-        assert stats["invalid"] >= 1
+        (tmp_path / "bad.yaml").write_text("not: valid: yaml: header: - missing fields")
+        assert dry_run_import(str(tmp_path))["invalid"] >= 1
 
     def test_dry_run_duplicate_ids(self, tmp_path):
-        fixture1 = tmp_path / "DEC-001.yaml"
-        fixture1.write_text("decision_id: DEC-001\ntitle: First\nproject: test\nstatus: locked\nowner: amjad")
-        fixture2 = tmp_path / "DEC-001-dupe.yaml"
-        fixture2.write_text("decision_id: DEC-001\ntitle: Dup\nproject: test\nstatus: locked\nowner: amjad")
-        stats = dry_run_import(str(tmp_path))
-        assert stats["duplicates"] >= 1
+        (tmp_path / "DEC-001.yaml").write_text("decision_id: DEC-001\ntitle: First\nproject: test\nstatus: locked\nowner: amjad")
+        (tmp_path / "DEC-001-dupe.yaml").write_text("decision_id: DEC-001\ntitle: Dup\nproject: test\nstatus: locked\nowner: amjad")
+        assert dry_run_import(str(tmp_path))["duplicates"] >= 1
 
-# --- Legacy State Mapping ---
 class TestStateMapping:
     def test_known_states(self):
         assert _map_state("locked") == "LOCKED"
@@ -223,27 +180,25 @@ class TestStateMapping:
     def test_unknown_requires_review(self):
         assert _map_state("bogus") == "MIGRATION_REVIEW_REQUIRED"
 
-# --- Git Projection ---
 class TestGitProjection:
     def test_project_to_directory(self, tmp_path):
         result = project_to_directory(str(tmp_path))
         assert result["exported"] >= 1
-        exported = list(tmp_path.glob("*.yaml"))
-        assert len(exported) >= 1
+        assert len(list(tmp_path.glob("*.yaml"))) >= 1
 
-    def test_projection_path_traversal_blocked(self):
-        """Projection to dangerous paths should be safely contained."""
-        result = project_to_directory("/tmp/hermes-test-safe-path")
+    def test_projection_path_traversal_blocked(self, tmp_path):
+        """Projection stays in a test-owned writable temp directory under hardened runtime."""
+        safe_path = tmp_path / "hermes-test-safe-path"
+        result = project_to_directory(str(safe_path))
         assert result["exported"] >= 1
+        assert safe_path.is_dir()
+        assert all(p.parent == safe_path for p in safe_path.glob("*.yaml"))
 
-# --- Real-Source Isolation ---
 class TestRealSourceIsolation:
     def test_no_real_registers_written(self):
-        import os
         reg_dir = ".hermes/registers/decisions/"
         if os.path.isdir(reg_dir):
             before = len(os.listdir(reg_dir))
-            # Attempt projection to temp dir (never real)
             tmp = tempfile.mkdtemp()
             project_to_directory(tmp)
             after = len(os.listdir(reg_dir))
@@ -252,12 +207,9 @@ class TestRealSourceIsolation:
     @patch.object(adapter_mod, "mutations_disabled", return_value=False)
     def test_hermes_authority_zero(self, _mock):
         with pytest.raises(TransitionError, match="UNAUTHORIZED"):
-            apply_transition(
-                "DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
-                "hermes", "HERMES_ASSISTANT", "Hermes attempt.",
-                str(uuid.uuid4()))
+            apply_transition("DEC-TEST-001", "DEFER", "AWAITING_AMJAD", 1,
+                "hermes", "HERMES_ASSISTANT", "Hermes attempt.", str(uuid.uuid4()))
 
-# --- Count ---
 def test_adapter_count():
     classes = [TestAdapterReads, TestTransitionAuth, TestStateVersion,
                TestIdempotency, TestSQLSecurity, TestMigrationDryRun,
