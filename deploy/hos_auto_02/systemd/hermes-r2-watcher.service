@@ -14,6 +14,10 @@ Environment=PYTHONPATH=/opt/hermes-auto
 Environment=R2_CONTROL_DIR=/var/lib/hermes-auto/hermes-control
 Environment=R2_DEPLOY_KEY=/opt/hermes-auto/creds/deploy-key
 Environment=PYTHONUNBUFFERED=1
+# ProtectSystem=strict makes /tmp read-only in the service mount namespace.
+# Pytest's default fd capture needs a writable tempfile directory, so point
+# standard Python tempfile resolution at the already-writable HOS state area.
+Environment=TMPDIR=/var/lib/hermes-auto
 ExecStart=/opt/hermes-auto/venv/bin/python3 -u -m deploy.hos_auto_02.watcher
 Restart=on-failure
 RestartSec=30
