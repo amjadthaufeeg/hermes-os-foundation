@@ -43,7 +43,8 @@ def finalize_issue_outcome(result, mark_completed) -> None:
         return
 
     if verdict in RETRYABLE_EXECUTION_VERDICTS:
-        # Non-FAIL retryable verdicts are not counted by the legacy processor.
+        # Non-FAIL retryable verdicts are counted here. The legacy reset is
+        # suppressed during issue processing so the count survives retries.
         if watcher.persistent_record_failure(task_id):
             if "STOP: 3 identical failures" not in result.warnings:
                 result.warnings.append("STOP: 3 identical failures")
@@ -61,11 +62,14 @@ def finalize_issue_outcome(result, mark_completed) -> None:
 def process_issue_retry_safe(issue_number: int):
     """Process one issue without prematurely completing retryable failures."""
     original_mark_completed = watcher.persistent_mark_completed
+    original_reset_failures = watcher.persistent_reset_failures
     watcher.persistent_mark_completed = lambda task_id: None
+    watcher.persistent_reset_failures = lambda task_id: None
     try:
         result = watcher.process_issue_task(issue_number)
     finally:
         watcher.persistent_mark_completed = original_mark_completed
+        watcher.persistent_reset_failures = original_reset_failures
 
     finalize_issue_outcome(result, original_mark_completed)
     return result
