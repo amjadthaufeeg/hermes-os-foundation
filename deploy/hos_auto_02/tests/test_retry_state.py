@@ -1,4 +1,4 @@
-"""Closure regression tests for retry-safe R2 Issue processing."""
+"""Closure regression tests for retry-safe R2 processing."""
 from deploy.hos_auto_02.schema import R2Result
 from deploy.hos_auto_02 import watcher_entry
 
@@ -69,3 +69,23 @@ def test_duplicate_issue_version_is_retired(monkeypatch):
     )
     watcher_entry._mark_current_issue_version_processed(77)
     assert recorded == [(77, "issue:77:abc")]
+
+
+def test_expired_legacy_file_becomes_terminal():
+    marked = []
+    watcher_entry.finalize_file_outcome(_result("EXPIRED"), marked.append)
+    assert marked == ["RETRY-001"]
+
+
+def test_invalid_legacy_file_becomes_terminal():
+    for verdict in ("MALFORMED", "INVALID", "MAX_DEPTH", "TRANSPORT", "FORBIDDEN", "REPLAY"):
+        marked = []
+        watcher_entry.finalize_file_outcome(_result(verdict), marked.append)
+        assert marked == ["RETRY-001"]
+
+
+def test_transient_legacy_file_not_completed():
+    for verdict in ("GATED", "RATE_LIMITED", "CLAIM_FAILED", "SOURCE_CHANGED"):
+        marked = []
+        watcher_entry.finalize_file_outcome(_result(verdict), marked.append)
+        assert marked == []
