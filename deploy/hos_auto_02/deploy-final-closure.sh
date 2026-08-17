@@ -66,6 +66,8 @@ rollback() {
   if [[ -e "$OLD_CANONICAL" ]]; then
     rm -rf "$CANONICAL"
     mv "$OLD_CANONICAL" "$CANONICAL"
+  elif [[ ! -f "$BACKUP_ROOT/previous-canonical-sha" ]]; then
+    rm -rf "$CANONICAL"
   fi
   rm -rf "$NEW_CANONICAL"
   systemctl daemon-reload || true
