@@ -48,6 +48,23 @@ def _create_source_db(path, decisions=2):
     conn.close()
 
 
+def _start_lock_holder(lock_file):
+    """Hold the same flock file the refresh script uses in production."""
+    proc = subprocess.Popen(["flock", "-n", lock_file, "sleep", "30"])
+    time.sleep(0.2)
+    assert proc.poll() is None, "lock holder failed to acquire flock"
+    return proc
+
+
+def _stop_lock_holder(proc):
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=5)
+
+
 # ---------------------------------------------------------------------------
 # T1-T6: Normal operation
 # ---------------------------------------------------------------------------
@@ -215,14 +232,14 @@ class TestConcurrency:
         code, stdout, stderr = _run_refresh(source, snap_dir, lock)
         assert code == 0
 
-        # Manually acquire the lock directory and try again
-        os.makedirs(lock, exist_ok=True)
+        # Manually acquire the same lock file production uses and try again.
+        holder = _start_lock_holder(lock)
         try:
             code2, stdout2, stderr2 = _run_refresh(source, snap_dir, lock)
             assert code2 == 10  # SKIPPED_LOCKED
             assert "SKIPPED_LOCKED" in stderr2
         finally:
-            os.rmdir(lock)
+            _stop_lock_holder(holder)
 
 
     @pytest.mark.skipif(not FLOCK_AVAILABLE, reason="flock not available")
@@ -237,6 +254,7 @@ class TestConcurrency:
         assert code == 2
         assert "not writable" in stderr
 
+    @pytest.mark.skipif(not FLOCK_AVAILABLE, reason="flock not available")
     def test_t10_no_second_candidate_under_lock(self, tmp_path):
         source = str(tmp_path / "source.db")
         snap_dir = str(tmp_path / "snapshots")
@@ -246,11 +264,11 @@ class TestConcurrency:
 
         _run_refresh(source, snap_dir, lock)
 
-        os.makedirs(lock, exist_ok=True)
+        holder = _start_lock_holder(lock)
         try:
             _run_refresh(source, snap_dir, lock)
         finally:
-            os.rmdir(lock)
+            _stop_lock_holder(holder)
 
         # No .tmp should exist (second run never created one)
         tmp_file = os.path.join(snap_dir, "snapshot.db.tmp")
@@ -336,12 +354,12 @@ class TestMetadata:
         old_ts = json.load(open(meta_path))["created_at_utc"]
 
         # Hold the lock
-        os.makedirs(lock, exist_ok=True)
+        holder = _start_lock_holder(lock)
         try:
             code, stdout, stderr = _run_refresh(source, snap_dir, lock)
             assert code == 10
         finally:
-            os.rmdir(lock)
+            _stop_lock_holder(holder)
 
         new_ts = json.load(open(meta_path))["created_at_utc"]
         assert new_ts == old_ts  # unchanged on skip
@@ -428,12 +446,12 @@ class TestIntegration:
         # Lock held = 10
         _create_source_db(source, decisions=1)
         _run_refresh(source, snap_dir, lock)
-        os.makedirs(lock, exist_ok=True)
+        holder = _start_lock_holder(lock)
         try:
             code, _, _ = _run_refresh(source, snap_dir, lock)
             assert code == 10
         finally:
-            os.rmdir(lock)
+            _stop_lock_holder(holder)
 
 
 # ---------------------------------------------------------------------------
