@@ -7,8 +7,9 @@ MUTATIONS_DISABLED=false cannot enable mutations in environments
 whose policy prohibits them.
 """
 
-import os, enum, sys
+import os, enum, sys, json, hashlib, hmac
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 class Environment(enum.Enum):
     LOCAL_TEST = "LOCAL_TEST"
@@ -25,26 +26,33 @@ POLICY = {
         "sim_login": True, "oauth": False, "secure_cookies": False,
         "debug": True, "api_docs": True, "db_temp": True,
         "mutations": False, "auth_writes": False, "network": "localhost",
+        "snapshot_freshness_required": False,
     },
     Environment.LOCAL_SIMULATION: {
         "sim_login": True, "oauth": False, "secure_cookies": False,
         "debug": True, "api_docs": True, "db_temp": True,
         "mutations": False, "auth_writes": False, "network": "localhost",
+        "snapshot_freshness_required": False,
     },
     Environment.AUTH_REVIEW: {
         "sim_login": False, "oauth": True, "secure_cookies": False,
         "debug": False, "api_docs": True, "db_temp": False,
         "mutations": False, "auth_writes": False, "network": "localhost",
+        "snapshot_freshness_required": False,
     },
     Environment.STAGING: {
         "sim_login": False, "oauth": True, "secure_cookies": True,
         "debug": False, "api_docs": False, "db_temp": False,
         "mutations": False, "auth_writes": False, "network": "private",
+        "snapshot_freshness_required": False,
     },
     Environment.PRODUCTION: {
         "sim_login": False, "oauth": True, "secure_cookies": True,
         "debug": False, "api_docs": False, "db_temp": False,
         "mutations": False, "auth_writes": False, "network": "public",
+        "snapshot_freshness_required": True,
+        "snapshot_max_age_seconds": 990,
+        "snapshot_path_prefix": "/opt/hermes/data",
     },
 }
 
@@ -64,6 +72,84 @@ def policy(key: str) -> bool:
     """Read a boolean policy value for the current environment."""
     env = get_env()
     return POLICY.get(env, {}).get(key, False)
+
+def snapshot_metadata_path(db_path: str) -> str:
+    """Return the metadata path published by deploy/hermes-snapshot-refresh."""
+    return os.path.join(os.path.dirname(db_path), "snapshot.meta.json")
+
+def _sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+def snapshot_freshness(db_path: str = None) -> tuple[bool, dict]:
+    """Validate snapshot freshness using metadata and SHA binding.
+
+    Fail closed: any missing, malformed, stale, unreadable, or mismatched
+    snapshot state returns ``False`` with a diagnostic dictionary.
+    """
+    env = get_env()
+    env_policy = POLICY.get(env, {})
+    if db_path is None:
+        db_path = os.environ.get("DATABASE_PATH", "")
+
+    prefix = env_policy.get("snapshot_path_prefix", "")
+    if prefix:
+        real_db = os.path.realpath(db_path)
+        real_prefix = os.path.realpath(prefix)
+        if not (real_db == real_prefix or real_db.startswith(real_prefix + os.sep)):
+            return False, {"error": "database_path_outside_snapshot_prefix", "path": db_path}
+
+    if not os.path.isfile(db_path):
+        return False, {"error": "snapshot_not_regular_file", "path": db_path}
+
+    meta_path = snapshot_metadata_path(db_path)
+    if not os.path.isfile(meta_path):
+        return False, {"error": "metadata_missing", "path": meta_path}
+
+    try:
+        with open(meta_path) as f:
+            meta = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        return False, {"error": "metadata_unreadable", "detail": str(e)}
+
+    created_raw = meta.get("created_at_utc")
+    expected_sha = meta.get("sha256")
+    if not created_raw:
+        return False, {"error": "metadata_incomplete", "missing": "created_at_utc"}
+    if not expected_sha:
+        return False, {"error": "metadata_incomplete", "missing": "sha256"}
+
+    try:
+        created = datetime.fromisoformat(str(created_raw).replace("Z", "+00:00"))
+    except ValueError:
+        return False, {"error": "metadata_bad_timestamp", "value": created_raw}
+
+    now = datetime.now(timezone.utc)
+    age_s = (now - created).total_seconds()
+    max_age_s = int(env_policy.get("snapshot_max_age_seconds", 990))
+
+    if age_s < -60:
+        return False, {"error": "future_timestamp", "age_s": age_s}
+    if age_s > max_age_s:
+        return False, {"error": "stale", "age_s": age_s, "max_age_s": max_age_s}
+
+    try:
+        actual_sha = _sha256_file(db_path)
+    except OSError as e:
+        return False, {"error": "snapshot_unreadable", "detail": str(e)}
+
+    if not hmac.compare_digest(actual_sha, str(expected_sha)):
+        return False, {"error": "sha_mismatch"}
+
+    return True, {
+        "age_s": age_s,
+        "max_age_s": max_age_s,
+        "created_at_utc": created_raw,
+        "decisions_count": meta.get("validation", {}).get("decisions_count"),
+    }
 
 def is_protected() -> bool:
     """True in STAGING or PRODUCTION."""
@@ -160,6 +246,15 @@ def validate_startup() -> list:
     db_path = os.environ.get("DATABASE_PATH", "")
     if not policy("db_temp") and not db_path:
         errors.append("DATABASE_PATH required for persistent environments")
+
+    # --- Production snapshot freshness/path enforcement (FC-05) ---
+    if policy("snapshot_freshness_required"):
+        fresh, diag = snapshot_freshness(db_path)
+        if not fresh:
+            errors.append(
+                "FATAL: Snapshot freshness validation failed: %s" %
+                diag.get("error", "unknown")
+            )
 
     return errors
 

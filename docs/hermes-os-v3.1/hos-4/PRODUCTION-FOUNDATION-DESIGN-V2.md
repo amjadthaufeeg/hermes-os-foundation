@@ -9,44 +9,47 @@
 | Dimension | Model | Detail |
 |---|---|---|
 | **Database authority** | `production.db` is the authoritative persistent datastore | Only persistent source of production decisions |
-| **Filesystem read** | UID 10010 (hermes), root (snapshot service) | Hermes reads via SQLite API; root reads via `.backup` |
-| **Filesystem write** | UID 10010 (hermes) — for operational sessions/idempotency only | NOT for authoritative decisions |
+| **Filesystem read** | UID 10010 (hermes), root (snapshot service) | Hermes reads the published snapshot; root reads the source via `.backup` |
+| **Filesystem write** | Root snapshot service only for snapshot publication; Hermes logs only | Hermes does not write the snapshot or authoritative source |
 | **Application mutation authority** | **ZERO** during Phase B | `MUTATIONS_DISABLED=true`, `POLICY[PRODUCTION].mutations=false` |
 | **Application write scope** | Sessions, idempotency records only (operational) | These are local state, not authoritative decisions |
 
-### Why Hermes Has RW Filesystem Access
+### Why Hermes Does Not Mount the Snapshot RW
 
-The FastAPI application writes session tokens, CSRF tokens, and idempotency records to support operational functionality (login, CSRF protection, duplicate detection). These are stored in `sessions` and `idempotency_records` tables within `production.db`. The application needs RW for these operational writes even though authoritative decision mutations are disabled.
+The release-candidate production compose mounts only the published snapshot and `snapshot.meta.json` into the container, both read-only. Snapshot freshness, path-prefix validation, metadata timestamp, and SHA binding are enforced before production decision reads. Operational logs use a separate writable log volume.
 
 ### Alternative: Separate Operational DB
 
-**Evaluated:** Mount production.db as `:ro` in the container and use a separate operational.db for sessions.
+**Evaluated:** Use a separate operational DB for sessions/idempotency while reading decisions from the immutable snapshot.
 
-**Rejected for Phase B:** Adds complexity (two databases, two connections, session cross-referencing). The GAP-001 enforcement at the application layer is the correct control — it prevents authoritative mutations regardless of filesystem permissions.
+**Deferred:** Adds complexity (two databases, two connections, session cross-referencing). Current Phase B keeps authoritative mutations disabled and protects production reads through read-only mounts plus metadata/SHA validation.
 
-**Future hardening (post-Phase B):** SQLite `mode=ro&immutable=1` URI for the decisions table access path.
+**Future hardening:** Split operational session/idempotency storage from the read-only decisions snapshot connection and open the snapshot with `mode=ro&immutable=1`.
 
 ---
 
 ## 2. Volume/Path Discovery Process
 
 ```text
-1. P2: Docker compose defines named volume hpos-prod-data
-   Project name: hermes-product-os-prod (explicit via -p or COMPOSE_PROJECT_NAME)
+1. Snapshot service publishes `/var/lib/hermes/snapshots/snapshot.db`
+   and `/var/lib/hermes/snapshots/snapshot.meta.json`.
 
-2. P2: docker compose up -d → Docker creates volume
+2. Production compose bind-mounts those files into the container as read-only.
 
-3. P4: Verify:
-   VOLUME_NAME=$(docker volume ls --filter name=hpos-prod-data -q)
-   MOUNTPOINT=$(docker volume inspect $VOLUME_NAME --format '{{.Mountpoint}}')
-   PRODUCTION_DB_PATH="${MOUNTPOINT}/production.db"
+3. Runtime uses:
+   `DATABASE_PATH=/opt/hermes/data/production.db`
 
-4. P5: Discovery — use actual mountpoint, not assumed path
+4. Startup validates:
+   - `DATABASE_PATH` resolves under `/opt/hermes/data`
+   - snapshot file is a regular file
+   - `snapshot.meta.json` exists and is parseable
+   - metadata timestamp is within 990 seconds
+   - metadata SHA matches the mounted snapshot
 
-5. P6: Write discovered path to PRODUCTION_DB_PATH secret
+5. Decision read endpoints re-check freshness before serving data.
 ```
 
-**No hardcoded Docker internal path in secrets.** Discovery first, then record.
+No direct live database mount is permitted in the Hermes container.
 
 ---
 
@@ -181,7 +184,8 @@ services:
       - DATABASE_PATH=/opt/hermes/data/production.db
       - SIMULATION_MODE=false
     volumes:
-      - hpos-prod-data:/opt/hermes/data:rw
+      - /var/lib/hermes/snapshots/snapshot.db:/opt/hermes/data/production.db:ro
+      - /var/lib/hermes/snapshots/snapshot.meta.json:/opt/hermes/data/snapshot.meta.json:ro
       - hpos-prod-logs:/opt/hermes/logs:rw
     networks:
       - prod-net
@@ -194,7 +198,6 @@ services:
     # Traefik labels added later in B7
 
 volumes:
-  hpos-prod-data:
   hpos-prod-logs:
 
 networks:
@@ -212,6 +215,8 @@ networks:
 | No host ports | Only internal network access |
 | `internal: true` | No outbound internet access |
 | `restart: unless-stopped` | Survive daemon restart |
+| Snapshot mount `:ro` | Hermes cannot write the snapshot |
+| Metadata mount `:ro` | Freshness/SHA evidence is read-only in container |
 | No Traefik labels yet | Added at B7 |
 
 ---

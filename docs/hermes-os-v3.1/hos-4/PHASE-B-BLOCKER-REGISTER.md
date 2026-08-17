@@ -1,7 +1,7 @@
 # Phase B — Updated Blocker Register
 
-**Updated:** 2026-08-11  
-**Status:** 2/7 blockers resolved
+**Updated:** 2026-08-17  
+**Status:** Local non-GATED blockers closed; VPS/GATED certification remains pending.
 
 ---
 
@@ -11,11 +11,12 @@
 |---|---|---|---|
 | B1 / GAP-001 | Policy cross-validation | P0 | **CLOSED** — ec2d2cd, container proven |
 | B2a | Snapshot refresh orchestrator (stub) | P0 | **CLOSED** — a7f9764, VPS runtime proven |
-| B2b | Production source integration | P0 | NOT STARTED — requires B3 |
-| B3 | Production credentials (5) | P0 | **REQUIRES AMJAD** |
-| B4 | Production compose | P0 | DEPENDS ON B2b, B3 |
-| B5 | Production fail-closed tests | P1 | DEPENDS ON B4 |
-| B6 | Production RPO baseline | P1 | DEPENDS ON B2b |
+| FC-05 | Snapshot freshness/hash/path enforcement | P0/P1 | **CLOSED LOCALLY** — environment policy requires fresh metadata, SHA binding, approved snapshot prefix, and decision-read gate |
+| B2b | Production source integration | P0 | **GATED** — requires VPS/source authorization |
+| B3 | Production credentials/access | P0 | **GATED — REQUIRES AMJAD** |
+| B4 | Production compose | P0 | **LOCAL CONFIG READY; GATED DEPLOY** — compose uses read-only snapshot and metadata mounts |
+| B5 | Production fail-closed tests | P1 | **GATED** — requires B4 deployment |
+| B6 | Production RPO baseline | P1 | **GATED** — requires B2b production snapshot runtime |
 | B7 | Canary authorization | P0 | DEPENDS ON B2b-B6 |
 
 ## B2 Split Clarification
@@ -46,6 +47,12 @@ B2a is operational. B2b is configuration-only (same script, systemd, permissions
 
 294 passed, 5 skipped, 0 failed — 298 collected
 
-## Next Task
+## Remaining GATED Work
 
-**B3 — Production Credentials**, pending Amjad action. Cannot proceed without production source access.
+Final production certification still requires Amjad approval for VPS/root actions:
+
+- provision or verify production source access;
+- run the final deployment helper;
+- execute Docker/root/flock-backed fail-closed tests on Linux/VPS;
+- measure production RPO/RTO;
+- authorize the production read-only canary.

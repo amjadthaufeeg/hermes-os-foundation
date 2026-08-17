@@ -22,7 +22,8 @@ services:
       - SIMULATION_MODE=false
       - PYTHONUNBUFFERED=1
     volumes:
-      - hpos-prod-data:/opt/hermes/data:rw
+      - /var/lib/hermes/snapshots/snapshot.db:/opt/hermes/data/production.db:ro
+      - /var/lib/hermes/snapshots/snapshot.meta.json:/opt/hermes/data/snapshot.meta.json:ro
       - hpos-prod-logs:/opt/hermes/logs:rw
     networks:
       - prod-net
@@ -40,8 +41,6 @@ services:
       start_period: 10s
 
 volumes:
-  hpos-prod-data:
-    name: hermes-product-os-prod_hpos-prod-data
   hpos-prod-logs:
     name: hermes-product-os-prod_hpos-prod-logs
 

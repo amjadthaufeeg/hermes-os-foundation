@@ -35,6 +35,7 @@ from backend.hos4c.auth_oauth import (
     oauth_login_redirect, oauth_callback,
 )
 from backend.hos4c.environment import get_env as env_get_env, is_protected, mutations_disabled, validate_startup, startup_policy_check
+from backend.hos4c.environment import policy as env_policy, snapshot_freshness
 from backend.hos4c.observability import logger, metrics, set_observability_state
 from contextlib import asynccontextmanager
 
@@ -115,11 +116,24 @@ def require_role(min_role: str):
 # --- Health ---
 @app.get("/api/health")
 def health():
-    return {"status": "alive", "environment": env_get_env().value, "mutations": "DISABLED" if mutations_disabled() else "SIMULATION_ONLY"}
+    data = {"status": "alive", "environment": env_get_env().value, "mutations": "DISABLED" if mutations_disabled() else "SIMULATION_ONLY"}
+    if not is_simulation_mode() and env_policy("snapshot_freshness_required"):
+        fresh, diag = snapshot_freshness()
+        data["snapshot"] = {
+            "fresh": fresh,
+            "age_seconds": diag.get("age_s"),
+            "max_age_seconds": diag.get("max_age_s"),
+            "error": diag.get("error"),
+        }
+    return data
 
 @app.get("/api/health/readiness")
 def readiness():
     errors = validate_startup()
+    if not is_simulation_mode() and env_policy("snapshot_freshness_required"):
+        fresh, diag = snapshot_freshness()
+        if not fresh:
+            errors.append("Snapshot not fresh: %s" % diag.get("error", "unknown"))
     if errors:
         return {"ready": False, "errors": errors}
     return {"ready": True, "environment": env_get_env().value, "mutations_disabled": mutations_disabled()}
@@ -252,10 +266,27 @@ def revoke_all_sessions(request: Request):
     return resp
 
 # --- Decisions ---
+def require_snapshot_freshness():
+    """Fail closed before serving production snapshot-backed decision reads."""
+    if is_simulation_mode() or not env_policy("snapshot_freshness_required"):
+        return
+    fresh, diag = snapshot_freshness()
+    if not fresh:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "snapshot_not_fresh",
+                "reason": diag.get("error", "unknown"),
+                "age_seconds": diag.get("age_s"),
+                "max_age_seconds": diag.get("max_age_s"),
+            },
+        )
+
 @app.get("/api/decisions")
 def list_decisions():
     if is_simulation_mode():
         return {"decisions": SIM_DECISIONS, "count": len(SIM_DECISIONS), "mode": "SIMULATION"}
+    require_snapshot_freshness()
     with get_db() as db:
         rows = db.execute("SELECT * FROM decisions ORDER BY id").fetchall()
         return {"decisions": [dict(r) for r in rows], "count": len(rows), "mode": "PRODUCTION"}
@@ -267,6 +298,7 @@ def get_decision(decision_id: str):
             if d["id"] == decision_id:
                 return {**d, "mode": "SIMULATION"}
         raise HTTPException(404, "Decision not found")
+    require_snapshot_freshness()
     with get_db() as db:
         row = db.execute("SELECT * FROM decisions WHERE id = ?", (decision_id,)).fetchone()
         if row is None:

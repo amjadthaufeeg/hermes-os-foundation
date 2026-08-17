@@ -1,0 +1,58 @@
+task_id: TASK-HOS-FINAL-CLOSURE
+project: Hermes Product OS
+release: HOS Final Closure
+title: "Final HOS Release-Candidate Snapshot Freshness Closure"
+task_type: infrastructure
+risk_level: R3
+objective: >
+  Close the remaining local non-GATED HOS release-candidate work by enforcing
+  production snapshot freshness, metadata SHA binding, approved snapshot path
+  validation, read-only production snapshot mounts, and current closure
+  documentation without performing VPS, root, production, or canary actions.
+baseline_commit: 72fd4aa733d1d1d37238b43e499172a4c1efe24c
+task_base_ref: 72fd4aa733d1d1d37238b43e499172a4c1efe24c
+allowed_files:
+  - backend/hos4c/environment.py
+  - backend/hos4c/main.py
+  - backend/hos4c/test_production_runtime.py
+  - deploy/docker-compose.prod.yml
+  - docs/hermes-os-v3.1/hos-4/PHASE-B-BLOCKER-REGISTER.md
+  - docs/hermes-os-v3.1/hos-4/PHASE-B-ENGINEERING-BACKLOG.md
+  - docs/hermes-os-v3.1/hos-4/PHASE-B-READINESS-ASSESSMENT.md
+  - docs/hermes-os-v3.1/hos-4/PRODUCTION-FOUNDATION-DESIGN-V2.md
+  - .hermes/contracts/TASK-HOS-FINAL-CLOSURE.yaml
+protected_areas:
+  - Production runtime configuration
+  - HOS-4C security guarantees
+  - Snapshot freshness and integrity boundary
+must_not_change:
+  - Live production systems
+  - Production credentials or secrets
+  - Mutation-disabled policy
+  - AUTO/GATED/FORBIDDEN authority boundaries
+acceptance_criteria:
+  - Production startup fails closed when snapshot metadata is missing, stale, malformed, or SHA-mismatched
+  - Production decision reads refuse stale snapshot data
+  - Production compose mounts snapshot and metadata read-only
+  - Backend/AUTO regression remains green
+  - Schema validation remains green
+  - Remaining VPS/root/canary work is documented as GATED
+required_checks:
+  - python -m pytest -p no:cacheprovider backend/hos4c deploy/hos_auto_01 deploy/hos_auto_02 -ra
+  - bash .hermes/scripts/schema-validate.sh
+  - bash .hermes/scripts/scope-check.sh
+  - bash .hermes/scripts/protected-zone-check.sh
+required_evidence:
+  - unit_tests
+  - integration_tests
+  - scope_check
+  - protected_zone_check
+stop_conditions:
+  - Real VPS contacted
+  - Root or systemd action performed
+  - Production deployed
+  - Production credentials accessed
+  - Live mutations enabled
+builder: codex
+reviewer: claude-code
+amjad_approval_required: true

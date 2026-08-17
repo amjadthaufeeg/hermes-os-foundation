@@ -1,6 +1,7 @@
 # Phase B — Readiness Assessment
 
 **Generated:** 2026-08-10  
+**Updated:** 2026-08-17  
 **Status:** PRE-ACTIVATION. Phase B NOT yet authorized.  
 **Recommendation:** NOT_READY_FOR_PRODUCTION_READONLY_ACTIVATION
 
@@ -30,9 +31,9 @@
 | FC-03 | Missing snapshot runtime rejection | SKIP (pipeline proven) |
 | FC-02 | Invalid B2 credential | NOT TESTABLE |
 | FC-01 | Missing B2 credential | NOT TESTABLE |
-| FC-05 | Stale snapshot enforcement | NOT IMPLEMENTED |
+| FC-05 | Stale snapshot enforcement | ✅ CLOSED LOCALLY — metadata freshness + SHA binding + decision-read gate |
 | FC-08 | Metrics unavailable | NOT APPLICABLE |
-| FC-09 | Policy mismatch (MUTATIONS_DISABLED=false) | **GAP** |
+| FC-09 | Policy mismatch (MUTATIONS_DISABLED=false) | ✅ CLOSED |
 
 ### Credential Separation (G1.3)
 
@@ -93,13 +94,11 @@
 
 ---
 
-## 4. NOT IMPLEMENTED — 3
+## 4. NOT IMPLEMENTED — 1
 
 | Control | Impact |
 |---|---|
-| FC-05 Stale snapshot enforcement | Application lacks snapshot-age policy check |
-| SQLite URI mode=ro | Connection string does not enforce read-only at DB layer |
-| Environment/policy cross-validation | POLICY dict is decorative — not enforced |
+| SQLite split read-only decisions connection | Current shared DB helper also supports operational session/idempotency writes; production is protected by read-only snapshot mount, metadata freshness, SHA binding, and mutation policy |
 
 ---
 
@@ -113,21 +112,28 @@
 
 ---
 
-## 6. Documented Architecture Gaps — 2
+## 6. Documented Architecture Gaps — Current Status
 
 ### GAP-001: Policy Mismatch (FC-09)
 
 **Severity:** HIGH  
 **Finding:** Setting `MUTATIONS_DISABLED=false` in LOCAL_TEST would enable authoritative mutations because the `POLICY` dict in `environment.py` is never cross-validated against the env var at runtime.  
 **Remediation:** Add startup validation: if `Environment.LOCAL_TEST` is active and `mutations_disabled()` returns `False`, refuse to start (or at minimum, emit CRITICAL log and override to disabled).  
-**Blocker for production?** Yes — must be fixed before any Phase B activation.
+**Status:** CLOSED. Environment policy is authoritative and full regression covers the mutation-denial path.
+
+### FC-05: Snapshot Freshness and Path Validation
+
+**Severity:** P0/P1  
+**Finding:** Production decision reads lacked a centralized freshness gate and startup did not validate that `DATABASE_PATH` points at the approved snapshot mount.  
+**Remediation:** Production policy now requires snapshot freshness; startup/readiness fail closed on missing/stale/mismatched metadata; both decision read endpoints return 503 if the snapshot becomes stale after startup; health exposes snapshot freshness.  
+**Status:** CLOSED LOCALLY. VPS certification remains GATED.
 
 ### GAP-002: No Independent SQLite Read-Only Mode
 
 **Severity:** MEDIUM  
 **Finding:** Application uses `sqlite3.connect(path)` without `?mode=ro` URI parameter. Write prevention relies entirely on filesystem (L1) and mount (L2) layers.  
-**Remediation:** Add `?mode=ro` to snapshot observation connections for defense-in-depth.  
-**Blocker for production?** No — L1 and L2 provide equivalent enforcement. Defense-in-depth only.
+**Remediation:** Production compose now uses read-only snapshot and metadata mounts; application validates snapshot prefix/freshness/SHA before reads. A split operational DB/read snapshot connection remains future hardening.  
+**Blocker for production?** No for local release-candidate code. VPS certification still must verify the mounts and runtime behavior.
 
 ---
 
@@ -135,10 +141,11 @@
 
 | # | Blocker | Required Before Activation |
 |---|---|---|
-| B1 | Fix GAP-001 (policy cross-validation) | **YES** — prevents accidental mutation enablement |
-| B2 | Production snapshot pipeline timer | **YES** — root cron/systemd for production DB |
-| B3 | Production read-only credentials (5) | **YES** — B2 reader, snapshot path, bot, metrics, env |
-| B4 | Production Phase B compose deployment | **YES** — separate from staging and Test-B |
+| B1 | Fix GAP-001 (policy cross-validation) | ✅ CLOSED |
+| FC-05 | Snapshot freshness/path/hash enforcement | ✅ CLOSED LOCALLY; VPS certification required |
+| B2 | Production snapshot pipeline timer | **GATED** — root/systemd on VPS |
+| B3 | Production source access | **GATED** — Amjad-controlled production path/read access |
+| B4 | Production Phase B compose deployment | **GATED** — separate from staging and Test-B |
 | B5 | 12 fail-closed tests against production compose | **YES** — all scenarios that Test-B couldn't exercise |
 | B6 | Production RPO/RTO baseline | **YES** — measured on production data volume |
 | B7 | Production read-only canary authorization | **YES** — separate Amjad authorization |
@@ -149,9 +156,9 @@
 
 | Item | Notes |
 |---|---|
-| GAP-002: SQLite mode=ro | Defense-in-depth, not a blocker |
+| GAP-002: Split read-only decision connection | Defense-in-depth, not a blocker |
 | B2 application consumer | No B2 backup verification endpoint exists yet — future work |
-| Stale snapshot application enforcement | Shell simulation proven, not wired into app |
+| Stale snapshot application enforcement | Closed locally; VPS runtime evidence pending |
 | Metrics integration | Phase B+ scoping |
 | Concurrent-write tolerance | NOT TESTED — requires separate experiment |
 
@@ -159,11 +166,11 @@
 
 ## 9. Recommended Next Engineering Work
 
-1. **Fix GAP-001** — Add `Environment` policy cross-validation at startup. Small code change, high impact.
-2. **Production canary planning** — Design minimal production read-only deployment with all 7 blockers addressed.
-3. **B2 consumer endpoint** — Implement backup verification API to close FC-07b and FC-01/02.
-4. **Production credential custody** — Design Amjad's key management workflow.
-5. **Production snapshot pipeline** — Deploy root cron/systemd timer with health check.
+1. **VPS/root certification** — Run the Docker/root/flock-backed suites in the target Linux environment.
+2. **Production source authorization** — Amjad authorizes the production path/read access required for B2b.
+3. **Production snapshot pipeline certification** — Verify timer, freshness, metadata SHA, and RPO on the production source.
+4. **Production canary authorization** — Execute the single read-only canary only after explicit approval.
+5. **Future hardening** — Split operational session/idempotency storage from read-only decision snapshot access.
 
 ---
 
@@ -173,14 +180,14 @@
 |---|---|
 | Is the test infrastructure ready? | **YES** — Test-B composition, isolation, and rollback proven |
 | Is the snapshot pipeline ready? | **YES** — All pipeline controls pass in simulation |
-| Is the enforcement model ready? | **PARTIAL** — 3 layers PASS, GAP-001 remains |
-| Is the fail-closed model ready? | **PARTIAL** — 4/12 tested at app level, 1 gap remains |
+| Is the enforcement model ready? | **LOCAL READY** — mutation policy and freshness/path/hash gates pass local regression |
+| Is the fail-closed model ready? | **LOCAL READY / VPS PENDING** — local app gates pass; Docker/root/flock scenarios need VPS |
 | Is the credential model ready? | **YES** — Namespace separation proven |
 | Can production be activated? | **NO** — 7 blockers remain |
 
-**Recommendation: NOT_READY_FOR_PRODUCTION_READONLY_ACTIVATION.**
+**Recommendation: LOCAL_RELEASE_CANDIDATE_READY; NOT_READY_FOR_PRODUCTION_READONLY_ACTIVATION until GATED VPS certification completes.**
 
-Fix GAP-001 first. Then proceed to production canary planning with the 7 identified blockers. Phase A remains APPROVED_COMPLETE. Phase B remains PLANNED_ONLY.
+Proceed next with explicit Amjad authorization for VPS/root certification. Phase A remains APPROVED_COMPLETE. Phase B production activation remains GATED.
 
 ---
 

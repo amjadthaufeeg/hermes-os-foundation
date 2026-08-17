@@ -5,8 +5,10 @@ prevents simulation data, PRODUCTION environment enforces GAP-001,
 health endpoint reports correct state, decisions come from DB not
 hardcoded data, and mutation remains blocked.
 """
-import os, json, sqlite3, tempfile, yaml, pytest
+import os, json, sqlite3, tempfile, yaml, pytest, hashlib
+from datetime import datetime, timedelta, timezone
 from starlette.testclient import TestClient
+from backend.hos4c.environment import POLICY, Environment
 
 
 # --- Compose validation tests ---
@@ -56,6 +58,12 @@ def test_compose_no_staging_volumes():
     assert "hpos-data" not in vols, "No staging hpos-data volume"
     assert "hpos-backup" not in vols, "No staging hpos-backup volume"
 
+def test_compose_snapshot_mount_is_read_only():
+    compose = yaml.safe_load(open("deploy/docker-compose.prod.yml"))
+    mounts = compose["services"]["hpos"]["volumes"]
+    assert "/var/lib/hermes/snapshots/snapshot.db:/opt/hermes/data/production.db:ro" in mounts
+    assert "/var/lib/hermes/snapshots/snapshot.meta.json:/opt/hermes/data/snapshot.meta.json:ro" in mounts
+
 def test_compose_no_b2_secrets():
     compose_text = open("deploy/docker-compose.prod.yml").read()
     assert "B2_" not in compose_text, "No B2 credentials in production compose"
@@ -68,6 +76,26 @@ def test_compose_datbase_path_correct():
 
 # --- Runtime behavior tests ---
 
+def _write_snapshot_metadata(db_path, created_at=None, sha=None):
+    if created_at is None:
+        created_at = datetime.now(timezone.utc)
+    if sha is None:
+        h = hashlib.sha256()
+        with open(db_path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        sha = h.hexdigest()
+    meta = {
+        "result": "published",
+        "created_at_utc": created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "source_id": "test-source",
+        "sha256": sha,
+        "duration_s": 0,
+        "validation": {"integrity_check": "ok", "decisions_count": 0},
+    }
+    with open(os.path.join(os.path.dirname(db_path), "snapshot.meta.json"), "w") as f:
+        json.dump(meta, f)
+
 @pytest.fixture
 def production_app(monkeypatch, tmp_path):
     """FastAPI app configured for production. Uses is_simulation_mode()
@@ -77,11 +105,15 @@ def production_app(monkeypatch, tmp_path):
     monkeypatch.setenv("SIMULATION_MODE", "false")
     db_path = str(tmp_path / "production.db")
     monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
     from backend.hos4c.database import init_db
     init_db(db_path)
+    _write_snapshot_metadata(db_path)
 
     from backend.hos4c.main import app
     yield app, db_path
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
     monkeypatch.delenv("SIMULATION_MODE", raising=False)
 
 def test_production_starts_successfully(production_app):
@@ -161,6 +193,7 @@ def test_production_read_works(production_app):
                  ("DEC-TEST-001", "Test Decision", "AWAITING_AMJAD", 1, "amjad", "hermes-os"))
     conn.commit()
     conn.close()
+    _write_snapshot_metadata(db_path)
 
     with TestClient(app, raise_server_exceptions=False) as c:
         r = c.get("/api/decisions")
@@ -181,13 +214,17 @@ def test_production_gap001_fails_closed(monkeypatch, tmp_path):
     monkeypatch.setenv("SIMULATION_MODE", "false")
     db_path = str(tmp_path / "production.db")
     monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
     from backend.hos4c.database import init_db
     init_db(db_path)
+    _write_snapshot_metadata(db_path)
 
     # Lifespan must raise RuntimeError
     from backend.hos4c.environment import startup_policy_check
     with pytest.raises(RuntimeError, match="fatal configuration"):
         startup_policy_check()
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
 
 # --- PRODUCTION SIMULATION_MODE startup enforcement ---
 
@@ -195,44 +232,129 @@ def test_production_simulation_mode_false_starts(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
     monkeypatch.setenv("MUTATIONS_DISABLED", "true")
     monkeypatch.setenv("SIMULATION_MODE", "false")
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    db_path = str(tmp_path / "test.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
     from backend.hos4c.database import init_db
-    init_db()
+    init_db(db_path)
+    _write_snapshot_metadata(db_path)
     from backend.hos4c.environment import startup_policy_check
     startup_policy_check()  # must not raise
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
 
 def test_production_simulation_mode_true_fails(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
     monkeypatch.setenv("MUTATIONS_DISABLED", "true")
     monkeypatch.setenv("SIMULATION_MODE", "true")
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    db_path = str(tmp_path / "test.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
     from backend.hos4c.database import init_db
-    init_db()
+    init_db(db_path)
+    _write_snapshot_metadata(db_path)
     from backend.hos4c.environment import startup_policy_check
     import pytest
     with pytest.raises(RuntimeError, match="fatal configuration"):
         startup_policy_check()
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
 
 def test_production_simulation_mode_missing_fails(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
     monkeypatch.setenv("MUTATIONS_DISABLED", "true")
     monkeypatch.delenv("SIMULATION_MODE", raising=False)
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    db_path = str(tmp_path / "test.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
     from backend.hos4c.database import init_db
-    init_db()
+    init_db(db_path)
+    _write_snapshot_metadata(db_path)
     from backend.hos4c.environment import startup_policy_check
     import pytest
     with pytest.raises(RuntimeError, match="fatal configuration"):
         startup_policy_check()
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
 
 def test_production_simulation_mode_malformed_fails(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
     monkeypatch.setenv("MUTATIONS_DISABLED", "true")
     monkeypatch.setenv("SIMULATION_MODE", "yes")
-    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
+    db_path = str(tmp_path / "test.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
     from backend.hos4c.database import init_db
-    init_db()
+    init_db(db_path)
+    _write_snapshot_metadata(db_path)
     from backend.hos4c.environment import startup_policy_check
     import pytest
     with pytest.raises(RuntimeError, match="fatal configuration"):
         startup_policy_check()
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
+
+def test_production_database_path_outside_snapshot_prefix_fails(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "false")
+    db_path = str(tmp_path / "production.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    from backend.hos4c.database import init_db
+    init_db(db_path)
+    _write_snapshot_metadata(db_path)
+    from backend.hos4c.environment import startup_policy_check
+    with pytest.raises(RuntimeError, match="fatal configuration"):
+        startup_policy_check()
+
+def test_production_missing_snapshot_metadata_fails_startup(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "false")
+    monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "production.db"))
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
+    from backend.hos4c.database import init_db
+    init_db()
+    from backend.hos4c.environment import startup_policy_check
+    with pytest.raises(RuntimeError, match="fatal configuration"):
+        startup_policy_check()
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
+
+def test_production_stale_snapshot_fails_both_decision_reads(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "false")
+    db_path = str(tmp_path / "production.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
+    from backend.hos4c.database import init_db
+    init_db(db_path)
+    _write_snapshot_metadata(db_path)
+    from backend.hos4c.main import app
+    with TestClient(app, raise_server_exceptions=False) as c:
+        _write_snapshot_metadata(db_path, created_at=datetime.now(timezone.utc) - timedelta(seconds=1200))
+        list_resp = c.get("/api/decisions")
+        detail_resp = c.get("/api/decisions/DEC-TEST-001")
+        assert list_resp.status_code == 503
+        assert detail_resp.status_code == 503
+        assert list_resp.json()["detail"]["reason"] == "stale"
+        assert detail_resp.json()["detail"]["reason"] == "stale"
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix
+
+def test_production_snapshot_sha_mismatch_fails_startup(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "true")
+    monkeypatch.setenv("SIMULATION_MODE", "false")
+    db_path = str(tmp_path / "production.db")
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+    original_prefix = POLICY[Environment.PRODUCTION]["snapshot_path_prefix"]
+    monkeypatch.setitem(POLICY[Environment.PRODUCTION], "snapshot_path_prefix", str(tmp_path))
+    from backend.hos4c.database import init_db
+    init_db(db_path)
+    _write_snapshot_metadata(db_path, sha="0" * 64)
+    from backend.hos4c.environment import startup_policy_check
+    with pytest.raises(RuntimeError, match="fatal configuration"):
+        startup_policy_check()
+    POLICY[Environment.PRODUCTION]["snapshot_path_prefix"] = original_prefix

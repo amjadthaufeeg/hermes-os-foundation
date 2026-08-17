@@ -110,14 +110,23 @@
 | Remediation | Startup cross-validation: if Environment restricts mutations AND `mutations_disabled()` is False, override to safe state. |
 | Implemented in | `backend/hos4c/environment.py` → `validate_startup()` |
 
-### GAP-002 — No Independent SQLite Read-Only URI Mode
+### FC-05 — Snapshot Freshness, Hash Binding, and Path Enforcement
 
 | Field | Value |
 |---|---|
-| Classification | **DEFERRED HARDENING** (not a production blocker) |
-| Finding | `sqlite3.connect(path)` without `?mode=ro`. Write prevention relies on L1 (filesystem 440) and L2 (mount :ro). Both independently proven. |
-| Remediation | Add `?mode=ro` to snapshot observation connections for defense-in-depth. |
-| Why deferred | L1+L2 provide equivalent enforcement. Adding mode=ro is a code change with no functional benefit given existing layers. Low priority. |
+| Classification | **CLOSED LOCALLY** |
+| Finding | Production decision reads had no centralized freshness gate and startup did not validate that `DATABASE_PATH` was bound to the approved snapshot path. |
+| Remediation | `backend/hos4c/environment.py` now makes snapshot freshness policy-authoritative in `PRODUCTION`, validates approved path prefix, regular snapshot file, metadata presence, metadata timestamp, SHA-256 binding, and a 990s freshness threshold. `backend/hos4c/main.py` gates both decision read endpoints and exposes snapshot freshness in health/readiness. |
+| Tests | `backend/hos4c/test_production_runtime.py` covers fresh startup, missing metadata, stale snapshot, SHA mismatch, and path-prefix rejection. |
+
+### GAP-002 — SQLite Read-Only URI Mode
+
+| Field | Value |
+|---|---|
+| Classification | **PARTIALLY MITIGATED / DEFERRED HARDENING** |
+| Finding | The shared DB helper still uses `sqlite3.connect(path)` because it also supports operational sessions and idempotency records. |
+| Remediation | Production compose now mounts the snapshot and metadata read-only, and production startup/read paths validate snapshot prefix, metadata freshness, and SHA binding before serving decision reads. |
+| Why deferred | Forcing `mode=ro` globally would break operational session/idempotency writes. A split operational DB/read snapshot design is a separate architecture change. |
 
 ---
 
@@ -126,9 +135,9 @@
 | # | Finding | Classification | Rationale |
 |---|---|---|---|
 | 1 | Policy cross-validation | **BLOCKER** (B1) | Fix before any production access |
-| 2 | SQLite URI mode=ro | **DEFERRED** | L1+L2 proven equivalent |
+| 2 | SQLite URI mode=ro | **PARTIALLY MITIGATED** | Read-only snapshot mount + policy freshness/hash/path validation; split read connection deferred |
 | 3 | Runtime snapshot consumer | **DEFERRED** | No active consumer needed for Phase B canary — snapshot is mounted, health reports presence/staleness |
-| 4 | Stale snapshot enforcement | **DEFERRED** | Shell simulation proven. Application enforcement is Phase B follow-up, not canary blocker |
+| 4 | Stale snapshot enforcement | **CLOSED LOCALLY** | Metadata timestamp + SHA binding + centralized decision-read gate |
 | 5 | B2 application consumer | **DEFERRED** | B2 backup verification is Phase B operational scope, not canary minimum |
 | 6 | Production credential provisioning | **BLOCKER** (B3) | Must exist for any production access |
 | 7 | Metrics integration | **DEFERRED** | Phase B+ scoping |
