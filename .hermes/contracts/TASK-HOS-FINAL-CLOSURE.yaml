@@ -7,14 +7,17 @@ risk_level: R3
 objective: >
   Close the remaining local non-GATED HOS release-candidate work by enforcing
   production snapshot freshness, metadata SHA binding, approved snapshot path
-  validation, read-only production snapshot mounts, and current closure
-  documentation without performing VPS, root, production, or canary actions.
+  validation, read-only production snapshot mounts, HOS-AUTO pytest
+  environment isolation, and current closure documentation without performing
+  VPS, root, production, or canary actions.
 baseline_commit: 72fd4aa733d1d1d37238b43e499172a4c1efe24c
 task_base_ref: 72fd4aa733d1d1d37238b43e499172a4c1efe24c
 allowed_files:
   - backend/hos4c/environment.py
   - backend/hos4c/main.py
   - backend/hos4c/test_production_runtime.py
+  - deploy/hos_auto_01/bin/bridge.py
+  - deploy/hos_auto_01/tests/test_bridge.py
   - deploy/docker-compose.prod.yml
   - docs/hermes-os-v3.1/hos-4/PHASE-B-BLOCKER-REGISTER.md
   - docs/hermes-os-v3.1/hos-4/PHASE-B-ENGINEERING-BACKLOG.md
@@ -25,6 +28,7 @@ protected_areas:
   - Production runtime configuration
   - HOS-4C security guarantees
   - Snapshot freshness and integrity boundary
+  - HOS-AUTO authority and execution boundary
 must_not_change:
   - Live production systems
   - Production credentials or secrets
@@ -34,6 +38,7 @@ acceptance_criteria:
   - Production startup fails closed when snapshot metadata is missing, stale, malformed, or SHA-mismatched
   - Production decision reads refuse stale snapshot data
   - Production compose mounts snapshot and metadata read-only
+  - HOS-AUTO RUN_PYTEST does not inherit production runtime environment or secrets
   - Backend/AUTO regression remains green
   - Schema validation remains green
   - Remaining VPS/root/canary work is documented as GATED

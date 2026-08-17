@@ -66,6 +66,41 @@ class ExecutionReceipt:
 
 BROKER_SOCKET_PATH = "/run/hermes-auto/broker.sock"
 
+PYTEST_ENV_DEFAULTS = {
+    "HERMES_ENVIRONMENT": "LOCAL_SIMULATION",
+    "SIMULATION_MODE": "true",
+    "MUTATIONS_DISABLED": "true",
+    "PYTHONDONTWRITEBYTECODE": "1",
+}
+
+PYTEST_ENV_STRIP_KEYS = {
+    "APPROVED_OWNER_GITHUB_ID",
+    "AUDIT_DB",
+    "AUTH_DB_PATH",
+    "DATABASE_PATH",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "HERMES_ENVIRONMENT",
+    "JWT_SECRET",
+    "MUTATIONS_DISABLED",
+    "SIMULATION_MODE",
+}
+
+
+def build_pytest_env() -> dict:
+    """Return a hermetic, non-production environment for pytest operations.
+
+    HOS-AUTO often runs under a hardened service manager. Its ambient process
+    environment can contain production runtime variables, but RUN_PYTEST is an
+    AUTO-class validation operation and must not inherit production mode,
+    production databases, or secrets into the test subprocess.
+    """
+    env = os.environ.copy()
+    for key in PYTEST_ENV_STRIP_KEYS:
+        env.pop(key, None)
+    env.update(PYTEST_ENV_DEFAULTS)
+    return env
+
 
 def call_broker(operation_type: str, params: dict, timeout: int = 60) -> dict:
     """Send a typed request to the privileged broker over Unix socket.
@@ -137,27 +172,35 @@ def execute_operation(op, workdir: str, evidence_dir: Path) -> tuple[int, str, s
         path = params.get("path", ".")
         args = params.get("args", ["-q"])
         cmd = ["python3", "-m", "pytest", path] + args
+        run_env = build_pytest_env()
     elif op_type == OperationType.GIT_STATUS:
         cmd = ["git", "-C", workdir, "status", "--short"]
+        run_env = None
     elif op_type == OperationType.GIT_DIFF:
         cmd = ["git", "-C", workdir, "diff", params.get("commit_a", "HEAD~1"), params.get("commit_b", "HEAD")]
+        run_env = None
     elif op_type == OperationType.GIT_LOG:
         n = str(params.get("n", 5))
         cmd = ["git", "-C", workdir, "log", "--oneline", f"-{n}"]
+        run_env = None
     elif op_type == OperationType.COLLECT_LOGS:
         unit = params["unit"]
         since = params.get("since", "1h")
         cmd = ["journalctl", "-u", unit, "--since", since, "--no-pager"]
+        run_env = None
     elif op_type == OperationType.HASH_FILES:
         paths = params["paths"]
         cmd = ["sha256sum"] + paths
+        run_env = None
     elif op_type == OperationType.STAT_FILE:
         path = params["path"]
         fmt = params.get("format", "%a %U:%G")
         cmd = ["stat", "-c", fmt, path]
+        run_env = None
     elif op_type == OperationType.READ_FILE:
         path = params["path"]
         cmd = ["cat", path]
+        run_env = None
     elif op_type == OperationType.CREATE_SOURCE_DB:
         path = params["path"]
         decisions = params.get("decisions", 0)
@@ -171,6 +214,7 @@ conn.commit()
 conn.close()
 print('OK')
 """]
+        run_env = None
     elif op_type == OperationType.ASSERT_HTTP_RESPONSE:
         url = params["url"]
         expected = params["expected_status"]
@@ -182,13 +226,14 @@ try:
 except urllib.error.HTTPError as e:
     print(e.code)
 """]
+        run_env = None
     else:
         return (127, "", f"UNKNOWN_OPERATION: {op_type}")
 
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True,
-            timeout=timeout, cwd=workdir or None,
+            timeout=timeout, cwd=workdir or None, env=run_env,
         )
         return (result.returncode, result.stdout.strip(), result.stderr.strip())
     except subprocess.TimeoutExpired:

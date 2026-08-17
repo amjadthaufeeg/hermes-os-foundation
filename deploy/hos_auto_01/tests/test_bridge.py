@@ -6,7 +6,7 @@ from deploy.hos_auto_01.policy.authority import (
     classify_operation, validate_authority,
     FORBIDDEN_OPERATIONS, AUTHORITY_MATRIX,
 )
-from deploy.hos_auto_01.bin.bridge import run_bridge
+from deploy.hos_auto_01.bin.bridge import build_pytest_env, execute_operation, run_bridge
 
 
 def test_contract_hash_deterministic():
@@ -104,3 +104,50 @@ def test_preflight_runs_in_bridge():
             assert receipt.verdict == "TEST_ENVIRONMENT_INVALID"
         finally:
             os.chdir(orig_cwd)
+
+def test_pytest_env_isolated_from_production_runtime(monkeypatch):
+    """RUN_PYTEST must not inherit production runtime state from HOS-AUTO."""
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("SIMULATION_MODE", "")
+    monkeypatch.setenv("MUTATIONS_DISABLED", "false")
+    monkeypatch.setenv("DATABASE_PATH", "/opt/hermes/data/production.db")
+    monkeypatch.setenv("GITHUB_CLIENT_SECRET", "must-not-leak")
+
+    env = build_pytest_env()
+
+    assert env["HERMES_ENVIRONMENT"] == "LOCAL_SIMULATION"
+    assert env["SIMULATION_MODE"] == "true"
+    assert env["MUTATIONS_DISABLED"] == "true"
+    assert env["PYTHONDONTWRITEBYTECODE"] == "1"
+    assert "DATABASE_PATH" not in env
+    assert "GITHUB_CLIENT_SECRET" not in env
+
+def test_run_pytest_passes_isolated_env_to_subprocess(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_run(cmd, capture_output, text, timeout, cwd, env):
+        captured["cmd"] = cmd
+        captured["env"] = env
+        class Result:
+            returncode = 0
+            stdout = "ok"
+            stderr = ""
+        return Result()
+
+    monkeypatch.setenv("HERMES_ENVIRONMENT", "PRODUCTION")
+    monkeypatch.setenv("DATABASE_PATH", "/opt/hermes/data/production.db")
+    monkeypatch.setattr("deploy.hos_auto_01.bin.bridge.subprocess.run", fake_run)
+
+    op = Operation(
+        type=OperationType.RUN_PYTEST,
+        params={"path": "backend/hos4c", "args": ["-x"]},
+    )
+
+    exit_code, stdout, stderr = execute_operation(op, str(tmp_path), tmp_path)
+
+    assert exit_code == 0
+    assert stdout == "ok"
+    assert stderr == ""
+    assert captured["cmd"] == ["python3", "-m", "pytest", "backend/hos4c", "-x"]
+    assert captured["env"]["HERMES_ENVIRONMENT"] == "LOCAL_SIMULATION"
+    assert "DATABASE_PATH" not in captured["env"]
