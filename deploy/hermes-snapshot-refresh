@@ -20,7 +20,7 @@ log()    { echo "$(now_utc) $*" >&2; }
 # === Locking (flock — kernel-released on exit, no PID reuse risk) ===
 if command -v flock >/dev/null 2>&1; then
     lock_dir=$(dirname "$LOCK_FILE")
-    if [ ! -w "$lock_dir" ]; then
+    if [ ! -d "$lock_dir" ] || [ ! -w "$lock_dir" ]; then
         log "FAILED: lock directory not writable: $lock_dir"
         exit 2
     fi
