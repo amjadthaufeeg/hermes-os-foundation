@@ -11,6 +11,10 @@ objective: >
   Hermes never touches the live source. Mutations remain disabled.
 allowed_files: [deploy/snapshot-timer/, backend/hos4c/snapshot/]
 protected_areas: [Production DB paths, production credentials]
+must_not_change:
+  - Production database contents
+  - Production credentials
+  - Hermes mutation-disabled policy
 acceptance_criteria:
   - Timer/scheduler invokes snapshot refresh every 15 min
   - SQLite .backup creates consistent snapshot from stub source
