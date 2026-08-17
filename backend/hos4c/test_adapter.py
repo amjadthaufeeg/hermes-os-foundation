@@ -231,10 +231,13 @@ class TestGitProjection:
         exported = list(tmp_path.glob("*.yaml"))
         assert len(exported) >= 1
 
-    def test_projection_path_traversal_blocked(self):
-        """Projection to dangerous paths should be safely contained."""
-        result = project_to_directory("/tmp/hermes-test-safe-path")
+    def test_projection_path_traversal_blocked(self, tmp_path):
+        """Projection target remains contained in pytest-owned writable temp space."""
+        safe_path = tmp_path / "hermes-test-safe-path"
+        result = project_to_directory(str(safe_path))
         assert result["exported"] >= 1
+        assert safe_path.is_dir()
+        assert all(p.parent == safe_path for p in safe_path.glob("*.yaml"))
 
 # --- Real-Source Isolation ---
 class TestRealSourceIsolation:
