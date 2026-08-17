@@ -167,6 +167,7 @@ class TestSQLSecurity:
             "Rationale with ' DROP TABLE -- safely parameterized",
             str(uuid.uuid4()))
         assert result["result"] == "success"
+        # Verify data still intact after injection attempt
         d = get_decision("DEC-TEST-001")
         assert d is not None
 
@@ -245,6 +246,7 @@ class TestRealSourceIsolation:
         reg_dir = ".hermes/registers/decisions/"
         if os.path.isdir(reg_dir):
             before = len(os.listdir(reg_dir))
+            # Attempt projection to temp dir (never real)
             tmp = tempfile.mkdtemp()
             project_to_directory(tmp)
             after = len(os.listdir(reg_dir))
