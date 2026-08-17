@@ -1,12 +1,14 @@
 """Retry-safe R2 watcher entrypoint.
 
-Keeps the mature watcher implementation intact while fixing two closure issues
-for the current GitHub Issue ingress:
+Keeps the mature watcher implementation intact while fixing closure issues for
+both GitHub Issue ingress and the legacy direct-file inbox:
 
-1. a failed AUTO execution must not permanently poison ``completed_tasks``;
+1. a failed AUTO Issue execution must not permanently poison ``completed_tasks``;
    a new immutable issue/version with a new nonce may retry the same task id;
-2. duplicate issue versions must be marked processed so they are not polled
-   forever.
+2. duplicate Issue versions must be marked processed so they are not polled
+   forever;
+3. deterministic terminal legacy-file outcomes (for example EXPIRED) must be
+   completed once and DUPLICATE file tasks must not be republished forever.
 
 Exact issue versions remain single-shot. Retry requires a new source version
 and nonce, preserving replay protection and immutable evidence.
@@ -27,6 +29,15 @@ TRANSIENT_VERDICTS = frozenset({
     "RATE_LIMITED",
     "CLAIM_FAILED",
     "SOURCE_CHANGED",
+    "REPLAY",
+})
+TERMINAL_FILE_VERDICTS = frozenset({
+    "MALFORMED",
+    "INVALID",
+    "EXPIRED",
+    "MAX_DEPTH",
+    "TRANSPORT",
+    "FORBIDDEN",
     "REPLAY",
 })
 
@@ -57,6 +68,18 @@ def finalize_issue_outcome(result, mark_completed) -> None:
     # PASS and deterministic terminal rejections/stops become completed.
     watcher.persistent_reset_failures(task_id)
     mark_completed(task_id)
+
+
+def finalize_file_outcome(result, mark_completed) -> None:
+    """Retire deterministic terminal legacy-file tasks after one publication.
+
+    Successful/executed file tasks are already completed by the mature watcher
+    implementation. This helper covers early-return terminal states such as an
+    expired immutable inbox file, which otherwise remains visible and would be
+    republished on every poll forever.
+    """
+    if result.verdict in TERMINAL_FILE_VERDICTS:
+        mark_completed(result.task_id)
 
 
 def process_issue_retry_safe(issue_number: int):
@@ -93,15 +116,20 @@ def watch_loop():
         try:
             watcher.git_pull()
 
-            # Legacy/direct file ingress keeps its existing immutable behavior.
+            # Legacy/direct file ingress keeps immutable single-shot behavior.
             for filename in watcher.list_inbox_tasks():
                 print(f"Processing file task: {filename}")
                 result = watcher.process_file_task(filename)
+                if result.verdict == "DUPLICATE":
+                    print(f"  -> {result.status} {result.verdict}: {result.summary[:80]}")
+                    continue
                 published = watcher.publish_result(result)
-                if published and hasattr(result, "_source_version"):
-                    watcher.persistent_mark_issue_processed(
-                        result._issue_number, result._source_version
-                    )
+                if published:
+                    finalize_file_outcome(result, watcher.persistent_mark_completed)
+                    if hasattr(result, "_source_version"):
+                        watcher.persistent_mark_issue_processed(
+                            result._issue_number, result._source_version
+                        )
                 print(f"  -> {result.status} {result.verdict}: {result.summary[:80]}")
 
             try:
