@@ -12,6 +12,7 @@ SNAPSHOT_TMP="${SNAPSHOT_DIR}/snapshot.db.tmp"
 METADATA="${SNAPSHOT_DIR}/snapshot.meta.json"
 METADATA_TMP="${SNAPSHOT_DIR}/snapshot.meta.json.tmp"
 SOURCE_DB="${SOURCE_DB:-/var/lib/hermes/source-test.db}"
+BACKUP_ERR="${SNAPSHOT_TMP}.err"
 
 now_utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 log()    { echo "$(now_utc) $*" >&2; }
@@ -44,7 +45,17 @@ fi
 mkdir -p "$SNAPSHOT_DIR"
 
 # === Create candidate ===
-sqlite3 "$SOURCE_DB" ".backup $SNAPSHOT_TMP" 2>/tmp/hermes-snapshot-backup-err.log
+# Keep transient backup diagnostics beside the candidate rather than in /tmp.
+# The snapshot directory is already the explicitly writable location in both
+# production and hardened test runtimes.
+rm -f "$BACKUP_ERR"
+if ! sqlite3 "$SOURCE_DB" ".backup $SNAPSHOT_TMP" 2>"$BACKUP_ERR"; then
+    backup_error=$(cat "$BACKUP_ERR" 2>/dev/null || true)
+    log "FAILED: sqlite backup failed${backup_error:+: $backup_error}"
+    rm -f "$SNAPSHOT_TMP" "$BACKUP_ERR"
+    exit 2
+fi
+rm -f "$BACKUP_ERR"
 
 # === Integrity check ===
 integrity_result=$(sqlite3 "$SNAPSHOT_TMP" "PRAGMA integrity_check;" 2>&1)
