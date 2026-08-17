@@ -246,7 +246,7 @@ class TestConcurrency:
     def test_t9b_lock_open_failure_exits_2(self, tmp_path):
         source = str(tmp_path / "source.db")
         snap_dir = str(tmp_path / "snapshots")
-        lock = str(tmp_path / "nonexistent_dir")  # parent dir doesn't exist
+        lock = str(tmp_path / "nonexistent_dir" / "lock")  # parent dir doesn't exist
         _create_source_db(source, decisions=1)
         os.makedirs(snap_dir)
 
