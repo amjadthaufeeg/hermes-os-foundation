@@ -123,12 +123,13 @@ def watch_loop():
                 if result.verdict == "DUPLICATE":
                     print(f"  -> {result.status} {result.verdict}: {result.summary[:80]}")
                     continue
-                finalize_file_outcome(result, watcher.persistent_mark_completed)
                 published = watcher.publish_result(result)
-                if published and hasattr(result, "_source_version"):
-                    watcher.persistent_mark_issue_processed(
-                        result._issue_number, result._source_version
-                    )
+                if published:
+                    finalize_file_outcome(result, watcher.persistent_mark_completed)
+                    if hasattr(result, "_source_version"):
+                        watcher.persistent_mark_issue_processed(
+                            result._issue_number, result._source_version
+                        )
                 print(f"  -> {result.status} {result.verdict}: {result.summary[:80]}")
 
             try:
