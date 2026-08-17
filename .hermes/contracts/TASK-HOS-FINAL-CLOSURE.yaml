@@ -18,6 +18,7 @@ allowed_files:
   - backend/hos4c/test_production_runtime.py
   - deploy/hos_auto_01/bin/bridge.py
   - deploy/hos_auto_01/tests/test_bridge.py
+  - deploy/hos_auto_02/deploy-final-closure.sh
   - deploy/docker-compose.prod.yml
   - docs/hermes-os-v3.1/hos-4/PHASE-B-BLOCKER-REGISTER.md
   - docs/hermes-os-v3.1/hos-4/PHASE-B-ENGINEERING-BACKLOG.md
@@ -39,6 +40,7 @@ acceptance_criteria:
   - Production decision reads refuse stale snapshot data
   - Production compose mounts snapshot and metadata read-only
   - HOS-AUTO RUN_PYTEST does not inherit production runtime environment or secrets
+  - GATED final deployment helper installs the reviewed HOS-AUTO bridge runtime
   - Backend/AUTO regression remains green
   - Schema validation remains green
   - Remaining VPS/root/canary work is documented as GATED

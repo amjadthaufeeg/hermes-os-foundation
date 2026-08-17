@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Final HOS closure deployment helper.
 # GATED: must be run explicitly as root after Amjad approval.
-# Scope: HOS watcher runtime + snapshot refresh executable only;
+# Scope: HOS watcher runtime, HOS-AUTO bridge, and snapshot refresh executable;
 # no production DB/snapshot/Docker mutation.
 set -euo pipefail
 
@@ -25,9 +25,11 @@ fi
 
 UNIT_SRC="$SOURCE_ROOT/deploy/hos_auto_02/systemd/hermes-r2-watcher.service"
 ENTRY_SRC="$SOURCE_ROOT/deploy/hos_auto_02/watcher_entry.py"
+BRIDGE_SRC="$SOURCE_ROOT/deploy/hos_auto_01/bin/bridge.py"
 SNAPSHOT_SRC="$SOURCE_ROOT/deploy/hermes-snapshot-refresh"
 UNIT_DST="/etc/systemd/system/hermes-r2-watcher.service"
 ENTRY_DST="/opt/hermes-auto/deploy/hos_auto_02/watcher_entry.py"
+BRIDGE_DST="/opt/hermes-auto/bin/bridge.py"
 SNAPSHOT_DST="/usr/local/bin/hermes-snapshot-refresh"
 CANONICAL="/tmp/hos-auto-01-src"
 NEW_CANONICAL="${CANONICAL}.new"
@@ -36,11 +38,13 @@ BACKUP_ROOT="/var/lib/hermes-auto/deploy-backups/final-closure-${SOURCE_SHA:0:12
 
 [[ -f "$UNIT_SRC" ]] || { echo "ERROR: missing $UNIT_SRC" >&2; exit 2; }
 [[ -f "$ENTRY_SRC" ]] || { echo "ERROR: missing $ENTRY_SRC" >&2; exit 2; }
+[[ -f "$BRIDGE_SRC" ]] || { echo "ERROR: missing $BRIDGE_SRC" >&2; exit 2; }
 [[ -f "$SNAPSHOT_SRC" ]] || { echo "ERROR: missing $SNAPSHOT_SRC" >&2; exit 2; }
 
 mkdir -p "$BACKUP_ROOT"
 if [[ -f "$UNIT_DST" ]]; then cp -a "$UNIT_DST" "$BACKUP_ROOT/hermes-r2-watcher.service"; fi
 if [[ -f "$ENTRY_DST" ]]; then cp -a "$ENTRY_DST" "$BACKUP_ROOT/watcher_entry.py"; fi
+if [[ -f "$BRIDGE_DST" ]]; then cp -a "$BRIDGE_DST" "$BACKUP_ROOT/bridge.py"; fi
 if [[ -f "$SNAPSHOT_DST" ]]; then cp -a "$SNAPSHOT_DST" "$BACKUP_ROOT/hermes-snapshot-refresh"; fi
 if [[ -d "$CANONICAL/.git" ]]; then
   git -C "$CANONICAL" rev-parse HEAD > "$BACKUP_ROOT/previous-canonical-sha"
@@ -57,6 +61,11 @@ rollback() {
     install -o root -g root -m 0644 "$BACKUP_ROOT/watcher_entry.py" "$ENTRY_DST"
   else
     rm -f "$ENTRY_DST"
+  fi
+  if [[ -f "$BACKUP_ROOT/bridge.py" ]]; then
+    install -o root -g root -m 0644 "$BACKUP_ROOT/bridge.py" "$BRIDGE_DST"
+  else
+    rm -f "$BRIDGE_DST"
   fi
   if [[ -f "$BACKUP_ROOT/hermes-snapshot-refresh" ]]; then
     install -o root -g root -m 0755 "$BACKUP_ROOT/hermes-snapshot-refresh" "$SNAPSHOT_DST"
@@ -78,6 +87,7 @@ trap rollback ERR
 
 # Install only the reviewed root-owned runtime artifacts changed by closure work.
 install -o root -g root -m 0644 "$ENTRY_SRC" "$ENTRY_DST"
+install -o root -g root -m 0644 "$BRIDGE_SRC" "$BRIDGE_DST"
 install -o root -g root -m 0644 "$UNIT_SRC" "$UNIT_DST"
 install -o root -g root -m 0755 "$SNAPSHOT_SRC" "$SNAPSHOT_DST"
 
@@ -102,6 +112,7 @@ systemctl show hermes-r2-watcher -p Environment --value | grep -q 'TMPDIR=/var/l
 # Snapshot fix is deployed but not executed here; production snapshot mutation remains out of scope.
 [[ -x "$SNAPSHOT_DST" ]]
 cmp -s "$SNAPSHOT_SRC" "$SNAPSHOT_DST"
+cmp -s "$BRIDGE_SRC" "$BRIDGE_DST"
 systemctl show hermes-snapshot-refresh.service -p ExecStart --value | grep -q '/usr/local/bin/hermes-snapshot-refresh'
 
 # Verify watcher identity/preflight as the unprivileged service user.
