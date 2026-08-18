@@ -2,8 +2,8 @@
 
 **Generated:** 2026-08-10  
 **Updated:** 2026-08-17  
-**Status:** PRE-ACTIVATION. Phase B NOT yet authorized.  
-**Recommendation:** NOT_READY_FOR_PRODUCTION_READONLY_ACTIVATION
+**Status:** HOS FOUNDATION CERTIFIED. Production activation/canary remains separately authorized.  
+**Recommendation:** FREEZE HOS FOUNDATION; BEGIN AVOA ONLY AFTER EXPLICIT PRODUCT-SCOPE INSTRUCTION.
 
 ---
 
@@ -126,29 +126,29 @@
 **Severity:** P0/P1  
 **Finding:** Production decision reads lacked a centralized freshness gate and startup did not validate that `DATABASE_PATH` points at the approved snapshot mount.  
 **Remediation:** Production policy now requires snapshot freshness; startup/readiness fail closed on missing/stale/mismatched metadata; both decision read endpoints return 503 if the snapshot becomes stale after startup; health exposes snapshot freshness.  
-**Status:** CLOSED LOCALLY. VPS certification remains GATED.
+**Status:** CLOSED + VPS CERTIFIED at `25b67c86051e9df989820a16086fce097ea53861`.
 
 ### GAP-002: No Independent SQLite Read-Only Mode
 
 **Severity:** MEDIUM  
 **Finding:** Application uses `sqlite3.connect(path)` without `?mode=ro` URI parameter. Write prevention relies entirely on filesystem (L1) and mount (L2) layers.  
 **Remediation:** Production compose now uses read-only snapshot and metadata mounts; application validates snapshot prefix/freshness/SHA before reads. A split operational DB/read snapshot connection remains future hardening.  
-**Blocker for production?** No for local release-candidate code. VPS certification still must verify the mounts and runtime behavior.
+**Blocker for HOS foundation closure?** No. VPS certification verified the closure runtime at `25b67c86051e9df989820a16086fce097ea53861`.
 
 ---
 
-## 7. Remaining Production Blockers
+## 7. Remaining Activation Gates
 
-| # | Blocker | Required Before Activation |
+| # | Gate | Status |
 |---|---|---|
 | B1 | Fix GAP-001 (policy cross-validation) | ✅ CLOSED |
-| FC-05 | Snapshot freshness/path/hash enforcement | ✅ CLOSED LOCALLY; VPS certification required |
-| B2 | Production snapshot pipeline timer | **GATED** — root/systemd on VPS |
-| B3 | Production source access | **GATED** — Amjad-controlled production path/read access |
-| B4 | Production Phase B compose deployment | **GATED** — separate from staging and Test-B |
-| B5 | 12 fail-closed tests against production compose | **YES** — all scenarios that Test-B couldn't exercise |
-| B6 | Production RPO/RTO baseline | **YES** — measured on production data volume |
-| B7 | Production read-only canary authorization | **YES** — separate Amjad authorization |
+| FC-05 | Snapshot freshness/path/hash enforcement | ✅ CLOSED + VPS CERTIFIED |
+| B2 | Production snapshot pipeline timer | Future activation gate — root/systemd authorization required for production source |
+| B3 | Production source access | Future activation gate — Amjad-controlled production path/read access |
+| B4 | Production Phase B compose deployment | Future activation gate — separate from HOS foundation certification |
+| B5 | Fail-closed tests | ✅ FOUNDATION CERTIFIED — final VPS combined regression passed |
+| B6 | RPO/RTO baseline | ✅ FOUNDATION CERTIFIED — B6 suite passed in final regression |
+| B7 | Production read-only canary authorization | Future activation gate — separate Amjad authorization |
 
 ---
 
@@ -158,7 +158,7 @@
 |---|---|
 | GAP-002: Split read-only decision connection | Defense-in-depth, not a blocker |
 | B2 application consumer | No B2 backup verification endpoint exists yet — future work |
-| Stale snapshot application enforcement | Closed locally; VPS runtime evidence pending |
+| Stale snapshot application enforcement | Closed and VPS-certified |
 | Metrics integration | Phase B+ scoping |
 | Concurrent-write tolerance | NOT TESTED — requires separate experiment |
 
@@ -166,11 +166,11 @@
 
 ## 9. Recommended Next Engineering Work
 
-1. **VPS/root certification** — Run the Docker/root/flock-backed suites in the target Linux environment.
-2. **Production source authorization** — Amjad authorizes the production path/read access required for B2b.
-3. **Production snapshot pipeline certification** — Verify timer, freshness, metadata SHA, and RPO on the production source.
-4. **Production canary authorization** — Execute the single read-only canary only after explicit approval.
-5. **Future hardening** — Split operational session/idempotency storage from read-only decision snapshot access.
+1. **Freeze HOS foundation** at `25b67c86051e9df989820a16086fce097ea53861`.
+2. **Production source authorization** — future activation only; Amjad authorizes the production path/read access required for B2b.
+3. **Production snapshot pipeline certification** — future activation only; verify timer, freshness, metadata SHA, and RPO on the production source.
+4. **Production canary authorization** — future activation only; execute the read-only canary after explicit approval.
+5. **Future hardening** — split operational session/idempotency storage from read-only decision snapshot access.
 
 ---
 
@@ -180,14 +180,15 @@
 |---|---|
 | Is the test infrastructure ready? | **YES** — Test-B composition, isolation, and rollback proven |
 | Is the snapshot pipeline ready? | **YES** — All pipeline controls pass in simulation |
-| Is the enforcement model ready? | **LOCAL READY** — mutation policy and freshness/path/hash gates pass local regression |
-| Is the fail-closed model ready? | **LOCAL READY / VPS PENDING** — local app gates pass; Docker/root/flock scenarios need VPS |
+| Is the enforcement model ready? | **YES** — mutation policy and freshness/path/hash gates pass local and VPS regression |
+| Is the fail-closed model ready? | **YES** — local app gates and VPS Linux/root/flock scenarios are certified |
 | Is the credential model ready? | **YES** — Namespace separation proven |
-| Can production be activated? | **NO** — 7 blockers remain |
+| Can HOS foundation be frozen? | **YES** — final VPS combined regression passed |
+| Can production be activated? | **SEPARATE AUTHORIZATION REQUIRED** — production source/canary activation is outside foundation closure |
 
-**Recommendation: LOCAL_RELEASE_CANDIDATE_READY; NOT_READY_FOR_PRODUCTION_READONLY_ACTIVATION until GATED VPS certification completes.**
+**Recommendation: HOS_FOUNDATION_COMPLETE_AVOA_READY. Freeze HOS foundation at `25b67c86051e9df989820a16086fce097ea53861`.**
 
-Proceed next with explicit Amjad authorization for VPS/root certification. Phase A remains APPROVED_COMPLETE. Phase B production activation remains GATED.
+Proceed next with AVOA only after explicit product-scope instruction. Phase B production activation remains separately gated.
 
 ---
 
