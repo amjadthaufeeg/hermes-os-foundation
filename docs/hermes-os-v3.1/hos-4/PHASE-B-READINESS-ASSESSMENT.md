@@ -126,14 +126,14 @@
 **Severity:** P0/P1  
 **Finding:** Production decision reads lacked a centralized freshness gate and startup did not validate that `DATABASE_PATH` points at the approved snapshot mount.  
 **Remediation:** Production policy now requires snapshot freshness; startup/readiness fail closed on missing/stale/mismatched metadata; both decision read endpoints return 503 if the snapshot becomes stale after startup; health exposes snapshot freshness.  
-**Status:** CLOSED + VPS CERTIFIED at `25b67c86051e9df989820a16086fce097ea53861`.
+**Status:** CLOSED + VPS CERTIFIED at `37c069cd5a3109567c470c302b09775793503ff9`.
 
 ### GAP-002: No Independent SQLite Read-Only Mode
 
 **Severity:** MEDIUM  
 **Finding:** Application uses `sqlite3.connect(path)` without `?mode=ro` URI parameter. Write prevention relies entirely on filesystem (L1) and mount (L2) layers.  
 **Remediation:** Production compose now uses read-only snapshot and metadata mounts; application validates snapshot prefix/freshness/SHA before reads. A split operational DB/read snapshot connection remains future hardening.  
-**Blocker for HOS foundation closure?** No. VPS certification verified the closure runtime at `25b67c86051e9df989820a16086fce097ea53861`.
+**Blocker for HOS foundation closure?** No. VPS certification verified the closure runtime at `37c069cd5a3109567c470c302b09775793503ff9`.
 
 ---
 
@@ -166,7 +166,7 @@
 
 ## 9. Recommended Next Engineering Work
 
-1. **Freeze HOS foundation** at `25b67c86051e9df989820a16086fce097ea53861`.
+1. **Freeze HOS foundation** at `37c069cd5a3109567c470c302b09775793503ff9`.
 2. **Production source authorization** — future activation only; Amjad authorizes the production path/read access required for B2b.
 3. **Production snapshot pipeline certification** — future activation only; verify timer, freshness, metadata SHA, and RPO on the production source.
 4. **Production canary authorization** — future activation only; execute the read-only canary after explicit approval.
@@ -186,7 +186,7 @@
 | Can HOS foundation be frozen? | **YES** — final VPS combined regression passed |
 | Can production be activated? | **SEPARATE AUTHORIZATION REQUIRED** — production source/canary activation is outside foundation closure |
 
-**Recommendation: HOS_FOUNDATION_COMPLETE_AVOA_READY. Freeze HOS foundation at `25b67c86051e9df989820a16086fce097ea53861`.**
+**Recommendation: HOS_FOUNDATION_COMPLETE_AVOA_READY. Freeze HOS foundation at `37c069cd5a3109567c470c302b09775793503ff9`.**
 
 Proceed next with AVOA only after explicit product-scope instruction. Phase B production activation remains separately gated.
 
