@@ -1,7 +1,7 @@
 # Phase B — Updated Blocker Register
 
 **Updated:** 2026-08-17  
-**Status:** HOS foundation closure certified on VPS at `37c069cd5a3109567c470c302b09775793503ff9`.
+**Status:** HOS foundation closure certified on VPS. Exact final freeze SHA is recorded in the closure control status and final closure report.
 
 ---
 
@@ -57,7 +57,7 @@ HOS foundation closure is certified. Future production activation/canary work re
 
 ## Final Closure Evidence
 
-- Final certified SHA: `37c069cd5a3109567c470c302b09775793503ff9`
+- Final certified SHA: recorded in closure control status and final closure report
 - HOS-AUTO backend certification: `GPT-HOS-RC-VPS-CERT-010` — PASS
-- HOS-AUTO combined VPS regression: `GPT-HOS-FINAL-COMBINED-VPS-RA-002` — PASS
+- HOS-AUTO combined VPS regression: final RA task recorded in closure control status — PASS
 - VPS totals: `421 passed, 2 skipped, 9 warnings`
