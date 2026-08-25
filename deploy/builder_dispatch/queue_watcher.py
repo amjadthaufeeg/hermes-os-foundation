@@ -1,11 +1,12 @@
 """GitHub-backed queue watcher for Hermes builder dispatch.
 
-Reuses the certified hermes-control SSH transport. The queue itself carries
-only declarative job data. Trusted host config resolves repositories to local
-working directories and builders to fixed executables.
+A builder job is executable only when it is bound to a prior PASS HOS result.
+The HOS result contract hash must match the exact gate contract carried by the
+builder job, and the gate metadata must match builder/repo/branch/baseline.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import socket
 import time
@@ -35,6 +36,9 @@ class QueueJob:
     branch: str
     baseline_commit: str
     contract_relpath: str
+    hos_gate_task_id: str
+    hos_gate_receipt: str
+    hos_gate_contract: dict[str, Any]
     timeout_seconds: int = 1800
 
     @classmethod
@@ -47,6 +51,9 @@ class QueueJob:
             branch=str(data.get("branch", "")),
             baseline_commit=str(data.get("baseline_commit", "")),
             contract_relpath=str(data.get("contract_relpath", "")),
+            hos_gate_task_id=str(data.get("hos_gate_task_id", "")),
+            hos_gate_receipt=str(data.get("hos_gate_receipt", "")),
+            hos_gate_contract=data.get("hos_gate_contract", {}) if isinstance(data.get("hos_gate_contract", {}), dict) else {},
             timeout_seconds=int(data.get("timeout_seconds", 1800)),
         )
 
@@ -58,9 +65,59 @@ def _repo_entry(config_data: dict, repository: str) -> dict:
     return entry
 
 
-def resolve_job(q: QueueJob, config_path: str) -> tuple[BuilderJob, object]:
+def _contract_hash(contract: dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()
+
+
+def verify_hos_gate(q: QueueJob, control_dir: Path) -> None:
+    """Verify that HOS authorized this exact builder assignment."""
+    if not q.hos_gate_task_id or not q.hos_gate_receipt or not q.hos_gate_contract:
+        raise DispatchError("missing HOS builder gate evidence")
+    result_path = control_dir / "tasks" / "completed" / f"{q.hos_gate_task_id}.json"
+    if not result_path.is_file():
+        raise DispatchError("HOS builder gate result not found")
+    try:
+        result = json.loads(result_path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DispatchError("invalid HOS builder gate result") from exc
+
+    if result.get("task_id") != q.hos_gate_task_id:
+        raise DispatchError("HOS gate task id mismatch")
+    if result.get("status") != "COMPLETED" or result.get("verdict") != "PASS":
+        raise DispatchError("HOS builder gate did not PASS")
+    if result.get("authority_class") != "AUTO":
+        raise DispatchError("builder start requires AUTO HOS gate")
+    if q.hos_gate_receipt not in result.get("evidence_receipts", []):
+        raise DispatchError("HOS gate receipt mismatch")
+    if result.get("contract_sha256") != _contract_hash(q.hos_gate_contract):
+        raise DispatchError("HOS gate contract hash mismatch")
+
+    gate = q.hos_gate_contract.get("builder_gate")
+    if not isinstance(gate, dict):
+        raise DispatchError("builder_gate metadata missing from HOS contract")
+    expected = {
+        "task_id": q.task_id,
+        "builder": q.builder,
+        "repository": q.repository,
+        "branch": q.branch,
+        "baseline_commit": q.baseline_commit,
+        "contract_relpath": q.contract_relpath,
+    }
+    for key, value in expected.items():
+        if str(gate.get(key, "")) != value:
+            raise DispatchError(f"HOS builder gate mismatch: {key}")
+    if not isinstance(gate.get("allowed_files"), list) or not gate.get("allowed_files"):
+        raise DispatchError("HOS builder gate requires allowed_files")
+    if not isinstance(gate.get("protected_paths", []), list):
+        raise DispatchError("invalid protected_paths in HOS builder gate")
+
+
+def resolve_job(q: QueueJob, config_path: str, *, control_dir: Path | None = None) -> tuple[BuilderJob, object]:
     if q.source not in ALLOWED_SOURCES:
         raise DispatchError("untrusted source")
+    control = control_dir or ensure_local_clone()
+    verify_hos_gate(q, control)
+
     raw = json.loads(Path(config_path).read_text())
     specs = load_config(config_path)
     if q.builder not in specs:
@@ -147,11 +204,14 @@ def process_once(config_path: str, *, state_dir: str = "/var/lib/hermes-builder"
             q = QueueJob.from_dict(raw)
             if not q.task_id or _already_claimed(q.task_id):
                 continue
+            # Validate trusted config + HOS gate before creating a durable claim.
+            job, spec = resolve_job(q, config_path)
             if not _claim(q.task_id):
                 continue
-            job, spec = resolve_job(q, config_path)
             result = dispatch(job, spec, state_dir=state_dir)
             result["source"] = q.source
+            result["hos_gate_task_id"] = q.hos_gate_task_id
+            result["hos_gate_receipt"] = q.hos_gate_receipt
             result["completed_at"] = datetime.now(timezone.utc).isoformat()
             target = f"{COMPLETED}/{q.task_id}.json" if result["status"] == "COMPLETED" else f"{STOPPED}/{q.task_id}.json"
             _publish(target, result, f"builder-completed: {q.task_id} status={result['status']}", inbox_file)
