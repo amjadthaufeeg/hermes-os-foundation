@@ -1,0 +1,22 @@
+name: Builder Dispatch Adapter CI
+
+on:
+  push:
+    branches: ["feature/builder-dispatch-adapter"]
+  pull_request:
+    paths:
+      - "deploy/builder_dispatch/**"
+      - ".github/workflows/builder-dispatch-ci.yml"
+
+jobs:
+  test-builder-dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "pytest==8.3.5"
+      - name: Run adapter tests
+        run: python -m pytest deploy/builder_dispatch/tests -q
