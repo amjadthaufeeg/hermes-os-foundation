@@ -8,14 +8,23 @@ both GitHub Issue ingress and the legacy direct-file inbox:
 2. duplicate Issue versions must be marked processed so they are not polled
    forever;
 3. deterministic terminal legacy-file outcomes (for example EXPIRED) must be
-   completed once and DUPLICATE file tasks must not be republished forever.
+   completed once and DUPLICATE file tasks must not be republished forever;
+4. Git transport writes must tolerate concurrent ChatGPT/Hermes commits.
 
 Exact issue versions remain single-shot. Retry requires a new source version
 and nonce, preserving replay protection and immutable evidence.
 """
 import time
 
-from deploy.hos_auto_02 import watcher
+from deploy.hos_auto_02 import claim, transport_safe, watcher
+
+# Replace only transport primitives; execution/authority semantics remain in the
+# mature watcher/HOS implementation. claim.py captured the legacy function at
+# import time, so patch its transport write explicitly as well.
+watcher.git_pull = transport_safe.git_pull
+watcher.git_commit_and_push = transport_safe.git_commit_and_push
+watcher.list_inbox_tasks = transport_safe.list_inbox_tasks
+claim.git_commit_and_push = transport_safe.git_commit_and_push
 
 
 RETRYABLE_EXECUTION_VERDICTS = frozenset({
@@ -48,14 +57,11 @@ def finalize_issue_outcome(result, mark_completed) -> None:
     task_id = result.task_id
 
     if verdict == "FAIL":
-        # watcher.process_task_content already recorded this failure.
         if any("STOP: 3 identical failures" in w for w in result.warnings):
             mark_completed(task_id)
         return
 
     if verdict in RETRYABLE_EXECUTION_VERDICTS:
-        # Non-FAIL retryable verdicts are counted here. The legacy reset is
-        # suppressed during issue processing so the count survives retries.
         if watcher.persistent_record_failure(task_id):
             if "STOP: 3 identical failures" not in result.warnings:
                 result.warnings.append("STOP: 3 identical failures")
@@ -65,19 +71,12 @@ def finalize_issue_outcome(result, mark_completed) -> None:
     if verdict in TRANSIENT_VERDICTS or verdict == "DUPLICATE":
         return
 
-    # PASS and deterministic terminal rejections/stops become completed.
     watcher.persistent_reset_failures(task_id)
     mark_completed(task_id)
 
 
 def finalize_file_outcome(result, mark_completed) -> None:
-    """Retire deterministic terminal legacy-file tasks after one publication.
-
-    Successful/executed file tasks are already completed by the mature watcher
-    implementation. This helper covers early-return terminal states such as an
-    expired immutable inbox file, which otherwise remains visible and would be
-    republished on every poll forever.
-    """
+    """Retire deterministic terminal legacy-file tasks after one publication."""
     if result.verdict in TERMINAL_FILE_VERDICTS:
         mark_completed(result.task_id)
 
@@ -111,12 +110,11 @@ def _mark_current_issue_version_processed(issue_number: int) -> None:
 
 
 def watch_loop():
-    print("HOS-AUTO-02 R2 watcher started (retry-safe issue ingress)")
+    print("HOS-AUTO-02 R2 watcher started (retry-safe + concurrency-safe transport)")
     while True:
         try:
             watcher.git_pull()
 
-            # Legacy/direct file ingress keeps immutable single-shot behavior.
             for filename in watcher.list_inbox_tasks():
                 print(f"Processing file task: {filename}")
                 result = watcher.process_file_task(filename)
@@ -144,8 +142,6 @@ def watch_loop():
                 result = process_issue_retry_safe(number)
 
                 if result.verdict == "DUPLICATE":
-                    # No duplicate result publication is needed, but the issue
-                    # version must be retired from future polling.
                     _mark_current_issue_version_processed(number)
                     print(f"  -> {result.status} {result.verdict}: {result.summary[:80]}")
                     continue
