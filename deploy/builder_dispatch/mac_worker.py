@@ -6,7 +6,6 @@ builder gate, and Kimi/Codex run only inside dedicated per-task worktrees.
 from __future__ import annotations
 
 import json
-import os
 import socket
 import subprocess
 import time
@@ -15,8 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from deploy.builder_dispatch.adapter import BuilderJob, DispatchError, dispatch, load_config
+from deploy.builder_dispatch.gate import QueueJob, verify_hos_gate
 from deploy.builder_dispatch.mac_transport import commit_and_push, control_dir, ensure_clone, sync_rebase
-from deploy.builder_dispatch.queue_watcher import QueueJob, verify_hos_gate
 
 INBOX = "builders/inbox"
 CLAIMS = "builders/claims"
@@ -31,7 +30,6 @@ def _run(args: list[str], *, cwd: Path, timeout: int = 120) -> subprocess.Comple
 
 
 def _load_raw_config(path: Path) -> dict:
-    # load_config enforces owner/mode and validates builder executables.
     load_config(str(path))
     return json.loads(path.read_text())
 
@@ -54,7 +52,6 @@ def _ensure_worktree(q: QueueJob, repo_cfg: dict) -> tuple[Path, Path]:
     if not (source / ".git").exists():
         raise DispatchError(f"source repository unavailable: {source}")
     _validate_branch(q.branch, repo_cfg)
-
     fetch = _run(["git", "fetch", "origin"], cwd=source, timeout=180)
     if fetch.returncode != 0:
         raise DispatchError(f"git fetch failed: {fetch.stderr.strip() or fetch.stdout.strip()}")
@@ -67,7 +64,6 @@ def _ensure_worktree(q: QueueJob, repo_cfg: dict) -> tuple[Path, Path]:
         raise DispatchError("worktree_root must be absolute")
     worktree = root / q.builder / q.task_id
     worktree.parent.mkdir(parents=True, exist_ok=True)
-
     if worktree.exists():
         branch = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=worktree).stdout.strip()
         if branch != q.branch:
@@ -112,16 +108,10 @@ def _claim(task_id: str) -> bool:
         return True
     if state != "unclaimed":
         return False
-    payload = {
-        "task_id": task_id,
-        "processor_id": PROCESSOR_ID,
-        "claimed_at": datetime.now(timezone.utc).isoformat(),
-        "claim_nonce": uuid.uuid4().hex,
-    }
-    ok, _, _ = commit_and_push(
-        [(_claim_path(task_id), json.dumps(payload, indent=2))],
-        f"builder-claim: {task_id} by {PROCESSOR_ID}",
-    )
+    payload = {"task_id": task_id, "processor_id": PROCESSOR_ID,
+               "claimed_at": datetime.now(timezone.utc).isoformat(), "claim_nonce": uuid.uuid4().hex}
+    ok, _, _ = commit_and_push([(_claim_path(task_id), json.dumps(payload, indent=2))],
+                               f"builder-claim: {task_id} by {PROCESSOR_ID}")
     return ok
 
 
@@ -151,9 +141,7 @@ def _finalize_git(q: QueueJob, worktree: Path, result: dict) -> dict:
     push = _run(["git", "push", "-u", "origin", q.branch], cwd=worktree, timeout=180)
     if push.returncode != 0:
         raise DispatchError(f"candidate push failed: {push.stderr.strip() or push.stdout.strip()}")
-    result["candidate_sha"] = candidate
-    result["branch"] = q.branch
-    result["pushed"] = True
+    result.update({"candidate_sha": candidate, "branch": q.branch, "pushed": True})
     return result
 
 
@@ -169,7 +157,6 @@ def process_once(config_path: str, *, state_dir: str) -> int:
     raw_cfg = _load_raw_config(config)
     specs = load_config(str(config))
     processed = 0
-
     for inbox_file in sorted(inbox.glob("*.json")):
         if inbox_file.name == ".gitkeep":
             continue
@@ -186,13 +173,9 @@ def process_once(config_path: str, *, state_dir: str) -> int:
             if not _claim(q.task_id):
                 continue
             job = BuilderJob(
-                task_id=q.task_id,
-                builder=q.builder,
-                repository=q.repository,
-                working_directory=str(worktree),
-                branch=q.branch,
-                baseline_commit=q.baseline_commit,
-                contract_path=str(contract),
+                task_id=q.task_id, builder=q.builder, repository=q.repository,
+                working_directory=str(worktree), branch=q.branch,
+                baseline_commit=q.baseline_commit, contract_path=str(contract),
                 timeout_seconds=q.timeout_seconds,
             )
             result = dispatch(job, specs[q.builder], state_dir=state_dir)
@@ -205,13 +188,8 @@ def process_once(config_path: str, *, state_dir: str) -> int:
             _publish(q.task_id, result, completed=True)
         except Exception as exc:
             task_id = q.task_id if q is not None and q.task_id else inbox_file.stem
-            payload = {
-                "task_id": task_id,
-                "status": "STOPPED",
-                "error": type(exc).__name__,
-                "summary": str(exc),
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-            }
+            payload = {"task_id": task_id, "status": "STOPPED", "error": type(exc).__name__,
+                       "summary": str(exc), "completed_at": datetime.now(timezone.utc).isoformat()}
             try:
                 _publish(task_id, payload, completed=False)
             except Exception:
