@@ -22,6 +22,8 @@ jobs:
       - run: pip install "pytest==8.3.5"
       - name: Compile transport boundary
         run: python -m py_compile deploy/hos_auto_02/transport_safe.py deploy/hos_auto_02/watcher_entry.py
+      - name: Validate deployment shell
+        run: bash -n deploy/builder_dispatch/deploy-builder-dispatch.sh
       - name: Run adapter tests
         run: python -m pytest deploy/builder_dispatch/tests -q
       - name: Run HOS-AUTO-02 regression tests
