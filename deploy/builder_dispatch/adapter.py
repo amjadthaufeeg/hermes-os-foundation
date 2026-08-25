@@ -21,6 +21,7 @@ ALLOWED_BUILDERS = {"kimi-k3", "codex"}
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$")
 SHA_RE = re.compile(r"^[0-9a-f]{7,64}$")
 FORBIDDEN_BRANCHES = {"main", "master", "production", "prod", "hos-auto-02-r2"}
+DEFAULT_PATH = ("/usr/local/bin", "/usr/bin", "/bin")
 
 
 class DispatchError(RuntimeError):
@@ -77,6 +78,7 @@ class BuilderSpec:
     executable: str
     args: tuple[str, ...]
     pass_env: tuple[str, ...] = ()
+    path_entries: tuple[str, ...] = DEFAULT_PATH
 
 
 def _secure_config(path: Path) -> None:
@@ -85,6 +87,16 @@ def _secure_config(path: Path) -> None:
         raise DispatchError("builder config owner is not trusted")
     if st.st_mode & 0o022:
         raise DispatchError("builder config must not be group/world writable")
+
+
+def _validate_path_entries(raw: Any, builder: str) -> tuple[str, ...]:
+    entries = tuple(str(x) for x in (raw if isinstance(raw, list) else DEFAULT_PATH))
+    if not entries:
+        raise DispatchError(f"{builder}: PATH cannot be empty")
+    for entry in entries:
+        if not os.path.isabs(entry) or "\x00" in entry:
+            raise DispatchError(f"{builder}: PATH entries must be absolute")
+    return entries
 
 
 def load_config(path: str, *, enforce_permissions: bool = True) -> dict[str, BuilderSpec]:
@@ -101,7 +113,8 @@ def load_config(path: str, *, enforce_permissions: bool = True) -> dict[str, Bui
             raise DispatchError(f"{builder}: executable must be absolute")
         args = tuple(str(x) for x in raw.get("args", []))
         pass_env = tuple(str(x) for x in raw.get("pass_env", []))
-        specs[builder] = BuilderSpec(executable=exe, args=args, pass_env=pass_env)
+        path_entries = _validate_path_entries(raw.get("path_entries", list(DEFAULT_PATH)), builder)
+        specs[builder] = BuilderSpec(executable=exe, args=args, pass_env=pass_env, path_entries=path_entries)
     return specs
 
 
@@ -145,8 +158,8 @@ def dispatch(job: BuilderJob, spec: BuilderSpec, *, state_dir: str = "/var/lib/h
         raise DispatchError("working_directory does not exist")
     if not contract.is_file():
         raise DispatchError("contract_path does not exist")
-    if not Path(spec.executable).is_file():
-        raise DispatchError("builder executable does not exist")
+    if not Path(spec.executable).is_file() or not os.access(spec.executable, os.X_OK):
+        raise DispatchError("builder executable does not exist or is not executable")
 
     state = Path(state_dir)
     (state / "locks").mkdir(parents=True, exist_ok=True)
@@ -179,9 +192,10 @@ def dispatch(job: BuilderJob, spec: BuilderSpec, *, state_dir: str = "/var/lib/h
 
         cmd = [spec.executable] + [_render(arg, job=job, job_file=str(job_file)) for arg in spec.args]
         env = {
-            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "PATH": ":".join(spec.path_entries),
             "HOME": os.environ.get("HOME", "/nonexistent"),
             "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "LC_ALL": os.environ.get("LC_ALL", ""),
         }
         for key in spec.pass_env:
             if key in os.environ:
