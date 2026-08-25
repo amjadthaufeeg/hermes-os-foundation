@@ -1,0 +1,36 @@
+[Unit]
+Description=Hermes Builder Dispatch Worker
+After=network-online.target hermes-r2-watcher.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hermes-auto
+Group=hermes-auto
+WorkingDirectory=/tmp/hos-auto-01-src
+Environment=PYTHONPATH=/opt/hermes-auto
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/hermes-auto/venv/bin/python3 -m deploy.builder_dispatch.queue_watcher --config /etc/hermes-auto/builder-dispatch.json --state-dir /var/lib/hermes-builder --poll 30
+Restart=on-failure
+RestartSec=5
+
+# Hardened service boundary. Builder subprocesses inherit the same unprivileged uid.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+UMask=0077
+
+# Required runtime writes only.
+ReadWritePaths=/var/lib/hermes-builder /var/lib/hermes-auto/hermes-control /tmp/hos-auto-01-src
+ReadOnlyPaths=/etc/hermes-auto/builder-dispatch.json /opt/hermes-auto
+
+[Install]
+WantedBy=multi-user.target
