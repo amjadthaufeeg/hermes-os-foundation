@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install "pytest==8.3.5"
-      - name: Compile transport boundary
-        run: python -m py_compile deploy/hos_auto_02/transport_safe.py deploy/hos_auto_02/watcher_entry.py
+      - name: Compile builder and transport boundary
+        run: python -m py_compile deploy/builder_dispatch/*.py deploy/hos_auto_02/transport_safe.py deploy/hos_auto_02/watcher_entry.py
       - name: Validate deployment shell
         run: bash -n deploy/builder_dispatch/deploy-builder-dispatch.sh
       - name: Run adapter tests
