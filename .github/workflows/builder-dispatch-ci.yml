@@ -27,6 +27,7 @@ jobs:
           bash -n deploy/builder_dispatch/deploy-builder-dispatch.sh
           bash -n deploy/builder_dispatch/bootstrap-macos.sh
           bash -n deploy/builder_dispatch/uninstall-macos.sh
+          bash -n deploy/builder_dispatch/migrate-background-service.sh
       - name: Run adapter tests
         run: python -m pytest deploy/builder_dispatch/tests -q
       - name: Run HOS-AUTO-02 regression tests
