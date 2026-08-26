@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BRANCH="feature/builder-dispatch-adapter"
+PINNED_HERMES_SHA="${PINNED_HERMES_SHA:-}"
+KIMI_INSTALLER_PATH="${KIMI_INSTALLER_PATH:-}"
 FOUNDATION_REPO="${HERMES_FOUNDATION_REPO:-$HOME/projects/hermes-os-foundation}"
 AVOA_REPO="${AVOA_REPO:-$HOME/projects/avoa-quote-engine}"
 APP_ROOT="$HOME/Library/Application Support/HermesBuilder"
@@ -16,26 +17,28 @@ say() { printf '\n==> %s\n' "$*"; }
 fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 
 [[ "$(uname -s)" == "Darwin" ]] || fail "This bootstrap is for macOS only"
+[[ "$PINNED_HERMES_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "PINNED_HERMES_SHA must be an immutable 40-character commit SHA"
 command -v git >/dev/null || fail "Git is required"
-command -v curl >/dev/null || fail "curl is required"
+command -v shasum >/dev/null || fail "shasum is required"
 
 mkdir -p "$APP_ROOT" "$STATE_ROOT" "$LOG_ROOT" "$HOME/Library/LaunchAgents" "$HOME/avoa-worktrees"
 chmod 700 "$APP_ROOT" "$STATE_ROOT" "$LOG_ROOT"
 
-# Resolve the known Hermes foundation clone, with a bounded fallback search.
 if [[ ! -d "$FOUNDATION_REPO/.git" ]]; then
   candidate="$(find "$HOME/projects" -maxdepth 2 -type d -name hermes-os-foundation -print -quit 2>/dev/null || true)"
   [[ -n "$candidate" && -d "$candidate/.git" ]] || fail "Cannot locate hermes-os-foundation under ~/projects"
   FOUNDATION_REPO="$candidate"
 fi
 
-say "Refreshing reviewed builder source"
-git -C "$FOUNDATION_REPO" fetch origin "$BRANCH"
+say "Refreshing reviewed builder source at immutable SHA $PINNED_HERMES_SHA"
+git -C "$FOUNDATION_REPO" fetch origin "$PINNED_HERMES_SHA"
+git -C "$FOUNDATION_REPO" cat-file -e "$PINNED_HERMES_SHA^{commit}" || fail "Pinned Hermes commit unavailable"
 if [[ -e "$SOURCE_ROOT" ]]; then
   git -C "$FOUNDATION_REPO" worktree remove --force "$SOURCE_ROOT" >/dev/null 2>&1 || rm -rf "$SOURCE_ROOT"
 fi
-git -C "$FOUNDATION_REPO" worktree add --detach "$SOURCE_ROOT" "origin/$BRANCH"
+git -C "$FOUNDATION_REPO" worktree add --detach "$SOURCE_ROOT" "$PINNED_HERMES_SHA"
 SOURCE_SHA="$(git -C "$SOURCE_ROOT" rev-parse HEAD)"
+[[ "$SOURCE_SHA" == "$PINNED_HERMES_SHA" ]] || fail "Hermes source SHA mismatch"
 
 say "Locating Python"
 PYTHON="$(command -v python3 || true)"
@@ -48,7 +51,9 @@ PY
 say "Ensuring Kimi Code CLI is installed"
 KIMI="$(command -v kimi || true)"
 if [[ -z "$KIMI" ]]; then
-  curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash
+  [[ -n "$KIMI_INSTALLER_PATH" ]] || fail "Kimi is not installed and no verified local installer was supplied"
+  [[ -f "$KIMI_INSTALLER_PATH" ]] || fail "Verified Kimi installer file is missing"
+  /bin/bash "$KIMI_INSTALLER_PATH"
   export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
   KIMI="$(command -v kimi || true)"
 fi
@@ -58,8 +63,7 @@ fi
 say "Verifying Kimi authentication and K3 access"
 CAP_PROMPT='Reply with exactly KIMI_BUILDER_READY and do not call tools.'
 if ! "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text --auto 2>&1 | grep -q 'KIMI_BUILDER_READY'; then
-  printf '\nKimi needs account authorization. The official device-code login will now start.\n'
-  printf 'Complete the browser authorization shown by Kimi; this is the only interactive account step.\n\n'
+  printf '\nKimi requires account authorization. Starting the official OAuth device-code flow.\n'
   "$KIMI" login
   "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text --auto 2>&1 | grep -q 'KIMI_BUILDER_READY' || fail "Kimi K3 capability probe failed after login"
 fi
@@ -98,8 +102,6 @@ cat > "$CONFIG" <<JSON
 JSON
 chmod 600 "$CONFIG"
 
-# Remove repository entries that are not locally available yet; they can be added later
-# without blocking the worker for repositories that do exist.
 "$PYTHON" - "$CONFIG" <<'PY'
 import json, pathlib, sys
 p=pathlib.Path(sys.argv[1]); data=json.loads(p.read_text())
@@ -170,7 +172,7 @@ cat > "$STATUS_JSON" <<JSON
 JSON
 PYTHONPATH="$SOURCE_ROOT" HERMES_BUILDER_CONTROL_DIR="$APP_ROOT/hermes-control" \
   "$PYTHON" - "$STATUS_JSON" "$STATUS_PATH" <<'PY'
-import json,sys
+import sys
 from deploy.builder_dispatch.mac_transport import commit_and_push
 content=open(sys.argv[1]).read()
 ok,msg,sha=commit_and_push([(sys.argv[2],content)],"builder-worker-ready: macOS Kimi K3")
