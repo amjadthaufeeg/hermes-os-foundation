@@ -2,144 +2,150 @@
 set -euo pipefail
 
 PINNED_HERMES_SHA="${PINNED_HERMES_SHA:-}"
-KIMI_INSTALLER_PATH="${KIMI_INSTALLER_PATH:-}"
+EXPECTED_USER="${HERMES_BUILDER_EXPECTED_USER:-hermes-builder}"
 FOUNDATION_REPO="${HERMES_FOUNDATION_REPO:-$HOME/projects/hermes-os-foundation}"
-AVOA_REPO="${AVOA_REPO:-$HOME/projects/avoa-quote-engine}"
 APP_ROOT="$HOME/Library/Application Support/HermesBuilder"
 SOURCE_ROOT="$APP_ROOT/source"
 STATE_ROOT="$APP_ROOT/state"
 LOG_ROOT="$APP_ROOT/logs"
+CLONE_ROOT="$APP_ROOT/task-clones"
 CONFIG="$APP_ROOT/config.json"
 PLIST="$HOME/Library/LaunchAgents/ai.hermes.builder-worker.plist"
 LABEL="ai.hermes.builder-worker"
+CONTROL_KEY="${HERMES_CONTROL_SSH_KEY:-$HOME/.ssh/hermes-control-deploy}"
+FOUNDATION_KEY="${HERMES_FOUNDATION_SSH_KEY:-$HOME/.ssh/hermes-foundation-deploy}"
+AVOA_KEY="${AVOA_SSH_KEY:-$HOME/.ssh/avoa-quote-engine-deploy}"
 
 say() { printf '\n==> %s\n' "$*"; }
 fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 
-[[ "$(uname -s)" == "Darwin" ]] || fail "This bootstrap is for macOS only"
-[[ "$PINNED_HERMES_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "PINNED_HERMES_SHA must be an immutable 40-character commit SHA"
-command -v git >/dev/null || fail "Git is required"
-command -v shasum >/dev/null || fail "shasum is required"
+[[ "$(uname -s)" == "Darwin" ]] || fail "macOS is required"
+[[ "$PINNED_HERMES_SHA" =~ ^[0-9a-f]{40}$ ]] || fail "PINNED_HERMES_SHA must be an immutable commit SHA"
+[[ "$(id -u)" -ne 0 ]] || fail "Never run the builder as root"
+[[ "$(id -un)" == "$EXPECTED_USER" ]] || fail "Run this only from the dedicated '$EXPECTED_USER' macOS account"
+if id -Gn | tr ' ' '\n' | grep -qx admin; then
+  fail "The builder account must be NON-ADMIN. Remove '$EXPECTED_USER' from the admin group first."
+fi
 
-mkdir -p "$APP_ROOT" "$STATE_ROOT" "$LOG_ROOT" "$HOME/Library/LaunchAgents" "$HOME/avoa-worktrees"
-chmod 700 "$APP_ROOT" "$STATE_ROOT" "$LOG_ROOT"
+for cmd in git python3 ssh launchctl; do command -v "$cmd" >/dev/null || fail "$cmd is required"; done
+
+check_key() {
+  local key="$1" name="$2"
+  [[ -f "$key" ]] || fail "$name deploy key missing: $key"
+  local mode
+  mode="$(stat -f '%Lp' "$key")"
+  [[ "$mode" == "600" || "$mode" == "400" ]] || fail "$name deploy key must be chmod 600 (or 400), got $mode"
+}
+check_key "$CONTROL_KEY" "hermes-control"
+check_key "$FOUNDATION_KEY" "hermes-os-foundation"
+# AVOA may not yet be cloned, but the key is required before production AVOA building.
+[[ -f "$AVOA_KEY" ]] && check_key "$AVOA_KEY" "avoa-quote-engine"
+
+mkdir -p "$APP_ROOT" "$STATE_ROOT" "$LOG_ROOT" "$CLONE_ROOT" "$HOME/Library/LaunchAgents"
+chmod 700 "$APP_ROOT" "$STATE_ROOT" "$LOG_ROOT" "$CLONE_ROOT"
+
+ssh_env() {
+  local key="$1"
+  printf '%s' "ssh -i $key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$APP_ROOT/known_hosts"
+}
+
+verify_repo_key() {
+  local repo="$1" key="$2"
+  GIT_SSH_COMMAND="$(ssh_env "$key")" GIT_TERMINAL_PROMPT=0 \
+    git ls-remote "git@github.com:$repo.git" HEAD >/dev/null 2>&1 || fail "Dedicated key cannot access $repo"
+}
+verify_repo_key "amjadthaufeeg/hermes-control" "$CONTROL_KEY"
+verify_repo_key "amjadthaufeeg/hermes-os-foundation" "$FOUNDATION_KEY"
+[[ -f "$AVOA_KEY" ]] && verify_repo_key "amjadthaufeeg/avoa-quote-engine" "$AVOA_KEY" || true
 
 if [[ ! -d "$FOUNDATION_REPO/.git" ]]; then
-  candidate="$(find "$HOME/projects" -maxdepth 2 -type d -name hermes-os-foundation -print -quit 2>/dev/null || true)"
-  [[ -n "$candidate" && -d "$candidate/.git" ]] || fail "Cannot locate hermes-os-foundation under ~/projects"
-  FOUNDATION_REPO="$candidate"
+  mkdir -p "$(dirname "$FOUNDATION_REPO")"
+  GIT_SSH_COMMAND="$(ssh_env "$FOUNDATION_KEY")" GIT_TERMINAL_PROMPT=0 \
+    git clone "git@github.com:amjadthaufeeg/hermes-os-foundation.git" "$FOUNDATION_REPO" || fail "Cannot clone foundation repo"
 fi
+ORIGIN="$(git -C "$FOUNDATION_REPO" remote get-url origin)"
+[[ "$ORIGIN" == "git@github.com:amjadthaufeeg/hermes-os-foundation.git" || "$ORIGIN" == "https://github.com/amjadthaufeeg/hermes-os-foundation.git" ]] || fail "Unexpected foundation origin: $ORIGIN"
 
-say "Refreshing reviewed builder source at immutable SHA $PINNED_HERMES_SHA"
-git -C "$FOUNDATION_REPO" fetch origin "$PINNED_HERMES_SHA"
-git -C "$FOUNDATION_REPO" cat-file -e "$PINNED_HERMES_SHA^{commit}" || fail "Pinned Hermes commit unavailable"
-if [[ -e "$SOURCE_ROOT" ]]; then
-  git -C "$FOUNDATION_REPO" worktree remove --force "$SOURCE_ROOT" >/dev/null 2>&1 || rm -rf "$SOURCE_ROOT"
-fi
-git -C "$FOUNDATION_REPO" worktree add --detach "$SOURCE_ROOT" "$PINNED_HERMES_SHA"
-SOURCE_SHA="$(git -C "$SOURCE_ROOT" rev-parse HEAD)"
-[[ "$SOURCE_SHA" == "$PINNED_HERMES_SHA" ]] || fail "Hermes source SHA mismatch"
+say "Loading reviewed Hermes source at immutable SHA $PINNED_HERMES_SHA"
+GIT_SSH_COMMAND="$(ssh_env "$FOUNDATION_KEY")" git -C "$FOUNDATION_REPO" fetch origin "$PINNED_HERMES_SHA"
+git -C "$FOUNDATION_REPO" cat-file -e "$PINNED_HERMES_SHA^{commit}" || fail "Pinned commit unavailable"
+rm -rf "$SOURCE_ROOT"
+git clone --no-checkout "$FOUNDATION_REPO" "$SOURCE_ROOT"
+git -C "$SOURCE_ROOT" checkout --detach "$PINNED_HERMES_SHA"
+[[ "$(git -C "$SOURCE_ROOT" rev-parse HEAD)" == "$PINNED_HERMES_SHA" ]] || fail "Pinned source mismatch"
 
-say "Locating Python"
-PYTHON="$(command -v python3 || true)"
-[[ -n "$PYTHON" ]] || fail "python3 is required"
+PYTHON="$(command -v python3)"
 "$PYTHON" - <<'PY'
 import sys
-assert sys.version_info >= (3, 9), f"Python 3.9+ required, got {sys.version}"
+assert sys.version_info >= (3,9), sys.version
 PY
 
-say "Ensuring Kimi Code CLI is installed"
 KIMI="$(command -v kimi || true)"
-if [[ -z "$KIMI" ]]; then
-  [[ -n "$KIMI_INSTALLER_PATH" ]] || fail "Kimi is not installed and no verified local installer was supplied"
-  [[ -f "$KIMI_INSTALLER_PATH" ]] || fail "Verified Kimi installer file is missing"
-  /bin/bash "$KIMI_INSTALLER_PATH"
-  export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-  KIMI="$(command -v kimi || true)"
-fi
-[[ -n "$KIMI" && -x "$KIMI" ]] || fail "Kimi installation did not produce an executable"
+[[ -n "$KIMI" && -x "$KIMI" ]] || fail "Kimi Code CLI is not installed. Install it separately from Moonshot AI's official documentation, then rerun v3."
 "$KIMI" --version
+KIMI_DIR="$(dirname "$KIMI")"
 
-say "Verifying Kimi authentication and K3 access"
+say "Verifying Kimi authentication using a minimal environment"
 CAP_PROMPT='Reply with exactly KIMI_BUILDER_READY and do not call tools.'
-if ! "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text --auto 2>&1 | grep -q 'KIMI_BUILDER_READY'; then
-  printf '\nKimi requires account authorization. Starting the official OAuth device-code flow.\n'
-  "$KIMI" login
-  "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text --auto 2>&1 | grep -q 'KIMI_BUILDER_READY' || fail "Kimi K3 capability probe failed after login"
+if ! /usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" LANG=C.UTF-8 LC_ALL=C.UTF-8 \
+  "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text 2>&1 | grep -q KIMI_BUILDER_READY; then
+  printf '\nKimi needs authorization. Starting the official Kimi login flow.\n'
+  /usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" "$KIMI" login
+  /usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" LANG=C.UTF-8 LC_ALL=C.UTF-8 \
+    "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text 2>&1 | grep -q KIMI_BUILDER_READY || fail "Kimi K3 capability probe failed"
 fi
 
-say "Creating trusted builder configuration"
-KIMI_DIR="$(dirname "$KIMI")"
 cat > "$CONFIG" <<JSON
 {
   "builders": {
     "kimi-k3": {
       "executable": "$KIMI",
-      "args": [
-        "-m", "kimi-code/k3-256k",
-        "-p", "You are the sole assigned Kimi K3 builder for {task_id}. Read the approved task contract at {contract_path}. Inspect the current repository and baseline {baseline_commit}. Implement only the contract's allowed scope, preserve all protected areas, run the required validations, then git add and commit all intended changes on the current branch {branch}. Do not push, merge, change branches, or modify unrelated files. If a stop condition occurs, make no broader change and exit non-zero. End with a concise builder report.",
-        "--output-format", "stream-json",
-        "--auto"
-      ],
-      "path_entries": ["$KIMI_DIR", "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+      "args": ["-m","kimi-code/k3-256k","-p","You are the sole assigned builder for {task_id}. Read {contract_path}. Implement only allowed scope. Do not push, merge, change branches, edit protected paths, read unrelated files, or inspect credentials. Run required validation, commit intended changes on {branch}, and exit. If scope is ambiguous, make no change and exit non-zero.","--output-format","stream-json","--auto"],
+      "path_entries": ["$KIMI_DIR","/opt/homebrew/bin","/usr/local/bin","/usr/bin","/bin"]
     }
   },
   "repositories": {
     "amjadthaufeeg/hermes-os-foundation": {
-      "source_repository": "$FOUNDATION_REPO",
-      "worktree_root": "$HOME/hermes-worktrees",
+      "remote_url": "git@github.com:amjadthaufeeg/hermes-os-foundation.git",
+      "ssh_key": "$FOUNDATION_KEY",
+      "clone_root": "$CLONE_ROOT",
       "contract_root_relpath": "docs/tasks",
-      "allowed_branch_prefixes": ["feature/", "fix/", "chore/"]
+      "allowed_branch_prefixes": ["feature/","fix/","chore/"],
+      "protected_branches": ["main","master","production","prod"]
     },
     "amjadthaufeeg/avoa-quote-engine": {
-      "source_repository": "$AVOA_REPO",
-      "worktree_root": "$HOME/avoa-worktrees",
+      "remote_url": "git@github.com:amjadthaufeeg/avoa-quote-engine.git",
+      "ssh_key": "$AVOA_KEY",
+      "clone_root": "$CLONE_ROOT",
       "contract_root_relpath": "docs/tasks",
-      "allowed_branch_prefixes": ["feature/", "fix/", "chore/"]
+      "allowed_branch_prefixes": ["feature/","fix/","chore/"],
+      "protected_branches": ["main","master","production","prod"]
     }
   }
 }
 JSON
 chmod 600 "$CONFIG"
 
-"$PYTHON" - "$CONFIG" <<'PY'
-import json, pathlib, sys
-p=pathlib.Path(sys.argv[1]); data=json.loads(p.read_text())
-for name,cfg in list(data.get('repositories',{}).items()):
-    if not (pathlib.Path(cfg['source_repository']).expanduser()/'.git').exists():
-        del data['repositories'][name]
-p.write_text(json.dumps(data,indent=2)+"\n")
-PY
-chmod 600 "$CONFIG"
-
-say "Installing launchd worker"
 cat > "$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>$LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$PYTHON</string>
-    <string>-m</string><string>deploy.builder_dispatch.mac_worker</string>
-    <string>--config</string><string>$CONFIG</string>
-    <string>--state-dir</string><string>$STATE_ROOT</string>
-    <string>--poll</string><string>30</string>
-  </array>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PYTHONPATH</key><string>$SOURCE_ROOT</string>
-    <key>PATH</key><string>$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
-    <key>HERMES_BUILDER_CONTROL_DIR</key><string>$APP_ROOT/hermes-control</string>
-  </dict>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>ThrottleInterval</key><integer>10</integer>
-  <key>StandardOutPath</key><string>$LOG_ROOT/worker.out.log</string>
-  <key>StandardErrorPath</key><string>$LOG_ROOT/worker.err.log</string>
+<plist version="1.0"><dict>
+<key>Label</key><string>$LABEL</string>
+<key>ProgramArguments</key><array>
+<string>$PYTHON</string><string>-m</string><string>deploy.builder_dispatch.mac_worker</string>
+<string>--config</string><string>$CONFIG</string><string>--state-dir</string><string>$STATE_ROOT</string><string>--poll</string><string>30</string>
+</array>
+<key>EnvironmentVariables</key><dict>
+<key>PYTHONPATH</key><string>$SOURCE_ROOT</string>
+<key>HOME</key><string>$HOME</string>
+<key>PATH</key><string>$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+<key>HERMES_BUILDER_CONTROL_DIR</key><string>$APP_ROOT/hermes-control</string>
+<key>HERMES_CONTROL_SSH_KEY</key><string>$CONTROL_KEY</string>
 </dict>
-</plist>
+<key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>10</integer>
+<key>StandardOutPath</key><string>$LOG_ROOT/worker.out.log</string>
+<key>StandardErrorPath</key><string>$LOG_ROOT/worker.err.log</string>
+</dict></plist>
 PLIST
 chmod 600 "$PLIST"
 
@@ -149,35 +155,24 @@ launchctl kickstart -k "gui/$UID/$LABEL"
 sleep 2
 launchctl print "gui/$UID/$LABEL" >/dev/null || fail "launchd worker did not start"
 
-say "Running worker self-test"
-PYTHONPATH="$SOURCE_ROOT" HERMES_BUILDER_CONTROL_DIR="$APP_ROOT/hermes-control" \
-  "$PYTHON" -m deploy.builder_dispatch.mac_worker --config "$CONFIG" --state-dir "$STATE_ROOT" --once
+say "Running fail-closed worker self-test"
+/usr/bin/env -i HOME="$HOME" PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" PYTHONPATH="$SOURCE_ROOT" \
+HERMES_BUILDER_CONTROL_DIR="$APP_ROOT/hermes-control" HERMES_CONTROL_SSH_KEY="$CONTROL_KEY" \
+"$PYTHON" -m deploy.builder_dispatch.mac_worker --config "$CONFIG" --state-dir "$STATE_ROOT" --once
 
-say "Publishing worker readiness"
 HOST="$(scutil --get ComputerName 2>/dev/null || hostname)"
-STATUS_PATH="builders/worker-status/${HOST// /-}.json"
-STATUS_JSON="$APP_ROOT/worker-status.json"
-cat > "$STATUS_JSON" <<JSON
-{
-  "status": "READY",
-  "processor": "$LABEL",
-  "host": "$HOST",
-  "source_sha": "$SOURCE_SHA",
-  "kimi_executable": "$KIMI",
-  "kimi_model": "kimi-code/k3-256k",
-  "foundation_repo": "$FOUNDATION_REPO",
-  "avoa_repo_present": $([[ -d "$AVOA_REPO/.git" ]] && echo true || echo false),
-  "verified_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
+STATUS="$APP_ROOT/worker-status.json"
+cat > "$STATUS" <<JSON
+{"status":"READY_V3","host":"$HOST","source_sha":"$PINNED_HERMES_SHA","user":"$(id -un)","admin":false,"isolation":"full-task-clones","kimi_model":"kimi-code/k3-256k","verified_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSON
-PYTHONPATH="$SOURCE_ROOT" HERMES_BUILDER_CONTROL_DIR="$APP_ROOT/hermes-control" \
-  "$PYTHON" - "$STATUS_JSON" "$STATUS_PATH" <<'PY'
+/usr/bin/env -i HOME="$HOME" PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin" PYTHONPATH="$SOURCE_ROOT" \
+HERMES_BUILDER_CONTROL_DIR="$APP_ROOT/hermes-control" HERMES_CONTROL_SSH_KEY="$CONTROL_KEY" \
+"$PYTHON" - "$STATUS" "builders/worker-status/${HOST// /-}.json" <<'PY'
 import sys
 from deploy.builder_dispatch.mac_transport import commit_and_push
-content=open(sys.argv[1]).read()
-ok,msg,sha=commit_and_push([(sys.argv[2],content)],"builder-worker-ready: macOS Kimi K3")
+ok,msg,sha=commit_and_push([(sys.argv[2],open(sys.argv[1]).read())],"builder-worker-ready-v3")
 if not ok: raise SystemExit(msg)
 print("CONTROL_SHA="+str(sha))
 PY
 
-printf '\nBUILDER_WORKER_READY\nSOURCE_SHA=%s\nKIMI=%s\nPLIST=%s\n' "$SOURCE_SHA" "$KIMI" "$PLIST"
+printf '\nHERMES_BUILDER_V3_READY\nSOURCE_SHA=%s\nUSER=%s\n' "$PINNED_HERMES_SHA" "$(id -un)"
