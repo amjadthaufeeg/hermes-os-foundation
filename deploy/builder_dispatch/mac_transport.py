@@ -60,6 +60,11 @@ def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 60) -> subp
     return subprocess.run(args, cwd=str(cwd) if cwd else None, capture_output=True, text=True, timeout=timeout, shell=False, env=_git_env())
 
 
+def git_run(args: list[str], *, cwd: Path | None = None, timeout: int = 60) -> subprocess.CompletedProcess:
+    """Run a Git command through the dedicated hermes-control transport identity."""
+    return _run(args, cwd=cwd, timeout=timeout)
+
+
 @contextmanager
 def transport_lock():
     root = control_dir().parent
@@ -72,17 +77,21 @@ def transport_lock():
 
 def _verify_origin(local: Path) -> None:
     origin = _run(["git", "remote", "get-url", "origin"], cwd=local, timeout=10).stdout.strip()
-    if origin != REPO_URL: raise RuntimeError(f"unexpected hermes-control origin: {origin}")
+    if origin != REPO_URL:
+        raise RuntimeError(f"unexpected hermes-control origin: {origin}")
 
 
 def ensure_clone() -> Path:
     local = control_dir()
     if (local / ".git").is_dir():
-        _verify_origin(local); return local
+        _verify_origin(local)
+        return local
     local.parent.mkdir(parents=True, exist_ok=True)
     result = _run(["git", "clone", "--branch", BRANCH, "--single-branch", REPO_URL, str(local)], timeout=120)
-    if result.returncode != 0: raise RuntimeError(f"cannot clone hermes-control: {result.stderr.strip() or result.stdout.strip()}")
-    _verify_origin(local); return local
+    if result.returncode != 0:
+        raise RuntimeError(f"cannot clone hermes-control: {result.stderr.strip() or result.stdout.strip()}")
+    _verify_origin(local)
+    return local
 
 
 def sync_rebase() -> tuple[bool, str]:
@@ -90,7 +99,8 @@ def sync_rebase() -> tuple[bool, str]:
     with transport_lock():
         _verify_origin(local)
         fetch = _run(["git", "fetch", "origin", BRANCH], cwd=local)
-        if fetch.returncode != 0: return False, fetch.stderr.strip() or fetch.stdout.strip()
+        if fetch.returncode != 0:
+            return False, fetch.stderr.strip() or fetch.stdout.strip()
         rebase = _run(["git", "rebase", f"origin/{BRANCH}"], cwd=local)
         if rebase.returncode != 0:
             _run(["git", "rebase", "--abort"], cwd=local, timeout=10)
@@ -103,30 +113,39 @@ def commit_and_push(files: list[tuple[str, str]], message: str, *, delete_paths:
     with transport_lock():
         _verify_origin(local)
         fetch = _run(["git", "fetch", "origin", BRANCH], cwd=local)
-        if fetch.returncode != 0: return False, fetch.stderr.strip(), None
+        if fetch.returncode != 0:
+            return False, fetch.stderr.strip(), None
         rebase = _run(["git", "rebase", f"origin/{BRANCH}"], cwd=local)
         if rebase.returncode != 0:
             _run(["git", "rebase", "--abort"], cwd=local, timeout=10)
             return False, rebase.stderr.strip(), None
         for path, content in files:
-            full = local / path; full.parent.mkdir(parents=True, exist_ok=True); full.write_text(content)
+            full = local / path
+            full.parent.mkdir(parents=True, exist_ok=True)
+            full.write_text(content)
         for path in delete_paths or []:
             full = local / path
-            if full.exists(): full.unlink()
+            if full.exists():
+                full.unlink()
         _run(["git", "add", "-A"], cwd=local, timeout=15)
         diff = _run(["git", "diff", "--cached", "--quiet"], cwd=local, timeout=15)
         if diff.returncode == 0:
-            sha = _run(["git", "rev-parse", "HEAD"], cwd=local, timeout=10).stdout.strip(); return True, "No changes", sha
+            sha = _run(["git", "rev-parse", "HEAD"], cwd=local, timeout=10).stdout.strip()
+            return True, "No changes", sha
         commit = _run(["git", "-c", "user.name=Hermes Builder Worker", "-c", "user.email=hermes-builder@localhost", "commit", "-m", message], cwd=local, timeout=30)
-        if commit.returncode != 0: return False, commit.stderr.strip() or commit.stdout.strip(), None
+        if commit.returncode != 0:
+            return False, commit.stderr.strip() or commit.stdout.strip(), None
         for _ in range(3):
             _verify_origin(local)
             push = _run(["git", "push", REPO_URL, f"HEAD:refs/heads/{BRANCH}"], cwd=local, timeout=60)
             if push.returncode == 0:
-                sha = _run(["git", "rev-parse", "HEAD"], cwd=local, timeout=10).stdout.strip(); return True, "Committed", sha
+                sha = _run(["git", "rev-parse", "HEAD"], cwd=local, timeout=10).stdout.strip()
+                return True, "Committed", sha
             fetch = _run(["git", "fetch", "origin", BRANCH], cwd=local)
-            if fetch.returncode != 0: return False, fetch.stderr.strip(), None
+            if fetch.returncode != 0:
+                return False, fetch.stderr.strip(), None
             rebase = _run(["git", "rebase", f"origin/{BRANCH}"], cwd=local)
             if rebase.returncode != 0:
-                _run(["git", "rebase", "--abort"], cwd=local, timeout=10); return False, rebase.stderr.strip(), None
+                _run(["git", "rebase", "--abort"], cwd=local, timeout=10)
+                return False, rebase.stderr.strip(), None
         return False, "push failed after 3 retries", None
