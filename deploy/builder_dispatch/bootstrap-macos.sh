@@ -80,15 +80,25 @@ KIMI_DIR="$(dirname "$KIMI")"
 
 say "Verifying Kimi authentication using a minimal environment"
 CAP_PROMPT='Reply with exactly KIMI_BUILDER_READY and do not call tools.'
-if ! /usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" LANG=C.UTF-8 LC_ALL=C.UTF-8 "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text 2>&1 | grep -q KIMI_BUILDER_READY; then
+run_kimi_probe() {
+  local output rc
+  set +e
+  output="$(/usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" LANG=C.UTF-8 LC_ALL=C.UTF-8 "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text 2>&1)"
+  rc=$?
+  set -e
+  printf '%s\n' "$output"
+  [[ $rc -eq 0 ]] || return $rc
+  printf '%s\n' "$output" | grep -Fq 'KIMI_BUILDER_READY'
+}
+if ! run_kimi_probe; then
   printf '\nKimi needs authorization. Starting the official Kimi login flow.\n'
   /usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" "$KIMI" login
-  /usr/bin/env -i HOME="$HOME" PATH="$KIMI_DIR:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin" LANG=C.UTF-8 LC_ALL=C.UTF-8 "$KIMI" -m kimi-code/k3-256k -p "$CAP_PROMPT" --output-format text 2>&1 | grep -q KIMI_BUILDER_READY || fail "Kimi K3 capability probe failed"
+  run_kimi_probe || fail "Kimi K3 capability probe failed"
 fi
 
 cat > "$CONFIG" <<JSON
 {
-  "builders": {"kimi-k3": {"executable": "$KIMI", "args": ["-m","kimi-code/k3-256k","-p","You are the sole assigned builder for {task_id}. Read {contract_path}. Implement only allowed scope. Do not push, merge, change branches, edit protected paths, read unrelated files, or inspect credentials. Run required validation, commit intended changes on {branch}, and exit. If scope is ambiguous, make no change and exit non-zero.","--output-format","stream-json","--auto"], "path_entries": ["$KIMI_DIR","/opt/homebrew/bin","/usr/local/bin","/usr/bin","/bin"]}},
+  "builders": {"kimi-k3": {"executable": "$KIMI", "args": ["-m","kimi-code/k3-256k","-p","You are the sole assigned builder for {task_id}. Read {contract_path}. Implement only allowed scope. Do not push, merge, change branches, edit protected paths, read unrelated files, or inspect credentials. Run required validation, commit intended changes on {branch}, and exit. If scope is ambiguous, make no change and exit non-zero.","--output-format","stream-json"], "path_entries": ["$KIMI_DIR","/opt/homebrew/bin","/usr/local/bin","/usr/bin","/bin"]}},
   "repositories": {
     "amjadthaufeeg/hermes-os-foundation": {"remote_url": "git@github.com:amjadthaufeeg/hermes-os-foundation.git", "ssh_key": "$FOUNDATION_KEY", "clone_root": "$CLONE_ROOT", "contract_root_relpath": "docs/tasks", "allowed_branch_prefixes": ["feature/","fix/","chore/"], "protected_branches": ["main","master","production","prod"]},
     "amjadthaufeeg/avoa-quote-engine": {"remote_url": "git@github.com:amjadthaufeeg/avoa-quote-engine.git", "ssh_key": "$AVOA_KEY", "clone_root": "$CLONE_ROOT", "contract_root_relpath": "docs/tasks", "allowed_branch_prefixes": ["feature/","fix/","chore/"], "protected_branches": ["main","master","production","prod"]}
