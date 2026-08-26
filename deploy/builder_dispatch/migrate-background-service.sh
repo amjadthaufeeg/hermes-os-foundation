@@ -30,10 +30,13 @@ LOG_ROOT="$APP_ROOT/logs"
 CONTROL_KEY="$BUILDER_HOME/.ssh/hermes-control-deploy"
 FOUNDATION_KEY="$BUILDER_HOME/.ssh/hermes-foundation-deploy"
 KNOWN_HOSTS="$BUILDER_HOME/.ssh/hermes-builder-known_hosts"
-KIMI="$(/usr/bin/sudo -u "$BUILDER_USER" /bin/zsh -lc 'command -v kimi' 2>/dev/null || true)"
+KIMI="$BUILDER_HOME/.kimi-code/bin/kimi"
 PYTHON="/usr/bin/python3"
 
 for p in "$CONFIG" "$CONTROL_KEY" "$FOUNDATION_KEY"; do [[ -e "$p" ]] || fail "required builder asset missing: $p"; done
+if [[ ! -x "$KIMI" ]]; then
+  KIMI="$(/usr/bin/sudo -u "$BUILDER_USER" /bin/zsh -lc 'command -v kimi' 2>/dev/null || true)"
+fi
 [[ -x "$KIMI" ]] || fail "Kimi executable unavailable for $BUILDER_USER"
 [[ -x "$PYTHON" ]] || fail "python3 unavailable at $PYTHON"
 
@@ -115,8 +118,6 @@ PLIST
 chown root:wheel "$WORKER_PLIST" "$REPORTER_PLIST"
 chmod 644 "$WORKER_PLIST" "$REPORTER_PLIST"
 
-# Stop any pre-existing system services. The worker intentionally remains paused
-# until the sanitized reconciliation report is reviewed and approved.
 launchctl bootout "system/$WORKER_LABEL" >/dev/null 2>&1 || true
 launchctl bootout "system/$REPORTER_LABEL" >/dev/null 2>&1 || true
 launchctl bootstrap system "$REPORTER_PLIST"
