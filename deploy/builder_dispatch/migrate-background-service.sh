@@ -44,6 +44,11 @@ mkdir -p "$REPORT_ROOT"
 chown "$BUILDER_USER":staff "$REPORT_ROOT"
 chmod 755 "$REPORT_ROOT"
 
+# Critical isolation rule: never let builder-user subprocesses inherit the
+# admin user's current working directory. Kimi calls process.cwd() at startup;
+# a cwd under /Users/amjadthaufeeg is intentionally unreadable to hermesbuilder.
+cd "$BUILDER_HOME"
+
 say "Verifying Kimi works without an interactive login session"
 KIMI_DIR="$(dirname "$KIMI")"
 set +e
@@ -75,6 +80,7 @@ cat > "$WORKER_PLIST" <<PLIST
 <plist version="1.0"><dict>
 <key>Label</key><string>$WORKER_LABEL</string>
 <key>UserName</key><string>$BUILDER_USER</string>
+<key>WorkingDirectory</key><string>$BUILDER_HOME</string>
 <key>ProgramArguments</key><array>
 <string>$PYTHON</string><string>-m</string><string>deploy.builder_dispatch.mac_worker</string>
 <string>--config</string><string>$CONFIG</string>
@@ -100,6 +106,7 @@ cat > "$REPORTER_PLIST" <<PLIST
 <plist version="1.0"><dict>
 <key>Label</key><string>$REPORTER_LABEL</string>
 <key>UserName</key><string>$BUILDER_USER</string>
+<key>WorkingDirectory</key><string>$BUILDER_HOME</string>
 <key>ProgramArguments</key><array><string>$PYTHON</string><string>-m</string><string>deploy.builder_dispatch.report_bridge</string></array>
 <key>EnvironmentVariables</key><dict>
 <key>PYTHONPATH</key><string>$SOURCE_ROOT</string>
