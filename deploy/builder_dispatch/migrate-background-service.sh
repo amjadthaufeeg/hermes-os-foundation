@@ -114,15 +114,16 @@ PLIST
 
 chown root:wheel "$WORKER_PLIST" "$REPORTER_PLIST"
 chmod 644 "$WORKER_PLIST" "$REPORTER_PLIST"
+
+# Stop any pre-existing system services. The worker intentionally remains paused
+# until the sanitized reconciliation report is reviewed and approved.
 launchctl bootout "system/$WORKER_LABEL" >/dev/null 2>&1 || true
 launchctl bootout "system/$REPORTER_LABEL" >/dev/null 2>&1 || true
-launchctl bootstrap system "$WORKER_PLIST"
 launchctl bootstrap system "$REPORTER_PLIST"
-launchctl kickstart -k "system/$WORKER_LABEL"
 launchctl kickstart -k "system/$REPORTER_LABEL"
 sleep 3
-launchctl print "system/$WORKER_LABEL" >/dev/null || fail "worker LaunchDaemon failed to load"
 launchctl print "system/$REPORTER_LABEL" >/dev/null || fail "reporter LaunchDaemon failed to load"
+if launchctl print "system/$WORKER_LABEL" >/dev/null 2>&1; then fail "worker should be paused pending reconciliation"; fi
 
 say "Verifying sanitized report bridge"
 for _ in 1 2 3 4 5; do
@@ -132,4 +133,4 @@ done
 [[ -f "$REPORT_ROOT/status-and-reconciliation.json" ]] || fail "report bridge did not publish"
 chmod 644 "$REPORT_ROOT/status-and-reconciliation.json"
 
-printf '\nHERMES_BACKGROUND_SERVICE_READY\nUSER=%s\nSOURCE_SHA=%s\nREPORT=%s\n' "$BUILDER_USER" "$PINNED_HERMES_SHA" "$REPORT_ROOT/status-and-reconciliation.json"
+printf '\nHERMES_BACKGROUND_REPORTING_READY\nUSER=%s\nSOURCE_SHA=%s\nWORKER_STATE=PAUSED_PENDING_RECONCILIATION\nREPORT=%s\nWORKER_PLIST=%s\n' "$BUILDER_USER" "$PINNED_HERMES_SHA" "$REPORT_ROOT/status-and-reconciliation.json" "$WORKER_PLIST"
